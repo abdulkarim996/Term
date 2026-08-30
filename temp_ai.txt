@@ -1,0 +1,600 @@
+import React, { useState, useRef, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  Sparkles, Send, Trash2,
+  Bot, User, Loader2, AlertCircle,
+  BookOpen, Calendar, CheckSquare, ChevronDown, Zap, Brain
+} from 'lucide-react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { db } from '../../lib/db'
+import type { ChatMessage } from '../../lib/db'
+import { buildRAGContext } from '../../lib/utils'
+import { useSettingsStore, useUIStore } from '../../store'
+
+const SESSION_ID = `session_${Date.now()}`
+
+// Available models
+const MODELS = [
+  {
+    id: 'gemini-3.6-flash',
+    label: 'Flash',
+    desc: 'أسرع · مجاني',
+    icon: Zap,
+    color: 'text-accent-yellow',
+    bg: 'bg-accent-yellow/10',
+  },
+  {
+    id: 'gemini-3.6-pro',
+    label: 'Pro',
+    desc: 'أذكى · مجاني محدود',
+    icon: Brain,
+    color: 'text-accent-purple',
+    bg: 'bg-accent-purple/10',
+  },
+] as const
+
+type ModelId = typeof MODELS[number]['id']
+
+const QUICK_PROMPTS = [
+  { label: 'ماذا لدي غداً؟', icon: Calendar },
+  { label: 'ما أهم مهامي؟', icon: CheckSquare },
+  { label: 'اشرح لي أي مادة', icon: BookOpen },
+  { label: 'لخص ملفاتي', icon: Sparkles },
+]
+
+// Fallback for crypto.randomUUID() on non-HTTPS mobile connections
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2);
+}
+
+// Build full RAG context including drive files
+async function buildFullContext(): Promise<string> {
+  const base = await buildRAGContext()
+
+  // Add drive files
+  const driveFiles = await db.driveFiles.toArray()
+  const subjects = await db.subjects.toArray()
+  const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s.name]))
+
+  if (driveFiles.length > 0) {
+    let filesCtx = '\n### ملفات Google Drive المتاحة\n'
+    const grouped: Record<string, typeof driveFiles> = {}
+    for (const f of driveFiles) {
+      const key = f.subjectId ? subjectMap[f.subjectId] ?? 'غير مصنف' : 'غير مصنف'
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(f)
+    }
+    for (const [subject, files] of Object.entries(grouped)) {
+      filesCtx += `\n**${subject}**:\n`
+      files.forEach((f) => {
+        filesCtx += `- ${f.name} (${f.mimeType.split('/').pop()})\n`
+      })
+    }
+    return base + filesCtx
+  }
+
+  return base
+}
+
+// Extract base64 attachments from tasks for multimodal
+async function getTaskAttachments() {
+  const tasks = await db.tasks.filter((t) => !!(t.attachments && t.attachments.length > 0)).toArray()
+  const parts: { inlineData: { mimeType: string; data: string }; taskTitle: string; fileName: string }[] = []
+
+  for (const task of tasks) {
+    for (const att of task.attachments ?? []) {
+      if (att.data) {
+        // data is base64 data URL: "data:mime/type;base64,xxxx"
+        const match = att.data.match(/^data:([^;]+);base64,(.+)$/)
+        if (match) {
+          parts.push({
+            inlineData: { mimeType: match[1], data: match[2] },
+            taskTitle: task.title,
+            fileName: att.name,
+          })
+        }
+      }
+    }
+  }
+  return parts
+}
+
+export default function AIScreen() {
+  const { geminiApiKey } = useSettingsStore()
+  const { showToast, setActiveTab } = useUIStore()
+  
+  // Session state
+  const [currentSessionId, setCurrentSessionId] = useState(() => localStorage.getItem('lastChatSessionId') || generateId())
+  const [showSessionsMenu, setShowSessionsMenu] = useState(false)
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<ModelId>('gemini-3.6-flash')
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [includeFiles, setIncludeFiles] = useState(true)
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const sessions = useLiveQuery(() => db.chatSessions.orderBy('updatedAt').reverse().toArray()) || []
+  const messages = useLiveQuery(
+    () => db.messages.where('sessionId').equals(currentSessionId).sortBy('timestamp'),
+    [currentSessionId]
+  )
+  const driveFilesCount = useLiveQuery(() => db.driveFiles.count(), [])
+  const tasksCount = useLiveQuery(() => db.tasks.count(), [])
+
+  useEffect(() => {
+    localStorage.setItem('lastChatSessionId', currentSessionId)
+  }, [currentSessionId])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const currentModel = MODELS.find((m) => m.id === selectedModel) || MODELS[0]
+
+  const ensureSessionExists = async (title: string = 'محادثة جديدة') => {
+    const existing = await db.chatSessions.get(currentSessionId)
+    if (!existing) {
+      await db.chatSessions.add({
+        id: currentSessionId,
+        title,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      })
+    } else {
+      await db.chatSessions.update(currentSessionId, { updatedAt: Date.now() })
+    }
+  }
+
+  const createNewSession = () => {
+    setCurrentSessionId(generateId())
+    setShowSessionsMenu(false)
+  }
+
+  const deleteSession = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await db.messages.where('sessionId').equals(id).delete()
+    await db.chatSessions.delete(id)
+    if (currentSessionId === id) {
+      const remaining = sessions.filter(s => s.id !== id)
+      setCurrentSessionId(remaining.length > 0 ? remaining[0].id : generateId())
+    }
+    useUIStore.getState().showToast('تم حذف المحادثة', 'info')
+  }
+
+  const startRename = (session: ChatSession, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingSessionId(session.id)
+    setEditTitle(session.title)
+  }
+
+  const saveRename = async (id: string, e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (editTitle.trim()) {
+      await db.chatSessions.update(id, { title: editTitle.trim(), updatedAt: Date.now() })
+    }
+    setEditingSessionId(null)
+  }
+
+  const clearChat = async () => {
+    if (window.confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
+      await db.messages.where('sessionId').equals(currentSessionId).delete()
+      await db.chatSessions.delete(currentSessionId)
+      createNewSession()
+    }
+  }
+
+  const hasMessages = messages && messages.length > 0
+
+  const sendMessage = async (text: string = input) => {
+    if (!text.trim() || loading) return
+    if (!geminiApiKey) {
+      showToast('أضف Gemini API Key في الإعدادات أولاً', 'error')
+      setActiveTab('more')
+      return
+    }
+
+    const userMsgText = text.trim()
+
+    // Ensure the session exists and create a title if it's the first message
+    if (!hasMessages) {
+      const title = userMsgText.length > 25 ? userMsgText.substring(0, 25) + '...' : userMsgText
+      await ensureSessionExists(title)
+    } else {
+      await ensureSessionExists()
+    }
+
+    const userMsg: ChatMessage = {
+      role: 'user',
+      content: userMsgText,
+      timestamp: Date.now(),
+      sessionId: currentSessionId,
+    }
+    await db.messages.add(userMsg)
+    setInput('')
+    setLoading(true)
+
+    try {
+      // Build RAG context
+      const context = await buildFullContext()
+
+      // Build chat history
+      const history = (messages ?? []).map((m) => ({
+        role: m.role === 'assistant' ? 'model' : ('user' as 'user' | 'model'),
+        parts: [{ text: m.content }],
+      }))
+
+      const genAI = new GoogleGenerativeAI(geminiApiKey)
+      const model = genAI.getGenerativeModel({
+        model: selectedModel,
+        systemInstruction: `أنت مساعد ذكي لطالب هندسة صناعية. مهمتك مساعدته في التنظيم والمذاكرة وفهم المواد.
+
+${context}
+
+قواعد:
+- أجب باللغة العربية دائماً ما لم يطلب غير ذلك
+- استخدم البيانات أعلاه للإجابة على الأسئلة التنظيمية بدقة
+- عند شرح مواضيع دراسية استخدم أمثلة عملية من الهندسة الصناعية
+- كن موجزاً ومفيداً. استخدم emoji باعتدال.`,
+      })
+
+      const chat = model.startChat({ history })
+
+      // Build message parts (text + optional file attachments)
+      const messageParts: Record<string, string>[] = [{ text: userMsgText }]
+
+      if (includeFiles) {
+        const attachments = await getTaskAttachments()
+        if (attachments.length > 0) {
+          // Add file context note
+          messageParts[0].text += `\n\n[ملاحظة: المرفقات المتاحة من مهامك: ${attachments.map((a) => a.fileName).join(', ')}]`
+          // Attach up to 3 files inline (API limit)
+          for (const att of attachments.slice(0, 3)) {
+            messageParts.push({ text: `\n[ملف مرفق من مهمة "${att.taskTitle}": ${att.fileName}]` })
+          }
+        }
+      }
+
+      const result = await chat.sendMessage(messageParts[0].text)
+      const responseText = result.response.text()
+
+      await db.messages.add({
+        role: 'assistant',
+        content: responseText,
+        timestamp: Date.now(),
+        sessionId: currentSessionId,
+      })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'حدث خطأ'
+      await db.messages.add({
+        role: 'assistant',
+        content: `⚠️ خطأ: ${msg}. تحقق من API Key في الإعدادات.`,
+        timestamp: Date.now(),
+        sessionId: currentSessionId,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const currentSession = sessions.find(s => s.id === currentSessionId)
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-var(--nav-height))]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-surface-border flex-shrink-0 z-20">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowSessionsMenu(!showSessionsMenu)}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-blue/20 to-accent-purple/20 flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              <MessageSquare size={16} className="text-accent-purple" />
+            </button>
+            {/* Sessions Dropdown */}
+            {showSessionsMenu && (
+              <div className="absolute top-11 right-0 w-64 glass-card py-2 shadow-card animate-scale-in max-h-80 overflow-y-auto">
+                <button
+                  onClick={createNewSession}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-accent-blue hover:bg-accent-blue/10 transition-colors mb-2 border-b border-surface-border/50 pb-3"
+                >
+                  <Plus size={16} />
+                  محادثة جديدة
+                </button>
+                {sessions.map(session => (
+                  <div
+                    key={session.id}
+                    className={`flex items-center justify-between px-3 py-2 hover:bg-surface-hover transition-colors group cursor-pointer ${currentSessionId === session.id ? 'bg-surface-hover/50 border-r-2 border-accent-purple' : ''}`}
+                    onClick={() => { setCurrentSessionId(session.id); setShowSessionsMenu(false) }}
+                  >
+                    {editingSessionId === session.id ? (
+                      <form onSubmit={(e) => saveRename(session.id, e)} className="flex-1 mr-2" onClick={e => e.stopPropagation()}>
+                        <input
+                          autoFocus
+                          value={editTitle}
+                          onChange={e => setEditTitle(e.target.value)}
+                          onBlur={() => saveRename(session.id)}
+                          className="w-full bg-surface-elevated text-sm text-text-primary px-2 py-1 rounded border border-accent-purple/50 focus:outline-none"
+                        />
+                      </form>
+                    ) : (
+                      <span className="text-sm text-text-secondary truncate flex-1">{session.title}</span>
+                    )}
+                    
+                    {editingSessionId !== session.id && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={(e) => startRename(session, e)} className="p-1 text-text-muted hover:text-accent-blue"><Edit2 size={12} /></button>
+                        <button onClick={(e) => deleteSession(session.id, e)} className="p-1 text-text-muted hover:text-accent-red"><Trash2 size={12} /></button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowSessionsMenu(!showSessionsMenu)}>
+              <h1 className="text-base font-bold ai-gradient-text truncate max-w-[120px]">
+                {currentSession?.title || 'المساعد الذكي'}
+              </h1>
+              <ChevronDown size={14} className="text-text-muted" />
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              {tasksCount != null && tasksCount > 0 && (
+                <span className="text-[10px] text-accent-green bg-accent-green/10 px-1.5 py-0.5 rounded-md">
+                  ✓ {tasksCount} مهمة
+                </span>
+              )}
+              {driveFilesCount != null && driveFilesCount > 0 && (
+                <span className="text-[10px] text-accent-blue bg-accent-blue/10 px-1.5 py-0.5 rounded-md">
+                  📁 {driveFilesCount} ملف
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Model Picker */}
+          <div className="relative">
+            <button
+              onClick={() => setShowModelPicker(!showModelPicker)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${currentModel.bg} border-transparent hover:border-surface-border`}
+            >
+              <currentModel.icon size={13} className={currentModel.color} />
+              <span className={currentModel.color}>{currentModel.label}</span>
+              <ChevronDown size={11} className={`${currentModel.color} transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showModelPicker && (
+              <div className="absolute top-10 left-0 z-20 glass-card py-1.5 w-52 shadow-card animate-scale-in">
+                <p className="text-[10px] text-text-muted px-3 pb-1 pt-0.5 border-b border-surface-border mb-1">اختر الموديل</p>
+                {MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setSelectedModel(m.id); setShowModelPicker(false) }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-hover transition-colors ${selectedModel === m.id ? 'bg-surface-hover' : ''}`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${m.bg}`}>
+                      <m.icon size={14} className={m.color} />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-text-primary">Gemini {m.label}</p>
+                      <p className="text-[10px] text-text-muted">{m.desc}</p>
+                    </div>
+                    {selectedModel === m.id && (
+                      <div className="mr-auto w-1.5 h-1.5 rounded-full bg-accent-green" />
+                    )}
+                  </button>
+                ))}
+
+                {/* RAG Toggles */}
+                <div className="border-t border-surface-border mt-1 pt-1 px-3 pb-1">
+                  <p className="text-[10px] text-text-muted mb-1.5">السياق المُرسَل</p>
+                  <label className="flex items-center justify-between cursor-pointer py-1">
+                    <span className="text-xs text-text-secondary">📁 ملفات المهام</span>
+                    <div
+                      onClick={() => setIncludeFiles(!includeFiles)}
+                      className={`relative w-8 h-4 rounded-full transition-all ${includeFiles ? 'bg-accent-blue' : 'bg-surface-border'}`}
+                    >
+                      <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${includeFiles ? 'left-4' : 'left-0.5'}`} />
+                    </div>
+                  </label>
+                  <p className="text-[10px] text-accent-green">✓ الجدول والمهام دائماً مُدرجة</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {hasMessages && (
+            <button
+              onClick={clearChat}
+              className="w-8 h-8 rounded-lg hover:bg-surface-hover flex items-center justify-center text-text-muted hover:text-accent-red transition-all"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+
+          {!geminiApiKey && (
+            <button
+              onClick={() => setActiveTab('more')}
+              className="flex items-center gap-1.5 text-xs text-accent-yellow hover:text-yellow-400 transition-colors"
+            >
+              <AlertCircle size={13} />
+              API Key
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" onClick={() => setShowModelPicker(false)}>
+        {!hasMessages && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-8 space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-blue/15 to-accent-purple/15 flex items-center justify-center">
+              <Sparkles size={32} className="text-accent-purple" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold ai-gradient-text mb-1">مرحباً!</h2>
+              <p className="text-text-muted text-sm max-w-xs mx-auto leading-relaxed">
+                أقدر أجاوب على أسئلتك بناءً على{' '}
+                <span className="text-accent-green font-medium">جدولك</span>،{' '}
+                <span className="text-accent-yellow font-medium">مهامك</span>، و
+                <span className="text-accent-blue font-medium"> ملفاتك</span>.
+              </p>
+            </div>
+
+            {/* RAG Status */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-1 bg-accent-green/10 text-accent-green px-2 py-1 rounded-lg">
+                <Calendar size={11} /> الجدول متصل
+              </span>
+              <span className="flex items-center gap-1 bg-accent-yellow/10 text-accent-yellow px-2 py-1 rounded-lg">
+                <CheckSquare size={11} /> المهام متصلة
+              </span>
+              {driveFilesCount != null && driveFilesCount > 0 && (
+                <span className="flex items-center gap-1 bg-accent-blue/10 text-accent-blue px-2 py-1 rounded-lg">
+                  <BookOpen size={11} /> {driveFilesCount} ملف
+                </span>
+              )}
+            </div>
+
+            {/* Quick prompts */}
+            <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+              {QUICK_PROMPTS.map(({ label, icon: Icon }) => (
+                <button
+                  key={label}
+                  onClick={() => sendMessage(label)}
+                  className="glass-card p-3 text-right hover:border-accent-blue/30 hover:bg-surface-hover transition-all group"
+                >
+                  <Icon size={16} className="text-accent-blue mb-1.5 group-hover:scale-110 transition-transform" />
+                  <p className="text-xs text-text-secondary group-hover:text-text-primary">{label}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages?.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
+          >
+            {msg.role === 'assistant' && (
+              <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${currentModel.bg}`}>
+                <currentModel.icon size={13} className={currentModel.color} />
+              </div>
+            )}
+
+            <div
+              className={`max-w-[82%] rounded-xl2 px-3.5 py-2.5 ${
+                msg.role === 'user'
+                  ? 'bg-accent-blue text-white rounded-tr-sm'
+                  : 'bg-surface-card border border-surface-border text-text-primary rounded-tl-sm'
+              }`}
+            >
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/60' : 'text-text-muted'}`}>
+                {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+
+            {msg.role === 'user' && (
+              <div className="w-7 h-7 rounded-xl bg-accent-blue/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User size={13} className="text-accent-blue" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex gap-2.5 justify-start animate-slide-up">
+            <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${currentModel.bg}`}>
+              <currentModel.icon size={13} className={`${currentModel.color} animate-pulse-soft`} />
+            </div>
+            <div className="bg-surface-card border border-surface-border rounded-xl2 rounded-tl-sm px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full animate-bounce ${currentModel.color.replace('text-', 'bg-')}`}
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Context indicator bar */}
+      <div className="px-4 py-1.5 border-t border-surface-border/50 flex items-center gap-3 flex-shrink-0">
+        <span className="text-[10px] text-text-muted">السياق:</span>
+        <span className="text-[10px] text-accent-green">✓ الجدول</span>
+        <span className="text-[10px] text-accent-yellow">✓ المهام</span>
+        {includeFiles && (
+          <span className="text-[10px] text-accent-blue">✓ الملفات</span>
+        )}
+        <span className="mr-auto text-[10px] text-text-muted">{currentModel.label}</span>
+      </div>
+
+      {/* Input */}
+      <div className="px-4 pb-3 pt-2 border-t border-surface-border flex-shrink-0">
+        <div className="flex items-end gap-2">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="اكتب رسالتك..."
+              rows={1}
+              className="w-full bg-surface-elevated border border-surface-border rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-blue/50 transition-all"
+              style={{ minHeight: '44px', maxHeight: '120px' }}
+              disabled={loading}
+              onClick={() => setShowModelPicker(false)}
+            />
+          </div>
+          <button
+            onClick={() => sendMessage()}
+            disabled={!input.trim() || loading}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+              input.trim() && !loading
+                ? 'bg-accent-blue text-white hover:bg-blue-500 active:scale-95'
+                : 'bg-surface-card border border-surface-border text-text-muted cursor-not-allowed'
+            }`}
+          >
+            {loading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Send size={16} className="rtl-flip" />
+            )}
+          </button>
+        </div>
+        <p className="text-center text-[10px] text-text-muted mt-1.5">
+          Enter للإرسال · Shift+Enter لسطر جديد
+        </p>
+      </div>
+    </div>
+  )
+}

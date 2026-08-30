@@ -1,0 +1,108 @@
+﻿import React, { useState, useEffect, useRef } from 'react'
+import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Calendar, CheckSquare, BookOpen, ChevronDown, Plus, AlertCircle, Loader2 } from 'lucide-react'
+import { db, ChatMessage } from '../../lib/db'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getTaskAttachments } from '../../lib/utils'
+
+interface AIScreenProps {
+  geminiApiKey: string | null
+  setActiveTab: (tab: 'tasks' | 'calendar' | 'study' | 'ai' | 'more') => void
+  showToast: (msg: string, type: 'success' | 'error') => void
+}
+
+export default function AIScreen({ geminiApiKey, setActiveTab, showToast }: AIScreenProps) {
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [currentSessionId, setCurrentSessionId] = useState<string>('default')
+  const [showSessionsMenu, setShowSessionsMenu] = useState(false)
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash')
+  const [includeFiles, setIncludeFiles] = useState(false)
+  const [streamingMessage, setStreamingMessage] = useState('')
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const messages = useLiveQuery(
+    () => db.messages.where('sessionId').equals(currentSessionId).sortBy('timestamp'),
+    [currentSessionId]
+  )
+  const sessions = useLiveQuery(() => db.chatSessions.toArray()) ?? []
+  const tasksCount = useLiveQuery(() => db.tasks.count())
+  const driveFilesCount = useLiveQuery(() => db.studyFiles.where('source').equals('drive').count())
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, streamingMessage])
+
+  const createNewSession = async () => {
+    const newId = Date.now().toString()
+    await db.chatSessions.add({
+      id: newId,
+      title: 'محادثة جديدة',
+      createdAt: Date.now()
+    })
+    setCurrentSessionId(newId)
+    setShowSessionsMenu(false)
+  }
+
+  const ensureSessionExists = async (title?: string) => {
+    const session = await db.chatSessions.get(currentSessionId)
+    if (!session) {
+      await db.chatSessions.add({
+        id: currentSessionId,
+        title: title || 'محادثة جديدة',
+        createdAt: Date.now()
+      })
+    } else if (title && session.title === 'محادثة جديدة') {
+      await db.chatSessions.update(currentSessionId, { title })
+    }
+  }
+
+  const QUICK_PROMPTS = [
+    { label: 'لخص لي مهامي القادمة', icon: CheckSquare },
+    { label: 'ما هي اختباراتي القريبة؟', icon: Calendar },
+    { label: 'اشرح لي ملفاتي الأخيرة', icon: BookOpen },
+    { label: 'كيف أنظم وقتي اليوم؟', icon: Sparkles },
+  ]
+
+  const MODELS = [
+    {
+      id: 'gemini-1.5-flash',
+      label: 'Flash',
+      desc: 'سريع للإجابات البسيطة',
+      icon: Zap,
+      color: 'text-accent-yellow',
+      bg: 'bg-accent-yellow/10',
+    },
+    {
+      id: 'gemini-1.5-pro',
+      label: 'Pro',
+      desc: 'متقدم للأسئلة المعقدة',
+      icon: Brain,
+      color: 'text-accent-purple',
+      bg: 'bg-accent-purple/10',
+    },
+  ]
+
+  const currentModel = MODELS.find((m) => m.id === selectedModel) || MODELS[0]
+
+  const buildFullContext = async () => {
+    const tasks = await db.tasks.toArray()
+    const events = await db.events.toArray()
+    const subjects = await db.subjects.toArray()
+    
+    let context = 'المهام:\\n'
+    tasks.forEach(t => {
+      context += \- \ (\)\\n\
+    })
+    
+    context += '\\nالأحداث والامتحانات:\\n'
+    events.forEach(e => {
+      context += \- \ (\)\\n\
+    })
+    
+    return context
+  }
+

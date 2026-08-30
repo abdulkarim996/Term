@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "student-dashboard-6e0c1"
+  },
+  "targets": {
+    "student-dashboard-6e0c1": {
+      "hosting": {
+        "app": [
+          "term-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
