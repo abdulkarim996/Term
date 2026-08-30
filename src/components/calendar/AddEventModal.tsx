@@ -93,7 +93,6 @@ export default function AddEventModal({ isOpen, onClose, defaultDate }: Props) {
   }
 
   const toggleRecurringDay = (day: number) => {
-  const { t } = useTranslation();
     setForm((f) => ({
       ...f,
       recurringDays: f.recurringDays.includes(day)
@@ -145,7 +144,7 @@ export default function AddEventModal({ isOpen, onClose, defaultDate }: Props) {
         )}
 
         {/* Start/End */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-xs text-text-muted mb-1">{t('start')} *</label>
             <CustomDateTimePicker value={form.startDate} onChange={(val) => setForm(f => ({ ...f, startDate: val }))} />

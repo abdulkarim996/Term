@@ -32,43 +32,43 @@ export function CustomTimePicker({ value, onChange }: CustomTimePickerProps) {
   };
 
   return (
-    <div className="flex gap-2 w-full relative">
-      <div className="relative flex-1">
+    <div className="grid grid-cols-3 gap-1 w-full relative">
+      <div className="relative">
         <select 
           value={h} 
           onChange={e => updateTime(e.target.value, m, p)}
-          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
         >
           {Array.from({ length: 12 }, (_, i) => {
             const val = (i + 1).toString().padStart(2, '0');
             return <option key={val} value={val}>{val}</option>;
           })}
         </select>
-        <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+        
       </div>
-      <div className="relative flex-1">
+      <div className="relative">
         <select 
           value={m} 
           onChange={e => updateTime(h, e.target.value, p)}
-          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
         >
           {Array.from({ length: 60 }, (_, i) => {
             const val = i.toString().padStart(2, '0');
             return <option key={val} value={val}>{val}</option>;
           })}
         </select>
-        <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+        
       </div>
-      <div className="relative w-20">
+      <div className="relative">
         <select 
           value={p} 
           onChange={e => updateTime(h, m, e.target.value)}
-          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+          className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
         >
           <option value="AM">AM</option>
           <option value="PM">PM</option>
         </select>
-        <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+        
       </div>
     </div>
   );
@@ -104,45 +104,45 @@ export function CustomDateTimePicker({ value, onChange }: CustomDateTimePickerPr
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="flex gap-2 w-full relative">
-        <div className="relative flex-1">
+      <div className="grid grid-cols-3 gap-1 w-full relative">
+        <div className="relative">
           <select 
             value={D} 
             onChange={e => updateDateTime(Y, M, e.target.value, time)}
-            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
           >
             {Array.from({ length: 31 }, (_, i) => {
               const val = (i + 1).toString().padStart(2, '0');
               return <option key={val} value={val}>{val}</option>;
             })}
           </select>
-          <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+          
         </div>
-        <div className="relative flex-1">
+        <div className="relative">
           <select 
             value={M} 
             onChange={e => updateDateTime(Y, e.target.value, D, time)}
-            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
           >
             {Array.from({ length: 12 }, (_, i) => {
               const val = (i + 1).toString().padStart(2, '0');
               return <option key={val} value={val}>{val}</option>;
             })}
           </select>
-          <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+          
         </div>
-        <div className="relative w-24">
+        <div className="relative">
           <select 
             value={Y} 
             onChange={e => updateDateTime(e.target.value, M, D, time)}
-            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
+            className="w-full bg-surface-elevated text-text-primary text-xs border border-surface-border rounded-lg p-2 text-center outline-none focus:border-blue-500 transition-all cursor-pointer shadow-sm appearance-none"
           >
             {Array.from({ length: 10 }, (_, i) => {
               const val = (currentYear + i - 2).toString();
               return <option key={val} value={val}>{val}</option>;
             })}
           </select>
-          <ChevronDown size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+          
         </div>
       </div>
       <CustomTimePicker value={time} onChange={(newTime) => updateDateTime(Y, M, D, newTime)} />
