@@ -103,19 +103,12 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
 
       // 4. Delete Subject
       
-      const subject = subjects.find(s => s.id === id);
-      if (subject && subject.qStashIds) {
-        for (const qid of subject.qStashIds) {
-          await cancelNotification(qid, true);
+      const subToDelete = subjects.find(s => s.id === id);
+        if (subToDelete && subToDelete.qStashIds) {
+          for (const qid of subToDelete.qStashIds) {
+            await cancelNotification(qid, true);
+          }
         }
-      }
-      
-      const subject = subjects.find(s => s.id === id);
-      if (subject && subject.qStashIds) {
-        for (const qid of subject.qStashIds) {
-          await cancelNotification(qid, true);
-        }
-      }
       await cloudDeleteSubject(String(id))
       showToast(`تم {t('deleteSubject')} "${name}"`, 'info')
     } catch (err) {
