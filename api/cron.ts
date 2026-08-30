@@ -65,7 +65,7 @@ export default async function handler(req, res) {
                    const diff = lecTotalMins - nowTotalMins;
 
                    // If lecture starts within the next 15 minutes
-                   if (diff > 0 && diff <= 15) {
+                   if (diff > 0 && diff <= 10) {
                      pushPromises.push(messaging.send({
                        token: token,
                        notification: {
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
       // --- 2. TASK REMINDERS ---
       // Execute only once a day around 8:00 PM (20:xx)
-      if (hours === 20 && minutes < 15) {
+      if (hours === 20 && minutes < 10) {
         try {
           const tasksSnap = await db.collection('users').doc(uid).collection('tasks').get();
           tasksSnap.forEach(taskDoc => {

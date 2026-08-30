@@ -2,3 +2,6 @@ node_modules/
 .firebase/
 Keys/
 dist/
+
+.env*
+!*.example
