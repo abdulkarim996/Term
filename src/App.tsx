@@ -20,12 +20,21 @@ import Toast from './components/ui/Toast'
 import UpdatePrompt from './components/ui/UpdatePrompt'
 import AuthScreen from './components/auth/AuthScreen'
 import PinSetup from './components/auth/PinSetup'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Loader2 } from 'lucide-react'
 
 
 export default function App() {
   const mainRef = useRef<HTMLElement>(null);
-  usePullToRefresh(mainRef);
+  const { pullDistance, isRefreshing } = usePullToRefresh(mainRef);
+
+  useEffect(() => {
+    if (localStorage.getItem('just_refreshed') === 'true') {
+      localStorage.removeItem('just_refreshed');
+      setTimeout(() => {
+        showToast('تم التحديث بنجاح ✨', 'success');
+      }, 500);
+    }
+  }, []);
 
   const { activeTab, toastMessage, toastType, clearToast, setCurrentUser, setAuthLoading, authLoading, currentUser, showToast } = useUIStore()
   const { dir, theme, setGoogleTokens, setGeminiApiKey } = useSettingsStore()
@@ -219,9 +228,25 @@ export default function App() {
       {/* Main Content */}
       <main
           ref={mainRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden"
-        style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
-      >
+          className="flex-1 overflow-y-auto overflow-x-hidden relative"
+          style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
+        >
+          {/* Pull to refresh visual indicator */}
+          <div 
+            className="absolute left-0 right-0 flex justify-center items-center z-50 pointer-events-none transition-all duration-200"
+            style={{ 
+              top: `${Math.min(20, Math.max(-20, pullDistance - 40))}px`, 
+              opacity: pullDistance > 10 ? (pullDistance / 60) : 0 
+            }}
+          >
+            <div className="bg-surface-elevated shadow-lg rounded-full p-2 border border-surface-border">
+              <Loader2 
+                size={20} 
+                className={`text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} 
+                style={{ transform: isRefreshing ? 'none' : `rotate(${pullDistance * 6}deg)` }} 
+              />
+            </div>
+          </div>
         <div key={activeTab} className="animate-fade-in">
           {activeTab === 'home' && <HomeScreen />}
           {activeTab === 'calendar' && <CalendarScreen />}
