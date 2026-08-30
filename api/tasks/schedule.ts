@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   // 1. Initialize Firebase to get FCM Token (1 read during scheduling only)
   if (getApps().length === 0) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-    if (privateKey.startsWith('\"')) privateKey = JSON.parse(privateKey);
+    if (privateKey.startsWith('"')) privateKey = JSON.parse(privateKey);
     else privateKey = privateKey.replace(/\\n/g, '\n');
 
     initializeApp({
@@ -32,12 +32,10 @@ export default async function handler(req, res) {
   const fcmToken = userDoc.data()?.fcmToken;
 
   if (!fcmToken) {
-    // If user has no token, don't bother scheduling
     return res.status(200).json({ error: 'No fcmToken found for user, skipped scheduling.' });
   }
 
-  const destination = \https://\/api/tasks/execute\;
-  // Payload sent to QStash, which will be forwarded to /execute (0 reads at execution!)
+  const destination = `https://${req.headers.host}/api/tasks/execute`;
   const payload = { title, body, fcmToken };
 
   try {

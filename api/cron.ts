@@ -2,10 +2,9 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 
-// Initialize Firebase Admin with Service Account
 if (!getApps().length) {
   let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-  if (privateKey.startsWith('\"')) privateKey = JSON.parse(privateKey);
+  if (privateKey.startsWith('"')) privateKey = JSON.parse(privateKey);
   else privateKey = privateKey.replace(/\\n/g, '\n');
 
   initializeApp({
@@ -21,25 +20,18 @@ const db = getFirestore();
 const messaging = getMessaging();
 
 export default async function handler(req, res) {
-  // Security Check: Ensure only our cron-job can trigger this
   const authHeader = req.headers.authorization;
-  if (authHeader !== \Bearer \\) {
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
     const now = new Date();
-    
-    // We only process if it's the daily 8 PM run (the user will reconfigure cron-job.org to run once a day)
     const tomorrowStart = new Date(now.getTime() + 24 * 3600000);
     tomorrowStart.setHours(0, 0, 0, 0);
     const tomorrowEnd = new Date(now.getTime() + 24 * 3600000);
     tomorrowEnd.setHours(23, 59, 59, 999);
 
-    // Optimized Query: Only fetch users that have an fcmToken! 
-    // This vastly reduces reads (0 reads for students without notifications enabled).
-    // Note: To use orderBy and where, fcmToken must exist. We can check for string length if we want,
-    // but > '' is a common trick to check for non-empty strings in Firestore.
     const usersSnap = await db.collection('users')
       .where('fcmToken', '!=', null)
       .get();
@@ -53,7 +45,6 @@ export default async function handler(req, res) {
 
       const uid = userDoc.id;
 
-      // --- TASK REMINDERS (Daily Summary) ---
       try {
         const tasksSnap = await db.collection('users').doc(uid).collection('tasks').get();
         let tasksTomorrow = 0;
@@ -71,8 +62,8 @@ export default async function handler(req, res) {
           pushPromises.push(messaging.send({
             token: token,
             notification: {
-              title: 'ÊÐßíÑ ÇáãåÇã ??',
-              body: \áÏíß ÛÏÇð (\) ãåÇã ÊäÊÙÑ ÅäÌÇÒß! ÈÇáÊæÝíÞ.\
+              title: 'ØªØ°ÙƒÙŠØ± Ø§Ù„Ù…Ù‡Ø§Ù… ðŸ“…',
+              body: `Ù„Ø¯ÙŠÙƒ ØºØ¯Ø§Ù‹ (${tasksTomorrow}) Ù…Ù‡Ø§Ù… ØªÙ†ØªØ¸Ø± Ø¥Ù†Ø¬Ø§Ø²Ùƒ! Ø¨Ø§Ù„ØªÙˆÙÙŠÙ‚.`
             }
           }).catch(e => console.error('FCM Error (Task):', e)));
         }
@@ -85,7 +76,7 @@ export default async function handler(req, res) {
     
     return res.status(200).json({ 
       success: true, 
-      message: \Successfully processed \ scheduled daily summaries.\ 
+      message: `Successfully processed ${pushPromises.length} scheduled daily summaries.` 
     });
 
   } catch (error) {
