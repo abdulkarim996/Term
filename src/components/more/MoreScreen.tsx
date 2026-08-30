@@ -330,7 +330,45 @@ export default function MoreScreen() {
                 </div>
               </div>
 
-              {/* Language Toggle */}
+              
+              {/* Custom Links */}
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-xl bg-accent-blue/10 flex items-center justify-center">
+                    <LinkIcon size={15} className="text-accent-blue" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-text-primary">{t("quickLinks") || "الروابط السريعة"}</h4>
+                    <p className="text-[10px] text-text-muted mt-0.5">{t("quickLinksDesc") || "تخصيص روابط البانر والبلاك بورد"}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-text-muted mb-1 block">{t("bannerUrl") || "رابط البانر"}</label>
+                    <input 
+                      type="url" 
+                      value={settings.bannerUrl || ''} 
+                      onChange={(e) => settings.setBannerUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-[#121212] text-text-primary text-xs rounded-lg p-2 outline-none border border-gray-800 focus:border-accent-blue transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-muted mb-1 block">{t("blackboardUrl") || "رابط البلاك بورد"}</label>
+                    <input 
+                      type="url" 
+                      value={settings.blackboardUrl || ''} 
+                      onChange={(e) => settings.setBlackboardUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-[#121212] text-text-primary text-xs rounded-lg p-2 outline-none border border-gray-800 focus:border-accent-blue transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+
+                {/* Language Toggle */}
               <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent-cyan/10 flex items-center justify-center">

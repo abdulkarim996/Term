@@ -1,5 +1,6 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
+import { usePullToRefresh } from './hooks/usePullToRefresh'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, getAppMessaging } from './lib/firebase'
 import { onMessage } from 'firebase/messaging'
@@ -23,6 +24,9 @@ import { Sparkles } from 'lucide-react'
 
 
 export default function App() {
+  const mainRef = useRef<HTMLElement>(null);
+  usePullToRefresh(mainRef);
+
   const { activeTab, toastMessage, toastType, clearToast, setCurrentUser, setAuthLoading, authLoading, currentUser, showToast } = useUIStore()
   const { dir, theme, setGoogleTokens, setGeminiApiKey } = useSettingsStore()
   const { isActive, timeLeft, setTimeLeft, setIsActive } = useTimerStore()
@@ -214,7 +218,8 @@ export default function App() {
     <div className="flex flex-col min-h-screen bg-surface" dir={dir}>
       {/* Main Content */}
       <main
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+          ref={mainRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden"
         style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
       >
         <div key={activeTab} className="animate-fade-in">

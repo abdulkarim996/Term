@@ -164,7 +164,7 @@ export default function HomeScreen() {
       {/* Quick Links */}
       <div className="grid grid-cols-2 gap-3 mt-1">
         <a 
-          href="https://stuss.nbu.edu.sa/StudentSelfService" 
+            href={settings.bannerUrl || "https://stuss.nbu.edu.sa/StudentSelfService"} 
           target="_blank" 
           rel="noopener noreferrer"
           className="glass-card flex items-center justify-center gap-2 p-3 text-sm font-semibold text-text-primary hover:bg-surface-hover transition-colors"
@@ -172,7 +172,7 @@ export default function HomeScreen() {
           {t('banner') || 'Banner'}
         </a>
         <a 
-          href="https://lms.nbu.edu.sa/webapps/login/" 
+            href={settings.blackboardUrl || "https://lms.nbu.edu.sa/webapps/login/"} 
           target="_blank" 
           rel="noopener noreferrer"
           className="glass-card flex items-center justify-center gap-2 p-3 text-sm font-semibold text-text-primary hover:bg-surface-hover transition-colors"

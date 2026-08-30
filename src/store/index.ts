@@ -118,7 +118,9 @@ export const useSettingsStore = create<SettingsStore>()(
       setCurrentSemester: (sem) => set({ currentSemester: sem }),
       setAccentColor: (color) => set({ accentColor: color }),
       setAutoStudyBlocks: (v) => set({ autoStudyBlocks: v }),
-      setTheme: (t) => set({ theme: t }) }),
+      setTheme: (t) => set({ theme: t }),
+      setBannerUrl: (url) => set({ bannerUrl: url }),
+      setBlackboardUrl: (url) => set({ blackboardUrl: url }) }),
     {
       name: 'student-dashboard-settings',
       storage: createJSONStorage(() => localStorage) }
