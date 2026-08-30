@@ -13,11 +13,18 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message', payload);
-  const notificationTitle = payload.notification?.title || 'Term';
+  
+  // If payload has a 'notification' object, Firebase automatically displays it. 
+  // We only showNotification manually if it's a data-only payload.
+  if (payload.notification) {
+    return; 
+  }
+
+  const notificationTitle = payload.data?.title || 'تِرْم';
   const notificationOptions = {
-    body: payload.notification?.body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png'
+    body: payload.data?.body,
+    icon: '/icon-v2-192.png',
+    badge: '/icon-v2-192.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
