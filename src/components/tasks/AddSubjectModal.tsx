@@ -86,8 +86,8 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
             if (lec.startTime) {
               const cron = getUtcCron(lec.dayOfWeek, lec.startTime);
               const qId = await scheduleNotification({
-                title: 'تذكير بمحاضرة 🔔',
-                body: `محاضرة ${form.name} ستبدأ قريباً!`,
+                title: '\u062A\u0630\u0643\u064A\u0631 \u0628\u0645\u062D\u0627\u0636\u0631\u0629 \uD83D\uDD14',
+                  body: `\u0645\u062D\u0627\u0636\u0631\u0629 ${form.name} \u0633\u062A\u0628\u062F\u0623 \u0642\u0631\u064A\u0628\u0627\u064B!`,
                 uid: getUid() || '',
                 isRecurring: true,
                 cron: cron
@@ -100,7 +100,7 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
           }
         }
 
-      showToast(`تم إضافة المادة ${form.name} بنجاح`, 'success')
+      showToast(`\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0645\u0627\u062F\u0629 ${form.name} \u0628\u0646\u062C\u0627\u062D`, 'success')
       setForm({ name: '', code: '', color: getRandomSubjectColor(), creditHours: '', instructor: '',
     section: '' })
       setLectures([])

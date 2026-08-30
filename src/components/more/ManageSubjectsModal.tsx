@@ -53,8 +53,8 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
             if (lec.startTime) {
               const cron = getUtcCron(lec.dayOfWeek, lec.startTime);
               const qId = await scheduleNotification({
-                title: 'تذكير بمحاضرة 🔔',
-                body: `محاضرة ${editForm.name} ستبدأ قريباً!`,
+                title: '\u062A\u0630\u0643\u064A\u0631 \u0628\u0645\u062D\u0627\u0636\u0631\u0629 \uD83D\uDD14',
+                  body: `\u0645\u062D\u0627\u0636\u0631\u0629 ${editForm.name} \u0633\u062A\u0628\u062F\u0623 \u0642\u0631\u064A\u0628\u0627\u064B!`,
                 uid: getUid() || '',
                 isRecurring: true,
                 cron: cron

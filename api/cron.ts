@@ -60,8 +60,8 @@ export default async function handler(req, res) {
         pushPromises.push(messaging.send({
           token: token,
           notification: {
-            title: 'تذكير المهام 📅',
-            body: `لديك غداً (${tasksTomorrow}) مهام تنتظر إنجازك! بالتوفيق.`
+            title: '\u062A\u0630\u0643\u064A\u0631 \u0627\u0644\u0645\u0647\u0627\u0645 \uD83D\uDCC5',
+            body: `\u0644\u062F\u064A\u0643 \u063A\u062F\u0627\u064B (${tasksTomorrow}) \u0645\u0647\u0627\u0645 \u062A\u0646\u062A\u0638\u0631 \u0625\u0646\u062C\u0627\u0632\u0643! \u0628\u0627\u0644\u062A\u0648\u0641\u064A\u0642.`
           }
         }).catch(e => console.error('FCM Error (Task):', e)));
       }
