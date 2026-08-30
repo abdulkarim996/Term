@@ -25,20 +25,17 @@ export default async function handler(req, res) {
     if (!isValid) throw new Error('Invalid signature');
 
     if (getApps().length === 0) {
-      let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-      if (privateKey.includes('\\n')) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-      } else if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-        privateKey = privateKey.slice(1, -1).replace(/\\n/g, '\n');
-      }
 
       initializeApp({
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY
+            ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '')
+            : undefined,
         }),
       });
+
     }
 
     const msg = getMessaging();
