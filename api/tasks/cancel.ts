@@ -5,21 +5,20 @@ const client = new Client({
 });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-
-  const { id, isRecurring } = req.body;
-  if (!id) return res.status(400).json({ error: 'Missing ID' });
-
   try {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+    const { id, isRecurring } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing ID' });
+
     if (isRecurring) {
       await client.schedules.delete(id);
     } else {
       await client.messages.delete(id);
     }
     return res.status(200).json({ success: true });
-  } catch (e) {
-    console.error('QStash Delete Error:', e);
-    // Ignore 404s (already deleted)
+  } catch (error: any) {
+    console.error('Global Error in cancel.ts:', error);
     return res.status(200).json({ success: true, note: 'Error ignored' });
   }
 }
