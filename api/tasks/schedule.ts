@@ -14,9 +14,14 @@ export default async function handler(req, res) {
 
   // 1. Initialize Firebase to get FCM Token (1 read during scheduling only)
   if (getApps().length === 0) {
+    
     let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-    if (privateKey.startsWith('"')) privateKey = JSON.parse(privateKey);
-    else privateKey = privateKey.replace(/\\n/g, '\n');
+    if (privateKey.includes('\\n')) {
+      privateKey = privateKey.replace(/\\n/g, '\n');
+    } else if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1).replace(/\\n/g, '\n');
+    }
+
 
     initializeApp({
       credential: cert({

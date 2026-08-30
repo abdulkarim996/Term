@@ -3,9 +3,14 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 
 if (!getApps().length) {
-  let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-  if (privateKey.startsWith('"')) privateKey = JSON.parse(privateKey);
-  else privateKey = privateKey.replace(/\\n/g, '\n');
+  
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+    if (privateKey.includes('\\n')) {
+      privateKey = privateKey.replace(/\\n/g, '\n');
+    } else if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1).replace(/\\n/g, '\n');
+    }
+
 
   initializeApp({
     credential: cert({

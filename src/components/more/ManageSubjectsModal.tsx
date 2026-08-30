@@ -39,12 +39,38 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
   const saveEdit = async () => {
     if (!editingId || !editForm.name) return
     try {
-      await cloudUpdateSubject(String(editingId), {
-        name: editForm.name,
-        color: editForm.color,
-        code: editForm.code,
-        lectures: editForm.lectures
-      })
+      
+        const subject = subjects.find(s => s.id === editingId);
+        if (subject && subject.qStashIds) {
+          for (const id of subject.qStashIds) {
+            await cancelNotification(id, true);
+          }
+        }
+
+        const newQStashIds = [];
+        if (editForm.lectures && editForm.lectures.length > 0) {
+          for (const lec of editForm.lectures) {
+            if (lec.startTime) {
+              const cron = getUtcCron(lec.dayOfWeek, lec.startTime);
+              const qId = await scheduleNotification({
+                title: 'تذكير بمحاضرة 🔔',
+                body: `محاضرة ${editForm.name} ستبدأ قريباً!`,
+                uid: getUid() || '',
+                isRecurring: true,
+                cron: cron
+              });
+              if (qId) newQStashIds.push(qId);
+            }
+          }
+        }
+
+        await cloudUpdateSubject(String(editingId), {
+          name: editForm.name,
+          color: editForm.color,
+          code: editForm.code,
+          lectures: editForm.lectures,
+          qStashIds: newQStashIds
+        })
       showToast(t('editsSaved'), 'success')
       setEditingId(null)
     } catch {
@@ -76,6 +102,13 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
       }
 
       // 4. Delete Subject
+      
+      const subject = subjects.find(s => s.id === id);
+      if (subject && subject.qStashIds) {
+        for (const qid of subject.qStashIds) {
+          await cancelNotification(qid, true);
+        }
+      }
       
       const subject = subjects.find(s => s.id === id);
       if (subject && subject.qStashIds) {

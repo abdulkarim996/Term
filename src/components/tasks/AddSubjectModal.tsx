@@ -66,11 +66,40 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
         lectures: lectures.length > 0 ? lectures : undefined
       };
       
-      if (editSubject) {
-        await cloudUpdateSubject(String(editSubject.id), payload)
-      } else {
-        await cloudAddSubject({ ...payload, createdAt: Date.now() })
-      }
+      
+        let subjectId = editSubject ? String(editSubject.id) : null;
+        
+        if (editSubject) {
+          await cloudUpdateSubject(subjectId, payload);
+          if (editSubject.qStashIds) {
+            for (const id of editSubject.qStashIds) {
+              await cancelNotification(id, true);
+            }
+          }
+        } else {
+          subjectId = await cloudAddSubject({ ...payload, createdAt: Date.now() });
+        }
+
+        const newQStashIds = [];
+        if (payload.lectures && payload.lectures.length > 0) {
+          for (const lec of payload.lectures) {
+            if (lec.startTime) {
+              const cron = getUtcCron(lec.dayOfWeek, lec.startTime);
+              const qId = await scheduleNotification({
+                title: 'تذكير بمحاضرة 🔔',
+                body: `محاضرة ${form.name} ستبدأ قريباً!`,
+                uid: getUid() || '',
+                isRecurring: true,
+                cron: cron
+              });
+              if (qId) newQStashIds.push(qId);
+            }
+          }
+          if (newQStashIds.length > 0) {
+            await cloudUpdateSubject(subjectId, { qStashIds: newQStashIds });
+          }
+        }
+
       showToast(`تم إضافة المادة ${form.name} بنجاح`, 'success')
       setForm({ name: '', code: '', color: getRandomSubjectColor(), creditHours: '', instructor: '',
     section: '' })
