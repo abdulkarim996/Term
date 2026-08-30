@@ -2,30 +2,48 @@ import { Receiver } from '@upstash/qstash';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
-export default async function handler(req, res) {
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+async function getRawBody(req: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk: any) => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
+}
+
+export default async function handler(req: any, res: any) {
   try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    const receiver = new Receiver({
-      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
-      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
-    });
-
+    const rawBody = await getRawBody(req);
     const signature = req.headers['upstash-signature'];
-    if (!signature) {
-      return res.status(401).json({ error: 'Missing Upstash Signature' });
+    
+    if (signature) {
+      const receiver = new Receiver({
+        currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
+        nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
+      });
+      const isValid = await receiver.verify({
+        signature: signature as string,
+        body: rawBody,
+      });
+      if (!isValid) {
+        console.error('Invalid QStash Signature');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
     }
 
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const isValid = await receiver.verify({
-      signature: signature,
-      body: rawBody,
-    });
-    
-    if (!isValid) throw new Error('Invalid signature');
-
     if (getApps().length === 0) {
-
       initializeApp({
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
@@ -35,11 +53,11 @@ export default async function handler(req, res) {
             : undefined,
         }),
       });
-
     }
 
     const msg = getMessaging();
-    const { fcmToken, title, body } = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const parsedBody = JSON.parse(rawBody);
+    const { fcmToken, title, body } = parsedBody;
 
     if (!fcmToken) return res.status(400).json({ error: 'Missing fcmToken' });
 
@@ -47,6 +65,7 @@ export default async function handler(req, res) {
       token: fcmToken,
       notification: { title, body },
     });
+    
     return res.status(200).json({ success: true, messageId: response });
   } catch (error: any) {
     console.error('Global Error in execute.ts:', error);
