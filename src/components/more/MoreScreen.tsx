@@ -13,7 +13,7 @@ import { auth, getAppMessaging } from '../../lib/firebase'
 import { getToken } from 'firebase/messaging'
 import { doc, setDoc } from 'firebase/firestore'
 import { db_cloud } from '../../lib/firebase'
-import { Bell } from 'lucide-react'
+import { Bell, Link as LinkIcon } from 'lucide-react'
 import { useSettingsStore, useUIStore } from '../../store'
 import { useTranslation } from '../../hooks/useTranslation'
 import { SUBJECT_COLORS } from '../../lib/utils'
@@ -55,6 +55,7 @@ export default function MoreScreen() {
 
   
   const handlePushToggle = async () => {
+    if (!confirm(t('confirmPushToggle') || 'هل أنت متأكد من تغيير حالة الإشعارات؟')) return;
     if (!isNotificationSupported) {
       showToast('عذراً، المتصفح لا يدعم هذه الخاصية حالياً');
       return;
@@ -411,6 +412,7 @@ export default function MoreScreen() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-text-primary">{t("pushNotifications") || 'الإشعارات'}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5">الإشعارات تصل لآخر جهاز تم تفعيل الزر منه.</p>
                     </div>
                   </div>
                   <div className={`relative w-11 h-6 rounded-full transition-all duration-300 ${

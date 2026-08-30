@@ -77,7 +77,11 @@ interface SettingsStore {
   accentColor: string
   autoStudyBlocks: boolean
   theme: 'dark' | 'light'
+  bannerUrl: string
+  blackboardUrl: string
   setTheme: (t: 'dark' | 'light') => void
+  setBannerUrl: (url: string) => void
+  setBlackboardUrl: (url: string) => void
 
   setGeminiApiKey: (key: string) => void
   setGoogleClientId: (id: string) => void
@@ -107,6 +111,8 @@ export const useSettingsStore = create<SettingsStore>()(
       accentColor: '#4f8ef7',
       autoStudyBlocks: true,
       theme: 'dark',
+      bannerUrl: 'https://stuss.nbu.edu.sa/StudentSelfService',
+      blackboardUrl: 'https://lms.nbu.edu.sa/webapps/login/',
 
       setGeminiApiKey: (key) => set({ geminiApiKey: key }),
       setGoogleClientId: (id) => set({ googleClientId: id }),
