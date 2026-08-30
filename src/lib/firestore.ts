@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore'
 import { db_cloud, auth } from './firebase'
 
-function getUid() { const uid = auth.currentUser?.uid; if (!uid) throw new Error('Not authenticated'); return uid; }
+export function getUid() { const uid = auth.currentUser?.uid; if (!uid) throw new Error('Not authenticated'); return uid; }
 
 function userCol(uid: string, colName: string) {
   return collection(db_cloud, 'users', uid, colName)
@@ -45,7 +45,8 @@ export function subscribeToUserData(uid: string, callbacks: any): () => void {
 
 // === SUBJECTS ===
 export async function cloudAddSubject(subject: any) {
-  await addDoc(userCol(getUid(), 'subjects'), clean(subject))
+  const ref = await addDoc(userCol(getUid(), 'subjects'), clean(subject));
+  return ref.id;
 }
 export async function cloudUpdateSubject(id: string, changes: any) {
   await updateDoc(userDoc(getUid(), 'subjects', id), clean(changes))

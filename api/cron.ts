@@ -4,12 +4,15 @@ import { getMessaging } from 'firebase-admin/messaging';
 
 // Initialize Firebase Admin with Service Account
 if (!getApps().length) {
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+  if (privateKey.startsWith('\"')) privateKey = JSON.parse(privateKey);
+  else privateKey = privateKey.replace(/\\n/g, '\n');
+
   initializeApp({
     credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // Handle escaped newlines in Vercel environment variables
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+      privateKey: privateKey,
     }),
   });
 }
@@ -18,27 +21,29 @@ const db = getFirestore();
 const messaging = getMessaging();
 
 export default async function handler(req, res) {
-  // 1. Security Check: Ensure only our cron-job can trigger this
+  // Security Check: Ensure only our cron-job can trigger this
   const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== \Bearer \\) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
     const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const saudiTime = new Date(utc + (3600000 * 3)); // UTC+3
     
-    const dayOfWeek = saudiTime.getDay();
-    const hours = saudiTime.getHours();
-    const minutes = saudiTime.getMinutes();
-
+    // We only process if it's the daily 8 PM run (the user will reconfigure cron-job.org to run once a day)
     const tomorrowStart = new Date(now.getTime() + 24 * 3600000);
     tomorrowStart.setHours(0, 0, 0, 0);
     const tomorrowEnd = new Date(now.getTime() + 24 * 3600000);
     tomorrowEnd.setHours(23, 59, 59, 999);
 
-    const usersSnap = await db.collection('users').get();
+    // Optimized Query: Only fetch users that have an fcmToken! 
+    // This vastly reduces reads (0 reads for students without notifications enabled).
+    // Note: To use orderBy and where, fcmToken must exist. We can check for string length if we want,
+    // but > '' is a common trick to check for non-empty strings in Firestore.
+    const usersSnap = await db.collection('users')
+      .where('fcmToken', '!=', null)
+      .get();
+      
     const pushPromises = [];
 
     for (const userDoc of usersSnap.docs) {
@@ -48,63 +53,31 @@ export default async function handler(req, res) {
 
       const uid = userDoc.id;
 
-      // --- 1. LECTURE REMINDERS ---
+      // --- TASK REMINDERS (Daily Summary) ---
       try {
-        const subjectsSnap = await db.collection('users').doc(uid).collection('subjects').get();
-        subjectsSnap.forEach(subjectDoc => {
-          const subject = subjectDoc.data();
-          if (subject.lectures && Array.isArray(subject.lectures)) {
-            subject.lectures.forEach(lec => {
-              if (lec.dayOfWeek === dayOfWeek && lec.startTime) {
-                 const parts = lec.startTime.split(':');
-                 if(parts.length === 2) {
-                   const lecH = parseInt(parts[0], 10);
-                   const lecM = parseInt(parts[1], 10);
-                   const lecTotalMins = lecH * 60 + lecM;
-                   const nowTotalMins = hours * 60 + minutes;
-                   const diff = lecTotalMins - nowTotalMins;
+        const tasksSnap = await db.collection('users').doc(uid).collection('tasks').get();
+        let tasksTomorrow = 0;
 
-                   // If lecture starts within the next 15 minutes
-                   if (diff > 0 && diff <= 10) {
-                     pushPromises.push(messaging.send({
-                       token: token,
-                       notification: {
-                         title: 'Ù…Ø­Ø§Ø¶Ø±Ø© Ù‚Ø§Ø¯Ù…Ø© â³',
-                         body: `ØªØ¨Ø¯Ø£ Ù…Ø­Ø§Ø¶Ø±ØªÙƒ ${subject.name} Ø®Ù„Ø§Ù„ ${diff} Ø¯Ù‚ÙŠÙ‚Ø©.`
-                       }
-                     }).catch(e => console.error('FCM Error (Lecture):', e)));
-                   }
-                 }
-              }
-            });
+        tasksSnap.forEach(taskDoc => {
+          const task = taskDoc.data();
+          if (task.dueDate && !task.completed) {
+            if (task.dueDate >= tomorrowStart.getTime() && task.dueDate <= tomorrowEnd.getTime()) {
+              tasksTomorrow++;
+            }
           }
         });
-      } catch(e) {
-        console.error('Error fetching subjects:', e);
-      }
 
-      // --- 2. TASK REMINDERS ---
-      // Execute only once a day around 8:00 PM (20:xx)
-      if (hours === 20 && minutes < 10) {
-        try {
-          const tasksSnap = await db.collection('users').doc(uid).collection('tasks').get();
-          tasksSnap.forEach(taskDoc => {
-            const task = taskDoc.data();
-            if (task.dueDate && !task.completed) {
-              if (task.dueDate >= tomorrowStart.getTime() && task.dueDate <= tomorrowEnd.getTime()) {
-                pushPromises.push(messaging.send({
-                  token: token,
-                  notification: {
-                    title: 'ØªØ°ÙƒÙŠØ± ØªØ³Ù„ÙŠÙ… âš ï¸',
-                    body: `Ù„Ø¯ÙŠÙƒ ${task.title} ÙŠØ¬Ø¨ Ø¥Ù†Ø¬Ø§Ø²Ù‡ ØºØ¯Ø§Ù‹.`
-                  }
-                }).catch(e => console.error('FCM Error (Task):', e)));
-              }
+        if (tasksTomorrow > 0) {
+          pushPromises.push(messaging.send({
+            token: token,
+            notification: {
+              title: 'ÊÐßíÑ ÇáãåÇã ??',
+              body: \áÏíß ÛÏÇð (\) ãåÇã ÊäÊÙÑ ÅäÌÇÒß! ÈÇáÊæÝíÞ.\
             }
-          });
-        } catch(e) {
-          console.error('Error fetching tasks:', e);
+          }).catch(e => console.error('FCM Error (Task):', e)));
         }
+      } catch(e) {
+        console.error('Error fetching tasks:', e);
       }
     }
 
@@ -112,7 +85,7 @@ export default async function handler(req, res) {
     
     return res.status(200).json({ 
       success: true, 
-      message: `Successfully processed ${pushPromises.length} scheduled reminders.` 
+      message: \Successfully processed \ scheduled daily summaries.\ 
     });
 
   } catch (error) {

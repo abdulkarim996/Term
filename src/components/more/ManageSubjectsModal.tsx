@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useDataStore } from '../../store/dataStore'
-import { cloudUpdateSubject, cloudUpdateTask, cloudUpdateEvent, cloudUpdateDriveFile, cloudDeleteSubject } from '../../lib/firestore'
+import { cloudUpdateSubject, cloudUpdateTask, cloudUpdateEvent, cloudUpdateDriveFile, cloudDeleteSubject, getUid } from '../../lib/firestore'
+import { scheduleNotification, getUtcCron, cancelNotification } from '../../lib/qStashScheduler'
 import React, { useState } from 'react';
 import { CustomTimePicker } from '../ui/CustomPickers';
 import { Trash2, AlertCircle, Edit2, Plus, X, Clock, MapPin } from 'lucide-react'
@@ -75,6 +76,13 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
       }
 
       // 4. Delete Subject
+      
+      const subject = subjects.find(s => s.id === id);
+      if (subject && subject.qStashIds) {
+        for (const qid of subject.qStashIds) {
+          await cancelNotification(qid, true);
+        }
+      }
       await cloudDeleteSubject(String(id))
       showToast(`تم {t('deleteSubject')} "${name}"`, 'info')
     } catch (err) {
