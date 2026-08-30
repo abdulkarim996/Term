@@ -14,10 +14,21 @@ export const scheduleNotification = async (payload: SchedulePayload): Promise<st
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      alert('QStash Error (Not JSON): ' + text.substring(0, 100));
+      return null;
+    }
+    if (!response.ok || data.error) {
+      alert('QStash API Error: ' + (data.error || 'Unknown API Error'));
+      return null;
+    }
     return data.id || null;
-  } catch (error) {
-    console.error('Error scheduling notification:', error);
+  } catch (error: any) {
+    alert('Error scheduling notification: ' + error.message);
     return null;
   }
 };
