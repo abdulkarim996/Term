@@ -134,7 +134,7 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editSubject ? t('editSubject') : t('addSubject')}>
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 pb-4 relative">
+      <form onSubmit={handleSubmit} className="space-y-4 pb-2">
         <div>
           <label className="block text-xs text-text-muted mb-1">{t('subjectNameInput')} *</label>
           <input

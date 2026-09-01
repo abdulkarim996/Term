@@ -183,15 +183,18 @@
 
 /* Modal overlay */
 .modal-overlay {
-  @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center;
+  @apply fixed inset-0 z-50 flex justify-center;
+  align-items: flex-start;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  overflow-y: auto;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
 }
 
 .modal-content {
   @apply glass-card w-full sm:max-w-lg animate-slide-up;
-  max-height: 90vh;
-  overflow-y: auto;
+  margin: auto; /* helps vertical centering if smaller than screen */
 }
 
 /* RTL support */
