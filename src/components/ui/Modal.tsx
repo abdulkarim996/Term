@@ -11,8 +11,6 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
-  const overlayRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -35,24 +33,29 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
   const sizeClass = {
     sm: 'sm:max-w-sm',
     md: 'sm:max-w-lg',
-    lg: 'sm:max-w-2xl' }[size]
+    lg: 'sm:max-w-2xl'
+  }[size]
 
   return (
     <div
-      ref={overlayRef}
       className="modal-overlay"
-      onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className={`modal-content mx-4 ${sizeClass} rounded-xl2`}>
-        {title && (
-          <div className="flex items-center justify-between p-4 border-b border-surface-border">
-            <h2 className="text-base font-semibold text-text-primary">{title}</h2>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors">
-              <X size={16} />
-            </button>
-          </div>
-        )}
-        <div className="p-4">{children}</div>
+      <div 
+        className="modal-wrapper min-h-full p-4 flex pointer-events-none"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      >
+        <div className={`modal-content m-auto w-full ${sizeClass} rounded-xl2 pointer-events-auto`}>
+          {title && (
+            <div className="flex items-center justify-between p-4 border-b border-surface-border">
+              <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          <div className="p-4">{children}</div>
+        </div>
       </div>
     </div>
   )

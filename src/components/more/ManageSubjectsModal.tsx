@@ -139,7 +139,7 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t("subjects")}>
-      <div className="space-y-4 pb-2">
+      <div className="space-y-4">
         {!subjects || subjects.length === 0 ? (
           <div className="text-center py-6 text-text-muted text-sm">
             {t('noSubjectsAdded')}.
