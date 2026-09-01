@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { useDataStore } from '../../store/dataStore'
-import { cloudUpdateSubject, cloudUpdateTask, cloudUpdateEvent, cloudUpdateDriveFile, cloudDeleteSubject, getUid } from '../../lib/firestore'
-import { scheduleNotification, getUtcCron, cancelNotification } from '../../lib/qStashScheduler'
+import { cloudUpdateSubject, cloudUpdateTask, cloudUpdateEvent, cloudUpdateDriveFile, cloudDeleteSubject } from '../../lib/firestore'
 import React, { useState } from 'react';
 import { CustomTimePicker } from '../ui/CustomPickers';
 import { Trash2, AlertCircle, Edit2, Plus, X, Clock, MapPin } from 'lucide-react'
@@ -39,38 +38,12 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
   const saveEdit = async () => {
     if (!editingId || !editForm.name) return
     try {
-      
-        const subject = subjects.find(s => s.id === editingId);
-        if (subject && subject.qStashIds) {
-          for (const id of subject.qStashIds) {
-            await cancelNotification(id, true);
-          }
-        }
-
-        const newQStashIds = [];
-        if (editForm.lectures && editForm.lectures.length > 0) {
-          for (const lec of editForm.lectures) {
-            if (lec.startTime) {
-              const cron = getUtcCron(lec.dayOfWeek, lec.startTime);
-              const qId = await scheduleNotification({
-                title: '\u062A\u0630\u0643\u064A\u0631 \u0628\u0645\u062D\u0627\u0636\u0631\u0629 \uD83D\uDD14',
-                  body: `\u0645\u062D\u0627\u0636\u0631\u0629 ${editForm.name} \u0633\u062A\u0628\u062F\u0623 \u0642\u0631\u064A\u0628\u0627\u064B!`,
-                uid: getUid() || '',
-                isRecurring: true,
-                cron: cron
-              });
-              if (qId) newQStashIds.push(qId);
-            }
-          }
-        }
-
-        await cloudUpdateSubject(String(editingId), {
-          name: editForm.name,
-          color: editForm.color,
-          code: editForm.code,
-          lectures: editForm.lectures,
-          qStashIds: newQStashIds
-        })
+      await cloudUpdateSubject(String(editingId), {
+        name: editForm.name,
+        color: editForm.color,
+        code: editForm.code,
+        lectures: editForm.lectures,
+      })
       showToast(t('editsSaved'), 'success')
       setEditingId(null)
     } catch {
@@ -79,38 +52,28 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
   }
 
   const deleteSubject = async (id: number, name: string) => {
-    if (!window.confirm(`{t('areYouSure2')} {t("from")} {t('deleteSubject')} "${name}"؟ ({t('deleteSubjectWarning')})`)) {
+    if (!window.confirm(`${t('areYouSure2')} ${t('deleteSubject')} "${name}"؟`)) {
       return
     }
     try {
       // 1. Unlink Tasks
-      const relatedTasks = useDataStore.getState().tasks.filter((t: any) => t.subjectId === id)
-      for (const t of relatedTasks) {
-        await cloudUpdateTask(String(t.id!), { subjectId: undefined })
+      const relatedTasks = useDataStore.getState().tasks.filter((task: any) => task.subjectId === id)
+      for (const task of relatedTasks) {
+        await cloudUpdateTask(String(task.id!), { subjectId: undefined })
       }
-      
       // 2. Unlink Events
-      const relatedEvents = useDataStore.getState().events.filter((t: any) => t.subjectId === id)
-      for (const e of relatedEvents) {
-        await cloudUpdateEvent(String(e.id!), { subjectId: undefined })
+      const relatedEvents = useDataStore.getState().events.filter((ev: any) => ev.subjectId === id)
+      for (const ev of relatedEvents) {
+        await cloudUpdateEvent(String(ev.id!), { subjectId: undefined })
       }
-
       // 3. Unlink Files
-      const relatedFiles = useDataStore.getState().driveFiles.filter((t: any) => t.subjectId === id)
+      const relatedFiles = useDataStore.getState().driveFiles.filter((f: any) => f.subjectId === id)
       for (const f of relatedFiles) {
         await cloudUpdateDriveFile(String(f.id!), { subjectId: undefined, category: undefined })
       }
-
       // 4. Delete Subject
-      
-      const subToDelete = subjects.find(s => s.id === id);
-        if (subToDelete && subToDelete.qStashIds) {
-          for (const qid of subToDelete.qStashIds) {
-            await cancelNotification(qid, true);
-          }
-        }
       await cloudDeleteSubject(String(id))
-      showToast(`تم {t('deleteSubject')} "${name}"`, 'info')
+      showToast(`\u062a\u0645 \u062d\u0630\u0641 "${name}" \u0628\u0646\u062c\u0627\u062d`, 'info')
     } catch (err) {
       showToast(t('saveError'), 'error')
     }

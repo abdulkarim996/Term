@@ -183,14 +183,21 @@
 
 /* Modal overlay */
 .modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
 }
 
 .modal-content {
-  @apply glass-card animate-slide-up flex flex-col;
+  @apply bg-surface-card border border-surface-border shadow-2xl animate-slide-up flex flex-col;
+  border-radius: 1.25rem;
   max-height: calc(100vh - 2rem);
+  /* Disable the hover:scale inherited from glass-card */
+  transform: none !important;
+}
+.modal-content:hover {
+  transform: none !important;
+  scale: 1 !important;
 }
 
 /* RTL support */
