@@ -77,37 +77,22 @@ export default async function handler(req: any, res: any) {
           if (lec.dayOfWeek !== todayDayOfWeek) continue;
           if (!lec.startTime) continue;
 
-          // Parse startTime (HH:MM) as Saudi time
           const [hourStr, minStr] = lec.startTime.split(':');
           const lecHour = parseInt(hourStr, 10);
           const lecMin = parseInt(minStr, 10);
-
           if (isNaN(lecHour) || isNaN(lecMin)) continue;
 
-          // Build the Saudi datetime for lecture start
+          // Build Saudi datetime for lecture start, then subtract 10 min, convert to UTC
           const lecSaudiMs =
             new Date(`${todayDateStr}T00:00:00Z`).getTime() +
             (lecHour * 60 + lecMin) * 60 * 1000;
-
-          // Notify 10 minutes before (subtract 10 min + convert from Saudi to UTC offset already baked in)
           const notifyAtSaudiMs = lecSaudiMs - 10 * 60 * 1000;
-
-          // Convert to UTC unix seconds for QStash notBefore
-          // Saudi time is UTC+3, so UTC = Saudi - 3h
           const notifyAtUTCMs = notifyAtSaudiMs - 3 * 60 * 60 * 1000;
           const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
           const nowUnixSec = Math.floor(Date.now() / 1000);
 
-          // Only schedule if it's in the future (at least 1 min away)
           if (notifyAtUnixSec <= nowUnixSec + 60) continue;
 
-          todaysLectures.push({
-            name: subject.name,
-            startTime: lec.startTime,
-            location: lec.location,
-          });
-
-          // Schedule one-time QStash message (NOT a schedule - no quota limit!)
           await qstash.publishJSON({
             url: executeUrl,
             body: {
@@ -122,21 +107,6 @@ export default async function handler(req: any, res: any) {
         }
       }
 
-      // Also send a summary morning notification if user has lectures today
-      if (todaysLectures.length > 0) {
-        const lectureList = todaysLectures
-          .map(l => `${l.name} (${l.startTime})`)
-          .join(', ');
-
-        const summaryMsg = getMessaging();
-        await summaryMsg.send({
-          token: fcmToken,
-          notification: {
-            title: `\u0635\u0628\u0627\u062d\u0643 \u0646\u0634\u0627\u0637! \u0644\u062f\u064a\u0643 \u0627\u0644\u064a\u0648\u0645 ${todaysLectures.length} \u0645\u062d\u0627\u0636\u0631\u0629 \uD83D\uDCDA`,
-            body: lectureList,
-          },
-        }).catch(e => console.error('FCM summary error:', e));
-      }
     }
 
     return res.status(200).json({
