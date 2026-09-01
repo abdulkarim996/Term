@@ -97,8 +97,8 @@ export default async function handler(req: any, res: any) {
             url: executeUrl,
             body: {
               fcmToken,
-              title: `\u062a\u0630\u0643\u064a\u0631 \u0628\u0645\u062d\u0627\u0636\u0631\u0629 \uD83D\uDD14`,
-              body: `\u0645\u062d\u0627\u0636\u0631\u0629 "${subject.name}" \u0633\u062a\u0628\u062f\u0623 \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642!${lec.location ? ' \u0642\u0627\u0639\u0629: ' + lec.location : ''}`,
+              title: `\u23f0 \u0645\u062d\u0627\u0636\u0631\u0629 \u0642\u0631\u064a\u0628\u0629!`,
+              body: `\uD83D\uDCDA ${subject.name} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${lec.location ? ' \uD83D\uDCCD ' + lec.location : ''} \u2022 \u0627\u0633\u062a\u0639\u062f \u0627\u0644\u0622\u0646!`,
             },
             notBefore: notifyAtUnixSec,
           });

@@ -1,4 +1,4 @@
-﻿import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 
@@ -70,8 +70,8 @@ export default async function handler(req: any, res: any) {
       await messaging.send({
         token: fcmToken,
         notification: {
-          title: `\u062a\u0630\u0643\u064a\u0631: \u0644\u062f\u064a\u0643 ${count} \u0645\u0647\u0645\u0629 \u063a\u062f\u0627\u064b \uD83D\uDCC5`,
-          body: taskList,
+          title: `\uD83D\uDCCB \u0644\u062f\u064a\u0643 ${count} \u0645\u0647\u0645\u0629 \u063a\u062f\u0627\u064b \uD83D\uDCAA`,
+          body: `\u0644\u0627 \u062a\u0646\u0633\u0649 \u2022 ${taskList}`,
         },
       }).catch(e => console.error('FCM tasks reminder error:', e));
 
