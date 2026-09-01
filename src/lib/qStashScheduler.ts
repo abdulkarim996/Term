@@ -9,11 +9,15 @@ export interface SchedulePayload {
 
 export const scheduleNotification = async (payload: SchedulePayload): Promise<string | null> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch('/api/tasks/schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     const text = await response.text();
     let data;
     try {

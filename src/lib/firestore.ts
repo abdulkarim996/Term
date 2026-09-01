@@ -43,13 +43,16 @@ export function subscribeToUserData(uid: string, callbacks: any): () => void {
   return () => unsubs.forEach(fn => fn())
 }
 
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => 
+  Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms))]);
+
 // === SUBJECTS ===
 export async function cloudAddSubject(subject: any) {
-  const ref = await addDoc(userCol(getUid(), 'subjects'), clean(subject));
+  const ref = await withTimeout(addDoc(userCol(getUid(), 'subjects'), clean(subject)), 10000);
   return ref.id;
 }
 export async function cloudUpdateSubject(id: string, changes: any) {
-  await updateDoc(userDoc(getUid(), 'subjects', id), clean(changes))
+  await withTimeout(updateDoc(userDoc(getUid(), 'subjects', id), clean(changes)), 10000);
 }
 export async function cloudDeleteSubject(id: string) {
   await deleteDoc(userDoc(getUid(), 'subjects', id))

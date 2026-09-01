@@ -134,7 +134,7 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editSubject ? t('editSubject') : t('addSubject')}>
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1 pb-4 relative">
         <div>
           <label className="block text-xs text-text-muted mb-1">{t('subjectNameInput')} *</label>
           <input
@@ -255,7 +255,7 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
           </div>
         </div>
 
-        <div className="flex gap-2 pt-4">
+        <div className="flex gap-2 pt-4 sticky bottom-0 bg-surface border-t border-surface-border mt-4 pb-2 z-10">
           <button type="button" onClick={onClose} className="btn-ghost flex-1 justify-center">{t('cancel')}</button>
           <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">
             {saving ? t('saving') + '...' : t('addSubjectConfirm')}
