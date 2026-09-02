@@ -1,6 +1,5 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getMessaging } from 'firebase-admin/messaging';
 import { Client } from '@upstash/qstash';
 
 // Day index: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
@@ -66,8 +65,6 @@ export default async function handler(req: any, res: any) {
       const subjectsSnap = await db
         .collection('users').doc(uid)
         .collection('subjects').get();
-
-      const todaysLectures: Array<{ name: string; startTime: string; location?: string }> = [];
 
       for (const subDoc of subjectsSnap.docs) {
         const subject = subDoc.data();
