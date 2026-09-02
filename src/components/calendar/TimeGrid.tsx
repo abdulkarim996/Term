@@ -124,9 +124,6 @@ export default function TimeGrid({ events, selectedDate, view, onEventClick, get
                   let height = ((e.getTime() - s.getTime()) / 60000);
                   if (height < 20) height = 20;
                   
-                  const width = concurrent > 1 ? (100 / maxCols) : 100;
-                  const left = concurrent > 1 ? (ev.colIdx * (100 / maxCols)) : 0;
-                  
                   // Count concurrent events for this specific event
                   let concurrent = 1;
                   for (const other of layoutEvents) {
@@ -134,6 +131,9 @@ export default function TimeGrid({ events, selectedDate, view, onEventClick, get
                       concurrent++;
                     }
                   }
+
+                  const width = concurrent > 1 ? (100 / maxCols) : 100;
+                  const left = concurrent > 1 ? (ev.colIdx * (100 / maxCols)) : 0;
 
                   // Gap block: position it in the MIDDLE of the gap, never on top of an event
                   let gapBlock = null;
