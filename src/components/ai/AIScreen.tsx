@@ -236,7 +236,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </button>
             
             {showSessionsMenu && (
-              <div className="absolute top-full mt-2 w-64 bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top-right animate-in fade-in zoom-in-95 duration-200 z-50 right-0">
+              <div className="absolute top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200 z-50" style={{ insetInlineStart: 0 }}>
                 <div className="p-2 border-b border-surface-border/50">
                   <button
                     onClick={createNewSession}

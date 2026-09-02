@@ -250,8 +250,10 @@ export default function CalendarScreen() {
               <div className="flex items-center gap-2 text-sm text-text-primary">
                 <Clock size={16} className="text-text-muted" />
                 <span>
-                  {new Date(data.startDate || data.dueDate).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US', { calendar: 'gregory' })} 
-                  {data.endDate ? ` - ${new Date(data.endDate).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US')}` : ''}
+                  {new Date(data.startDate || data.dueDate).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', calendar: 'gregory' })}
+                  {' · '}
+                  {new Date(data.startDate || data.dueDate).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                  {data.endDate ? ` - ${new Date(data.endDate).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}` : ''}
                 </span>
               </div>
             )}

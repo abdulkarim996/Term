@@ -42,6 +42,8 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
         name: editForm.name,
         color: editForm.color,
         code: editForm.code,
+        instructor: editForm.instructor,
+        creditHours: editForm.creditHours,
         lectures: editForm.lectures,
       })
       showToast(t('editsSaved'), 'success')
@@ -146,6 +148,16 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-xs text-text-muted mb-1">{t("lecturer")}</label>
+                    <input
+                      className="input-field text-sm"
+                      placeholder="د. اسم المحاضر"
+                      value={editForm.instructor || ''}
+                      onChange={e => setEditForm({...editForm, instructor: e.target.value})}
+                    />
+                  </div>
+
                   <div className="pt-2 border-t border-surface-border">
                     <div className="flex justify-between items-center mb-3">
                       <label className="text-xs font-semibold text-text-primary">{t("lectures")}</label>
@@ -199,6 +211,7 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
                     <div>
                       <h3 className="text-sm font-semibold text-text-primary">{sub.name}</h3>
                       {sub.code && <p className="text-[10px] text-text-muted mt-0.5">{sub.code}</p>}
+                      {sub.instructor && <p className="text-[10px] text-accent-blue mt-0.5">👤 {sub.instructor}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">

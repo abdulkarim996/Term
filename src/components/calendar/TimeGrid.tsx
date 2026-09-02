@@ -122,48 +122,50 @@ export default function TimeGrid({ events, selectedDate, view, onEventClick, get
                   let top = (s.getHours() - startHour) * hourHeight + s.getMinutes();
                   if (top < 0) top = 0;
                   let height = ((e.getTime() - s.getTime()) / 60000);
-                  if (height < 20) height = 20; // min height
+                  if (height < 20) height = 20;
                   
-                  // Compute width and left
-                  // To be perfect, we find max overlaps for this event's time range
+                  const width = concurrent > 1 ? (100 / maxCols) : 100;
+                  const left = concurrent > 1 ? (ev.colIdx * (100 / maxCols)) : 0;
+                  
+                  // Count concurrent events for this specific event
                   let concurrent = 1;
                   for (const other of layoutEvents) {
                     if (other.id !== ev.id && other.startDate < ev.endDate && other.endDate > ev.startDate) {
                       concurrent++;
                     }
                   }
-                  // We'll just use a simple percentage based on columns
-                  const width = concurrent > 1 ? (100 / maxCols) : 100;
-                  const left = concurrent > 1 ? (ev.colIdx * (100 / maxCols)) : 0;
-                  
+
+                  // Gap block: position it in the MIDDLE of the gap, never on top of an event
                   let gapBlock = null;
                   if (idx < layoutEvents.length - 1 && maxCols === 1) {
                     const nextS = new Date(layoutEvents[idx+1].startDate);
                     const gapMins = (nextS.getTime() - e.getTime()) / 60000;
                     if (gapMins > 15) {
                       const hours = Math.floor(gapMins / 60);
-                      const mins = gapMins % 60;
-                      const gapText = language === 'en' 
-                          ? `Break ${hours > 0 ? hours + 'h ' : ''}${mins}m` 
-                          : `فراغ ${hours > 0 ? hours + 'س ' : ''}${mins}د`;
-                        gapBlock = (
-      <div 
-        className="absolute left-1/2 -translate-x-1/2 text-[10px] text-gray-400 bg-[#121212] px-2 py-0.5 rounded-full border border-gray-800 z-20 whitespace-nowrap pointer-events-none"
-        style={{ top: top + height + 6 }}
-      >
-        {gapText}
-      </div>
-    )
+                      const mins = Math.round(gapMins % 60);
+                      const gapText = language === 'en'
+                        ? `Break ${hours > 0 ? hours + 'h ' : ''}${mins}m`
+                        : `فراغ ${hours > 0 ? hours + 'س ' : ''}${mins}د`;
+                      // Place label in the vertical center of the gap
+                      const gapTop = top + height + (gapMins / 2) - 10;
+                      gapBlock = (
+                        <div
+                          className="absolute left-1/2 -translate-x-1/2 text-[10px] text-gray-400 bg-[#121212]/90 px-2 py-0.5 rounded-full border border-gray-800 z-[5] whitespace-nowrap pointer-events-none"
+                          style={{ top: gapTop }}
+                        >
+                          {gapText}
+                        </div>
+                      );
                     }
                   }
 
                   return (
                     <React.Fragment key={ev.id}>
-                      <div 
+                      <div
                         onClick={() => onEventClick(ev)}
-                        className={`absolute rounded-lg p-1.5 cursor-pointer hover:ring-2 hover:ring-white/50 transition-all z-10 ${ev.type === "task" ? "shadow-inner bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.05)_10px,rgba(255,255,255,0.05)_20px)]" : "shadow-sm border border-white/10"}`}
-                        style={{ 
-                          top, 
+                        className={`absolute rounded-lg p-1.5 cursor-pointer hover:ring-2 hover:ring-white/50 transition-all z-10 overflow-hidden ${ev.type === "task" ? "shadow-inner bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.05)_10px,rgba(255,255,255,0.05)_20px)]" : "shadow-sm border border-white/10"}`}
+                        style={{
+                          top,
                           height,
                           left: `${left}%`,
                           width: `calc(${width}% - 4px)`,
@@ -171,22 +173,25 @@ export default function TimeGrid({ events, selectedDate, view, onEventClick, get
                           backgroundColor: getEventColor(ev) + '20',
                           borderRight: `3px solid ${getEventColor(ev)}`
                         }}>
-                        <div className="text-[10px] font-bold truncate text-white flex items-center gap-1">{ev.type === "task" && <CheckCircle size={12} className="opacity-70 shrink-0" />}{ev.title}</div>
+                        <div className="text-[10px] font-bold text-white flex items-center gap-1 overflow-hidden">
+                          {ev.type === "task" && <CheckCircle size={12} className="opacity-70 shrink-0" />}
+                          <span className="truncate">{ev.title}</span>
+                        </div>
                         <div className="text-[9px] text-text-secondary truncate mt-0.5">
                           {s.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})} - {e.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}
                         </div>
                         {ev.isLecture && (ev.location || ev.code) && (
                           <>
-                          {ev.code && (
-                            <div className="text-[9px] text-text-secondary truncate mt-0.5 font-medium opacity-90">
-                              {ev.code}
-                            </div>
-                          )}
-                          {ev.location && (
-                            <div className="text-[9px] text-text-secondary truncate mt-0.5 font-medium opacity-80">
-                              {t('room')} {ev.location}
-                            </div>
-                          )}
+                            {ev.code && (
+                              <div className="text-[9px] text-text-secondary truncate mt-0.5 font-medium opacity-90">
+                                {ev.code}
+                              </div>
+                            )}
+                            {ev.location && (
+                              <div className="text-[9px] text-text-secondary truncate mt-0.5 font-medium opacity-80">
+                                {t('room')} {ev.location}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>

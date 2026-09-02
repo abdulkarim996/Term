@@ -137,7 +137,7 @@ export default function HomeScreen() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-text-muted text-sm font-medium">{t('noLecturesToday')}</p>
+          <p className="text-text-muted text-sm font-medium">{getDayName()} · {getDateString()}</p>
           <h1 className="text-2xl font-bold text-text-primary mt-1 flex items-center gap-2">
             {getGreeting()}{userName ? ` ${userName}` : ''} 
             <span className="animate-wave inline-block origin-bottom-right">👋</span>
