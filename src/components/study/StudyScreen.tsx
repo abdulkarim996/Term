@@ -1,9 +1,10 @@
 // @ts-nocheck
 import { useTranslation } from '../../hooks/useTranslation'
 import React, { useState } from 'react'
-import { BookOpen, PenTool, FolderOpen } from 'lucide-react'
+import { BookOpen, PenTool, FolderOpen, Calculator } from 'lucide-react'
 import WhiteBoard from './WhiteBoard'
 import FileViewer from './FileViewer'
+import CalculatorWidget from './CalculatorWidget'
 
 type StudyTab = 'whiteboard' | 'files'
 
@@ -11,6 +12,7 @@ export default function StudyScreen() {
   const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<StudyTab>('files')
+  const [showCalculator, setShowCalculator] = useState(false)
 
   return (
     <div className="flex flex-col h-full bg-background" style={{ minHeight: '100vh' }}>
@@ -28,8 +30,8 @@ export default function StudyScreen() {
       </div>
 
       {/* Tabs */}
-      <div className="px-4 mb-4">
-        <div className="flex bg-surface-elevated rounded-xl p-1 shadow-sm">
+      <div className="px-4 mb-4 flex gap-2">
+        <div className="flex bg-surface-elevated rounded-xl p-1 shadow-sm flex-1">
           <button
             onClick={() => setActiveTab('files')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
@@ -50,6 +52,15 @@ export default function StudyScreen() {
             <span className="hidden sm:inline">{t('whiteboard')}</span>
           </button>
         </div>
+
+        <button
+          onClick={() => setShowCalculator(!showCalculator)}
+          className={`px-4 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all shadow-sm ${
+            showCalculator ? 'bg-accent-blue text-white' : 'bg-surface-elevated text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <Calculator size={18} />
+        </button>
       </div>
 
       {/* Content Area */}
@@ -67,6 +78,10 @@ export default function StudyScreen() {
           )}
         </div>
       </div>
+
+      {showCalculator && (
+        <CalculatorWidget onClose={() => setShowCalculator(false)} />
+      )}
     </div>
   )
 }
