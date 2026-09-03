@@ -35,6 +35,20 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
     setEditForm({})
   }
 
+  const scheduleTodayIfNeeded = (subjectId: string, subjectName: string, lectures: any[]) => {
+    try {
+      import('../../lib/firebase').then(({ auth: firebaseAuth }) => {
+        const currentUid = firebaseAuth.currentUser?.uid;
+        if (!currentUid || !lectures || lectures.length === 0) return;
+        fetch('/api/schedule-today-lecture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: currentUid, subjectId, subjectName, lectures }),
+        }).catch(() => {});
+      }).catch(() => {});
+    } catch { /* silent */ }
+  };
+
   const saveEdit = async () => {
     if (!editingId || !editForm.name) return
     try {
@@ -46,6 +60,10 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
         creditHours: editForm.creditHours,
         lectures: editForm.lectures,
       })
+      // Fire-and-forget: schedule same-day notification if a lecture was added/edited for today
+      if (editForm.lectures && editForm.lectures.length > 0) {
+        scheduleTodayIfNeeded(String(editingId), editForm.name, editForm.lectures);
+      }
       showToast(t('editsSaved'), 'success')
       setEditingId(null)
     } catch {

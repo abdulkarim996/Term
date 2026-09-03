@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { Plus, Clock, MapPin, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -46,6 +46,28 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
     }
   }, [editSubject, isOpen]);
 
+  const scheduleTodayLectureIfNeeded = (subjectId: string, subjectName: string, lecturesToCheck: any[]) => {
+    try {
+      const { auth } = (window as any).__firebase_auth__ || {};
+      const uid = auth?.currentUser?.uid || null;
+      // Import auth directly
+      import('../../lib/firebase').then(({ auth: firebaseAuth }) => {
+        const currentUid = firebaseAuth.currentUser?.uid;
+        if (!currentUid || !lecturesToCheck || lecturesToCheck.length === 0) return;
+        fetch('/api/schedule-today-lecture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: currentUid,
+            subjectId,
+            subjectName,
+            lectures: lecturesToCheck,
+          }),
+        }).catch(() => { /* silent — never block the user */ });
+      }).catch(() => {});
+    } catch { /* silent */ }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
@@ -62,10 +84,17 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
         lectures: lectures.length > 0 ? lectures : undefined,
       };
 
+      let savedId: string;
       if (editSubject) {
-        await cloudUpdateSubject(String(editSubject.id || editSubject.cloudId), payload);
+        savedId = String(editSubject.id || editSubject.cloudId);
+        await cloudUpdateSubject(savedId, payload);
       } else {
-        await cloudAddSubject({ ...payload, createdAt: Date.now() });
+        savedId = await cloudAddSubject({ ...payload, createdAt: Date.now() });
+      }
+
+      // Fire-and-forget: schedule same-day notification if lecture is today and still in the future
+      if (lectures.length > 0) {
+        scheduleTodayLectureIfNeeded(savedId, form.name.trim(), lectures);
       }
 
       showToast(
