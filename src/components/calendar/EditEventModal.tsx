@@ -57,6 +57,23 @@ export default function EditEventModal({ isOpen, onClose, event }) {
         await cloudUpdateTask(String(event.originalId), { title, dueDate: startTs });
       } else {
         await cloudUpdateEvent(String(event.id), { title, startDate: startTs, endDate: endTs });
+        // Fire-and-forget: reschedule same-day notification with deduplication
+        import('../../lib/firebase').then(({ auth: firebaseAuth }) => {
+          const currentUid = firebaseAuth.currentUser?.uid;
+          if (currentUid && event.id) {
+            fetch('/api/schedule-today-event', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                uid: currentUid,
+                eventId: String(event.id),
+                eventTitle: title,
+                startDate: startTs,
+                location: event.location || '',
+              }),
+            }).catch(() => {});
+          }
+        }).catch(() => {});
       }
       showToast(decodeURIComponent('%D8%AA%D9%85%20%D8%A7%D9%84%D8%AD%D9%81%D8%B8'), 'success');
       onClose();

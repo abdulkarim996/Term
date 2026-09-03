@@ -60,8 +60,26 @@ export default function AddEventModal({ isOpen, onClose, defaultDate }: Props) {
         recurringUntil: form.recurringUntil ? new Date(form.recurringUntil).getTime() : undefined,
         createdAt: Date.now() }
 
-      const id = await cloudAddEvent(event)
-      const savedEvent = { ...event, id }
+      const savedEventId = await cloudAddEvent(event)
+      const savedEvent = { ...event, id: savedEventId }
+
+      // Fire-and-forget: schedule same-day notification if event is today and still in the future
+      import('../../lib/firebase').then(({ auth: firebaseAuth }) => {
+        const currentUid = firebaseAuth.currentUser?.uid;
+        if (currentUid && savedEventId) {
+          fetch('/api/schedule-today-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: currentUid,
+              eventId: savedEventId,
+              eventTitle: event.title,
+              startDate: startTs,
+              location: event.location || '',
+            }),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
 
       // Auto-generate study blocks for exams only if setting is enabled
       if (form.type === 'exam' && autoStudyBlocks) {

@@ -71,7 +71,8 @@ export async function cloudDeleteTask(id: string) {
 
 // === EVENTS ===
 export async function cloudAddEvent(event: any) {
-  await addDoc(userCol(getUid(), 'events'), clean(event))
+  const ref = await addDoc(userCol(getUid(), 'events'), clean(event))
+  return ref.id
 }
 export async function cloudUpdateEvent(id: string, changes: any) {
   await updateDoc(userDoc(getUid(), 'events', id), clean(changes))

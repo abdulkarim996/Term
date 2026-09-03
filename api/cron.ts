@@ -44,8 +44,13 @@ export default async function handler(req: any, res: any) {
     const nowSaudi = new Date(nowUTC.getTime() + 3 * 60 * 60 * 1000);
     const todayDayOfWeek = nowSaudi.getUTCDay(); // 0=Sun...6=Sat
     const todayDateStr = nowSaudi.toISOString().slice(0, 10); // YYYY-MM-DD
+    const saudiMidnightUTC = new Date(`${todayDateStr}T00:00:00Z`).getTime();
+    // Today's boundaries in UTC ms
+    const todayStartUTC = saudiMidnightUTC - 3 * 60 * 60 * 1000; // Saudi midnight → UTC
+    const todayEndUTC = todayStartUTC + 24 * 60 * 60 * 1000;
 
     const executeUrl = `https://${req.headers.host}/api/tasks/execute`;
+    const nowUnixSec = Math.floor(Date.now() / 1000);
 
     // Get all users with FCM tokens
     const usersSnap = await db.collection('users').where('fcmToken', '!=', null).get();
@@ -61,7 +66,7 @@ export default async function handler(req: any, res: any) {
       totalUsers++;
       const uid = userDoc.id;
 
-      // Get all subjects for this user
+      // ── 1. LECTURES ──────────────────────────────────────────────────────────
       const subjectsSnap = await db
         .collection('users').doc(uid)
         .collection('subjects').get();
@@ -86,7 +91,6 @@ export default async function handler(req: any, res: any) {
           const notifyAtSaudiMs = lecSaudiMs - 10 * 60 * 1000;
           const notifyAtUTCMs = notifyAtSaudiMs - 3 * 60 * 60 * 1000;
           const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
-          const nowUnixSec = Math.floor(Date.now() / 1000);
 
           if (notifyAtUnixSec <= nowUnixSec + 60) continue;
 
@@ -94,7 +98,7 @@ export default async function handler(req: any, res: any) {
             url: executeUrl,
             body: {
               fcmToken,
-              title: `\u23f0 \u0645\u062d\u0627\u0636\u0631\u0629 \u0642\u0631\u064a\u0628\u0629!`,
+              title: '\u23f0 \u0645\u062d\u0627\u0636\u0631\u0629 \u0642\u0631\u064a\u0628\u0629!',
               body: `\uD83D\uDCDA ${subject.name} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${lec.location ? ' \uD83D\uDCCD ' + lec.location : ''} \u2022 \u0627\u0633\u062a\u0639\u062f \u0627\u0644\u0622\u0646!`,
             },
             notBefore: notifyAtUnixSec,
@@ -104,12 +108,46 @@ export default async function handler(req: any, res: any) {
         }
       }
 
+      // ── 2. CALENDAR EVENTS ───────────────────────────────────────────────────
+      const eventsSnap = await db
+        .collection('users').doc(uid)
+        .collection('events')
+        .where('startDate', '>=', todayStartUTC)
+        .where('startDate', '<', todayEndUTC)
+        .get();
+
+      for (const evDoc of eventsSnap.docs) {
+        const ev = evDoc.data();
+        if (!ev.startDate) continue;
+
+        const notifyAtUTCMs = ev.startDate - 10 * 60 * 1000;
+        const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
+
+        if (notifyAtUnixSec <= nowUnixSec + 60) continue;
+
+        const deduplicationId = `event-${evDoc.id}-${todayDateStr}`;
+
+        await qstash.publishJSON({
+          url: executeUrl,
+          body: {
+            fcmToken,
+            title: '\uD83D\uDCC5 \u062d\u062f\u062b \u0642\u0631\u064a\u0628!',
+            body: `\u23f0 ${ev.title} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${ev.location ? ' \uD83D\uDCCD ' + ev.location : ''} \u2022 \u0644\u0627 \u062a\u0641\u0648\u062a\u0643!`,
+          },
+          notBefore: notifyAtUnixSec,
+          headers: {
+            'Upstash-Deduplication-Id': deduplicationId,
+          },
+        });
+
+        totalScheduled++;
+      }
     }
 
     return res.status(200).json({
       success: true,
       usersProcessed: totalUsers,
-      lectureNotificationsScheduled: totalScheduled,
+      totalNotificationsScheduled: totalScheduled,
       day: DAY_NAMES[todayDayOfWeek],
     });
 
