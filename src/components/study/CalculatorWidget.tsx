@@ -3,19 +3,21 @@ import { Rnd } from 'react-rnd';
 import { Settings, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { ComputeEngine } from '@cortex-js/compute-engine';
 
-// This safely declares the custom Web Component for React and TypeScript
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'math-field': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        class?: string;
-      };
-    }
-  }
-}
+
 
 interface CalculatorWidgetProps {
   onClose: () => void;
+}
+
+interface CalcButton {
+  label: string;
+  latex?: string;
+  action?: string;
+  isNum?: boolean;
+  isOp?: boolean;
+  isOrange?: boolean;
+  isTeal?: boolean;
+  rowSpan?: number;
 }
 
 export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
@@ -62,7 +64,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     mf.focus();
   };
 
-  const basicButtons = [
+  const basicButtons: CalcButton[] = [
     { label: 'x', latex: 'x' }, { label: 'y', latex: 'y' }, { label: '□/□', latex: '\\frac{#?}{#?}' }, { label: 'x^□', latex: '^{#?}' },
     { label: '7', latex: '7', isNum: true }, { label: '8', latex: '8', isNum: true }, { label: '9', latex: '9', isNum: true },
     { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
@@ -80,7 +82,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     { label: '+', latex: '+', isOp: true }
   ];
 
-  const fxButtons = [
+  const fxButtons: CalcButton[] = [
     { label: 'sin⁻¹', latex: '\\arcsin(' }, { label: 'cos⁻¹', latex: '\\arccos(' }, { label: 'tan⁻¹', latex: '\\arctan(' }, { label: 'lim', latex: '\\lim_{x \\to #?}' }, { label: 'd/dx', latex: '\\frac{d}{dx} #?' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx' }, { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
 
     { label: 'sinh', latex: '\\sinh(' }, { label: 'cosh', latex: '\\cosh(' }, { label: 'tanh', latex: '\\tanh(' }, { label: 'Σ', latex: '\\sum_{#?}^{#?} #?' }, { label: 'Π', latex: '\\prod_{#?}^{#?} #?' }, { label: '∞', latex: '\\infty' }, { label: '×', latex: '\\times', isOp: true }, { label: 'DEL', action: 'del' },
@@ -159,17 +161,15 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
 
         {/* Display Screen (MathLive) */}
         <div className="bg-[#0f172a] p-4 border-b border-slate-800 flex items-center justify-end overflow-hidden min-h-[100px]">
-          {isClient && (
-            <math-field
-              ref={mfRef}
-              class="w-full text-right text-4xl text-white outline-none font-math"
-              style={{
+          {isClient && React.createElement('math-field', {
+              ref: mfRef,
+              class: "w-full text-right text-4xl text-white outline-none font-math",
+              style: {
                 '--caret-color': '#06b6d4',
                 '--selection-background-color': 'rgba(6, 182, 212, 0.3)',
                 '--selection-color': 'white',
-              } as React.CSSProperties}
-            ></math-field>
-          )}
+              } as React.CSSProperties
+            })}
         </div>
 
         {/* CSS Grid Keypad */}
