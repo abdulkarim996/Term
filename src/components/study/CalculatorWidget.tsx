@@ -26,15 +26,17 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const ce = useRef<any>(null);
 
   useEffect(() => {
-    // Only import heavy math libraries on the client side dynamically to prevent SSR issues and reduce build memory
+    // Import heavy math libraries from CDN to completely bypass Vite bundling and prevent Vercel OOM
     if (typeof window !== 'undefined') {
       Promise.all([
-        import('mathlive'),
-        import('@cortex-js/compute-engine')
+        // @ts-ignore
+        import('https://esm.sh/mathlive'),
+        // @ts-ignore
+        import('https://esm.sh/@cortex-js/compute-engine')
       ]).then(([_, cortex]) => {
         ce.current = new cortex.ComputeEngine();
         setIsClient(true);
-      });
+      }).catch(err => console.error("Failed to load math libraries", err));
     }
   }, []);
 
