@@ -51,12 +51,11 @@ function UrlInput({ label, value, onChange, placeholder }: {
     <div>
       <label className="text-[10px] font-medium text-text-muted mb-1 block">{label}</label>
       <div className="flex items-center gap-2 bg-[#0d0d0d] border border-white/5 rounded-xl px-3 py-2 focus-within:border-accent-blue/40 transition-colors">
-        <span className="text-text-muted text-[10px] font-mono shrink-0">https://</span>
         <input
           type="url"
           value={value}
           onChange={e => onChange(e.target.value)}
-          placeholder={placeholder || 'example.com'}
+          placeholder={placeholder || 'https://example.com'}
           className="flex-1 bg-transparent text-text-primary text-xs outline-none placeholder:text-text-muted/40 min-w-0"
         />
       </div>
