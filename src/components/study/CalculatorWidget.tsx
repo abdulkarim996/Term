@@ -1,148 +1,180 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
-import { evaluate } from 'mathjs';
-import { X } from 'lucide-react';
+import { Settings, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { ComputeEngine } from '@cortex-js/compute-engine';
+
+// This safely declares the custom Web Component for React and TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'math-field': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        class?: string;
+      };
+    }
+  }
+}
 
 interface CalculatorWidgetProps {
   onClose: () => void;
 }
 
 export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
-  const [expression, setExpression] = useState('');
-  const [result, setResult] = useState('');
   const [activeTab, setActiveTab] = useState<'123' | 'fx'>('123');
+  const [isClient, setIsClient] = useState(false);
+  const mfRef = useRef<any>(null);
 
-  const handleInput = (val: string) => {
-    setExpression((prev) => prev + val);
-  };
+  // Initialize ComputeEngine instance for advanced math parsing
+  const ce = useRef<ComputeEngine | null>(null);
 
-  const handleClear = () => {
-    setExpression('');
-    setResult('');
-  };
-
-  const handleDelete = () => {
-    setExpression((prev) => prev.slice(0, -1));
-  };
-
-  const calculate = () => {
-    try {
-      if (!expression) return;
-      const res = evaluate(expression);
-      setResult(Number.isInteger(res) ? res.toString() : Number(res.toFixed(8)).toString());
-    } catch (error) {
-      setResult('Error');
+  useEffect(() => {
+    // Only import mathlive on the client side to prevent SSR issues
+    if (typeof window !== 'undefined') {
+      require('mathlive');
+      ce.current = new ComputeEngine();
+      setIsClient(true);
     }
+  }, []);
+
+  const handleAction = (btn: any) => {
+    const mf = mfRef.current;
+    if (!mf) return;
+
+    if (btn.action === 'ac') {
+      mf.value = '';
+    } else if (btn.action === 'del') {
+      mf.executeCommand('deleteBackward');
+    } else if (btn.action === 'exec') {
+      try {
+        if (ce.current) {
+          // Extract math-json from MathLive, evaluate it using CortexJS, and set result
+          const mathJson = mf.getValue('math-json');
+          const evaluated = ce.current.box(mathJson).evaluate().latex;
+          mf.value = evaluated;
+        }
+      } catch (e) {
+        console.error('Math evaluation error:', e);
+      }
+    } else if (btn.latex) {
+      mf.executeCommand(['insert', btn.latex]);
+    }
+    
+    // Maintain focus on the mathfield
+    mf.focus();
+  };
+
+  const basicButtons = [
+    { label: 'x', latex: 'x' }, { label: 'y', latex: 'y' }, { label: '□/□', latex: '\\frac{#?}{#?}' }, { label: 'x^□', latex: '^{#?}' },
+    { label: '7', latex: '7', isNum: true }, { label: '8', latex: '8', isNum: true }, { label: '9', latex: '9', isNum: true },
+    { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
+
+    { label: '√□', latex: '\\sqrt{#?}' }, { label: '∛□', latex: '\\sqrt[3]{#?}' }, { label: 'π', latex: '\\pi' }, { label: 'e', latex: 'e' },
+    { label: '4', latex: '4', isNum: true }, { label: '5', latex: '5', isNum: true }, { label: '6', latex: '6', isNum: true },
+    { label: '×', latex: '\\times', isOp: true }, { label: 'DEL', action: 'del' },
+
+    { label: 'sin', latex: '\\sin(' }, { label: 'cos', latex: '\\cos(' }, { label: 'tan', latex: '\\tan(' }, { label: 'log', latex: '\\log_{10}(' },
+    { label: '1', latex: '1', isNum: true }, { label: '2', latex: '2', isNum: true }, { label: '3', latex: '3', isNum: true },
+    { label: '−', latex: '-', isOp: true }, { label: 'EXEC', action: 'exec', isTeal: true, rowSpan: 2 },
+
+    { label: '(', latex: '(' }, { label: ')', latex: ')' }, { label: '|□|', latex: '\\left|#?\\right|' }, { label: ',', latex: ',' },
+    { label: '0', latex: '0', isNum: true }, { label: '.', latex: '.', isNum: true }, { label: '10^x', latex: '10^{#?}' },
+    { label: '+', latex: '+', isOp: true }
+  ];
+
+  const fxButtons = [
+    { label: 'sin⁻¹', latex: '\\arcsin(' }, { label: 'cos⁻¹', latex: '\\arccos(' }, { label: 'tan⁻¹', latex: '\\arctan(' }, { label: 'lim', latex: '\\lim_{x \\to #?}' }, { label: 'd/dx', latex: '\\frac{d}{dx} #?' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx' }, { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
+
+    { label: 'sinh', latex: '\\sinh(' }, { label: 'cosh', latex: '\\cosh(' }, { label: 'tanh', latex: '\\tanh(' }, { label: 'Σ', latex: '\\sum_{#?}^{#?} #?' }, { label: 'Π', latex: '\\prod_{#?}^{#?} #?' }, { label: '∞', latex: '\\infty' }, { label: '×', latex: '\\times', isOp: true }, { label: 'DEL', action: 'del' },
+
+    { label: '<', latex: '<' }, { label: '>', latex: '>' }, { label: '≤', latex: '\\le' }, { label: '≥', latex: '\\ge' }, { label: '=', latex: '=' }, { label: '≠', latex: '\\neq' }, { label: '−', latex: '-', isOp: true }, { label: 'EXEC', action: 'exec', isTeal: true, rowSpan: 2 },
+
+    { label: 'A', latex: 'A' }, { label: 'B', latex: 'B' }, { label: 'C', latex: 'C' }, { label: 'X', latex: 'X' }, { label: 'Y', latex: 'Y' }, { label: 'Z', latex: 'Z' }, { label: '+', latex: '+', isOp: true }
+  ];
+
+  const renderButtons = () => {
+    const buttons = activeTab === '123' ? basicButtons : fxButtons;
+    return buttons.map((btn, idx) => (
+      <button
+        key={idx}
+        onClick={() => handleAction(btn)}
+        className={`
+          border-r border-b border-white/5 flex items-center justify-center transition-colors hover:bg-slate-800
+          ${btn.rowSpan ? 'row-span-2' : 'h-12'}
+          ${btn.isOrange ? 'bg-orange-600 hover:bg-orange-500 text-white font-bold' : ''}
+          ${btn.isTeal ? 'bg-teal-500 hover:bg-teal-400 text-white font-bold' : ''}
+          ${!btn.isOrange && !btn.isTeal && btn.isNum ? 'text-slate-100 font-medium text-lg' : ''}
+          ${!btn.isOrange && !btn.isTeal && btn.isOp ? 'text-cyan-400 font-medium text-lg' : ''}
+          ${!btn.isOrange && !btn.isTeal && !btn.isNum && !btn.isOp ? 'text-slate-300 text-sm' : ''}
+        `}
+      >
+        {btn.label}
+      </button>
+    ));
   };
 
   return (
     <Rnd
       default={{
-        x: typeof window !== 'undefined' ? window.innerWidth - 350 : 50,
-        y: 100,
-        width: 320,
+        x: typeof window !== 'undefined' ? window.innerWidth / 2 - 250 : 50,
+        y: 80,
+        width: 500,
         height: 'auto',
       }}
-      minWidth={320}
-      maxWidth={400}
+      minWidth={450}
+      maxWidth={800}
       bounds="window"
       dragHandleClassName="drag-handle"
       className="z-[9999]"
     >
-      <div className="bg-[#121212] border border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col backdrop-blur-xl bg-opacity-95 text-white">
+      <div className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none">
+        
         {/* Header / Drag Handle */}
-        <div className="drag-handle bg-[#1e1e1e] p-3 flex justify-between items-center cursor-move border-b border-gray-800 select-none">
-          <div className="flex space-x-2">
-            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
-            <div className="w-3 h-3 rounded-full bg-gray-600"></div>
+        <div className="drag-handle bg-slate-900 px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-800">
+          <div className="flex bg-slate-800 rounded-md p-1">
+            <button
+              onClick={() => setActiveTab('123')}
+              className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                activeTab === '123' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              123
+            </button>
+            <button
+              onClick={() => setActiveTab('fx')}
+              className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                activeTab === 'fx' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              f(x)
+            </button>
           </div>
-          <span className="text-gray-400 font-semibold text-xs tracking-widest uppercase">Calculator</span>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors cursor-pointer z-50">
-            <X size={16} strokeWidth={2.5} />
-          </button>
+          
+          <div className="flex items-center space-x-3 text-slate-400">
+            <button onClick={() => mfRef.current?.executeCommand('moveToPreviousChar')} className="hover:text-white cursor-pointer"><ArrowLeft size={16} /></button>
+            <button onClick={() => mfRef.current?.executeCommand('moveToNextChar')} className="hover:text-white cursor-pointer"><ArrowRight size={16} /></button>
+            <button className="hover:text-white cursor-pointer ml-2"><Settings size={16} /></button>
+            <div className="w-[1px] h-4 bg-slate-700 mx-1"></div>
+            <button onClick={onClose} className="hover:text-red-400 cursor-pointer"><X size={18} /></button>
+          </div>
         </div>
 
-        {/* Display */}
-        <div className="p-5 bg-[#121212] flex flex-col justify-end items-end h-28 border-b border-gray-800">
-          <div className="text-gray-400 text-lg w-full text-right overflow-hidden break-all h-10 flex items-end justify-end tracking-wider">
-            {expression || '0'}
-          </div>
-          <div className="text-white text-3xl font-bold w-full text-right overflow-hidden mt-1 truncate">
-            {result ? `= ${result}` : ''}
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex bg-[#1e1e1e] p-1 mx-4 mt-4 rounded-lg">
-          <button
-            onClick={() => setActiveTab('123')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-              activeTab === '123' ? 'bg-[#2a2a2a] text-white shadow' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            123
-          </button>
-          <button
-            onClick={() => setActiveTab('fx')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'fx' ? 'bg-[#2a2a2a] text-white shadow' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            f(x)
-          </button>
-        </div>
-
-        {/* Keypad */}
-        <div className="p-4 select-none">
-          {activeTab === '123' ? (
-            <div className="grid grid-cols-4 gap-3">
-              <button onClick={handleClear} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-red-400 rounded-xl font-medium text-lg transition-colors">C</button>
-              <button onClick={() => handleInput('(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">(</button>
-              <button onClick={() => handleInput(')')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">)</button>
-              <button onClick={() => handleInput('/')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">÷</button>
-
-              <button onClick={() => handleInput('7')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">7</button>
-              <button onClick={() => handleInput('8')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">8</button>
-              <button onClick={() => handleInput('9')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">9</button>
-              <button onClick={() => handleInput('*')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">×</button>
-
-              <button onClick={() => handleInput('4')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">4</button>
-              <button onClick={() => handleInput('5')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">5</button>
-              <button onClick={() => handleInput('6')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">6</button>
-              <button onClick={() => handleInput('-')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">−</button>
-
-              <button onClick={() => handleInput('1')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">1</button>
-              <button onClick={() => handleInput('2')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">2</button>
-              <button onClick={() => handleInput('3')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-medium text-xl transition-colors">3</button>
-              <button onClick={() => handleInput('+')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-blue-400 rounded-xl font-medium text-lg transition-colors">+</button>
-
-              <button onClick={() => handleInput('0')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] col-span-2 rounded-xl font-medium text-xl transition-colors">0</button>
-              <button onClick={() => handleInput('.')} className="h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] rounded-xl font-bold text-xl transition-colors">.</button>
-              <button onClick={calculate} className="h-12 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium text-2xl shadow-lg shadow-blue-500/20 transition-all">=</button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-3">
-              <button onClick={() => handleInput('sin(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">sin</button>
-              <button onClick={() => handleInput('cos(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">cos</button>
-              <button onClick={() => handleInput('tan(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">tan</button>
-              <button onClick={() => handleInput('log10(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">log</button>
-
-              <button onClick={() => handleInput('log(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">ln</button>
-              <button onClick={() => handleInput('sqrt(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">√</button>
-              <button onClick={() => handleInput('^')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">^</button>
-              <button onClick={() => handleInput('!')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">!</button>
-
-              <button onClick={() => handleInput('pi')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">π</button>
-              <button onClick={() => handleInput('e')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">e</button>
-              <button onClick={() => handleInput('(')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">(</button>
-              <button onClick={() => handleInput(')')} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-xl font-medium text-sm transition-colors">)</button>
-
-              <button onClick={handleDelete} className="h-12 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-red-400 col-span-2 rounded-xl font-medium text-sm flex items-center justify-center gap-1 transition-colors">
-                DEL
-              </button>
-              <button onClick={calculate} className="h-12 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium text-2xl shadow-lg shadow-blue-500/20 col-span-2 transition-all">=</button>
-            </div>
+        {/* Display Screen (MathLive) */}
+        <div className="bg-[#0f172a] p-4 border-b border-slate-800 flex items-center justify-end overflow-hidden min-h-[100px]">
+          {isClient && (
+            <math-field
+              ref={mfRef}
+              class="w-full text-right text-4xl text-white outline-none font-math"
+              style={{
+                '--caret-color': '#06b6d4',
+                '--selection-background-color': 'rgba(6, 182, 212, 0.3)',
+                '--selection-color': 'white',
+              } as React.CSSProperties}
+            ></math-field>
           )}
+        </div>
+
+        {/* CSS Grid Keypad */}
+        <div className={`grid ${activeTab === '123' ? 'grid-cols-9' : 'grid-cols-8'} bg-slate-900 border-l border-t border-white/5`}>
+          {renderButtons()}
         </div>
       </div>
     </Rnd>
