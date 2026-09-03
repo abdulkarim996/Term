@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { Settings, ArrowLeft, ArrowRight, X } from 'lucide-react';
-import { ComputeEngine } from '@cortex-js/compute-engine';
-
-
 
 interface CalculatorWidgetProps {
   onClose: () => void;
@@ -26,14 +23,18 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const mfRef = useRef<any>(null);
 
   // Initialize ComputeEngine instance for advanced math parsing
-  const ce = useRef<ComputeEngine | null>(null);
+  const ce = useRef<any>(null);
 
   useEffect(() => {
-    // Only import mathlive on the client side to prevent SSR issues
+    // Only import heavy math libraries on the client side dynamically to prevent SSR issues and reduce build memory
     if (typeof window !== 'undefined') {
-      require('mathlive');
-      ce.current = new ComputeEngine();
-      setIsClient(true);
+      Promise.all([
+        import('mathlive'),
+        import('@cortex-js/compute-engine')
+      ]).then(([_, cortex]) => {
+        ce.current = new cortex.ComputeEngine();
+        setIsClient(true);
+      });
     }
   }, []);
 
