@@ -47,6 +47,11 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
         // @ts-ignore
         import('https://esm.sh/@cortex-js/compute-engine')
       ]).then(([_, cortex]) => {
+        // Force disable MathLive's virtual keyboard completely
+        if ((window as any).mathVirtualKeyboard) {
+          (window as any).mathVirtualKeyboard.policy = 'manual';
+        }
+        
         ce.current = new cortex.ComputeEngine();
         setIsClient(true);
       }).catch(err => console.error("Failed to load math libraries", err));
@@ -219,7 +224,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
           {isClient && React.createElement('math-field', {
               ref: mfRef,
               class: "w-full text-right text-4xl outline-none font-math text-[#0f172a]",
-              'virtual-keyboard-mode': 'manual',
+              'math-virtual-keyboard-policy': 'manual',
               style: {
                 '--text-color': '#0f172a',
                 backgroundColor: 'white',
