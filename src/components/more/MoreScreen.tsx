@@ -33,7 +33,7 @@ function SegmentedControl({ options, value, onChange }: {
           className={`flex-1 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
             value === opt.value
               ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/20'
-              : 'text-text-muted hover:text-text-primary'
+              : 'text-gray-400 hover:text-gray-200'
           }`}
         >
           {opt.label}
@@ -313,10 +313,10 @@ export default function MoreScreen() {
                     <Bell size={15} className={pushEnabled ? 'text-accent-blue' : 'text-text-muted'} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-text-primary">{t("pushNotifications") || 'الإشعارات'}</p>
-                    {/* RTL fix: explicit dir + text-right so Arabic punctuation renders correctly */}
-                    <p className="text-[11px] text-text-muted mt-0.5" dir="rtl" style={{ textAlign: 'right' }}>
-                      الإشعارات تصل لآخر جهاز تم تفعيل الزر منه.
+                    <p className="text-sm font-medium text-text-primary">Push Notifications</p>
+                    {/* dir="rtl" + text-right forces correct Arabic punctuation placement */}
+                    <p className="text-[11px] text-text-muted mt-0.5 text-right" dir="rtl">
+                      .الإشعارات تصل لآخر جهاز تم تفعيل الزر منه
                     </p>
                   </div>
                 </div>
@@ -412,7 +412,20 @@ export default function MoreScreen() {
         </div>
       </div>
 
-      {/* ── App Info ─────────────────────────────────────────────── */}
+      {/* ── Log Out — standalone destructive action above footer ── */}
+      <button
+        onClick={() => {
+          if (window.confirm(t("confirmLogout") || 'Are you sure you want to log out?')) {
+            signOut(auth)
+          }
+        }}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-accent-red/25 text-accent-red text-sm font-semibold hover:bg-accent-red/8 active:scale-[0.98] transition-all"
+      >
+        <LogOut size={16} />
+        {t("logout")}
+      </button>
+
+      {/* ── App Info — always the absolute last element ───────────── */}
       <div className="text-center py-8 mt-4 space-y-3 opacity-80 hover:opacity-100 transition-opacity duration-300">
         <div className="flex items-center justify-center gap-3">
           <div className="h-px bg-surface-border flex-1 max-w-[40px]"></div>
@@ -429,19 +442,6 @@ export default function MoreScreen() {
           <p className="text-[9px] text-text-muted/60">Term v2.0.1</p>
         </div>
       </div>
-
-      {/* ── Log Out — standalone destructive action at the very bottom ── */}
-      <button
-        onClick={() => {
-          if (window.confirm(t("confirmLogout") || 'Are you sure you want to log out?')) {
-            signOut(auth)
-          }
-        }}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-accent-red/25 text-accent-red text-sm font-semibold hover:bg-accent-red/8 active:scale-[0.98] transition-all"
-      >
-        <LogOut size={16} />
-        {t("logout")}
-      </button>
 
     </div>
     <AddSubjectModal isOpen={showAddSubject} onClose={() => setShowAddSubject(false)} />
