@@ -313,10 +313,9 @@ export default function MoreScreen() {
                     <Bell size={15} className={pushEnabled ? 'text-accent-blue' : 'text-text-muted'} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-text-primary">Push Notifications</p>
-                    {/* dir="rtl" + text-right forces correct Arabic punctuation placement */}
-                    <p className="text-[11px] text-text-muted mt-0.5 text-right" dir="rtl">
-                      .الإشعارات تصل لآخر جهاز تم تفعيل الزر منه
+                    <p className="text-sm font-medium text-text-primary">{t("pushNotifications")}</p>
+                    <p className={`text-[11px] text-text-muted mt-0.5 ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                      {t("pushNotificationsDesc")}
                     </p>
                   </div>
                 </div>
@@ -326,9 +325,17 @@ export default function MoreScreen() {
               </div>
 
               {/* ── API Keys (moved inside Preferences) ───────────── */}
-              <div className="pt-1">
-                <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2 px-1">{t("apiKeys") || 'API Keys'}</p>
-                <div className="relative">
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent-orange/10 flex items-center justify-center shrink-0">
+                    <Key size={15} className="text-accent-orange" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-text-primary">{t("apiKeys") || 'API Keys'}</h4>
+                    <p className="text-[10px] text-text-muted mt-0.5">{language === 'ar' ? 'إدارة مفاتيح الذكاء الاصطناعي' : 'Manage AI API Keys'}</p>
+                  </div>
+                </div>
+                <div className="relative mt-1">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Key size={13} className="text-text-muted" />
                   </div>
@@ -349,17 +356,21 @@ export default function MoreScreen() {
               </div>
 
               {/* ── Quick Links (fixed localization keys) ─────────── */}
-              <div className="pt-1">
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <LinkIcon size={13} className="text-accent-blue" />
-                  <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">
-                    {language === 'ar' ? 'الروابط السريعة' : 'Quick Links'}
-                  </p>
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent-blue/10 flex items-center justify-center shrink-0">
+                    <LinkIcon size={15} className="text-accent-blue" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-text-primary">
+                      {language === 'ar' ? 'الروابط السريعة' : 'Quick Links'}
+                    </h4>
+                    <p className="text-[10px] text-text-muted mt-0.5">
+                      {language === 'ar' ? 'تخصيص روابط بوابة جامعتك' : 'Manage your university shortcuts'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[10px] text-text-muted mb-3 px-1">
-                  {language === 'ar' ? 'تخصيص روابط بوابة جامعتك' : 'Manage your university shortcuts'}
-                </p>
-                <div className="space-y-2">
+                <div className="space-y-2 mt-1">
                   <UrlInput
                     label={language === 'ar' ? 'رابط البانر' : 'Banner URL'}
                     value={settings.bannerUrl || ''}
