@@ -181,8 +181,8 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
           </div>
           
           <div className="flex items-center space-x-3 text-slate-400 relative" ref={settingsRef}>
-            <button onClick={() => mfRef.current?.executeCommand('moveToPreviousChar')} className="hover:text-white cursor-pointer transition-colors"><ArrowLeft size={16} /></button>
-            <button onClick={() => mfRef.current?.executeCommand('moveToNextChar')} className="hover:text-white cursor-pointer transition-colors"><ArrowRight size={16} /></button>
+            <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="hover:text-white cursor-pointer transition-colors"><ArrowLeft size={16} /></button>
+            <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="hover:text-white cursor-pointer transition-colors"><ArrowRight size={16} /></button>
             
             <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`cursor-pointer transition-colors ${isSettingsOpen ? 'text-white' : 'hover:text-white'}`}>
               <Settings size={16} />
