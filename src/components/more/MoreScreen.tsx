@@ -305,16 +305,16 @@ export default function MoreScreen() {
 
               {/* Push Notifications Toggle */}
               <div
-                className="flex items-center justify-between p-3 rounded-xl bg-surface-elevated border border-surface-border/50 hover:bg-surface-hover transition-all cursor-pointer"
+                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 hover:bg-surface-hover transition-all cursor-pointer"
                 onClick={handlePushToggle}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${pushEnabled ? 'bg-accent-blue/15' : 'bg-surface-border'}`}>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${pushEnabled ? 'bg-accent-blue/15' : 'bg-surface-border'}`}>
                     <Bell size={15} className={pushEnabled ? 'text-accent-blue' : 'text-text-muted'} />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">{t("pushNotifications")}</p>
-                    <p className={`text-[11px] text-text-muted mt-0.5 ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary truncate">{t("pushNotifications")}</p>
+                    <p className={`text-[11px] text-text-muted mt-0.5 leading-relaxed ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
                       {t("pushNotificationsDesc")}
                     </p>
                   </div>
