@@ -20,10 +20,23 @@ interface CalcButton {
 export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const [activeTab, setActiveTab] = useState<'123' | 'fx'>('123');
   const [isClient, setIsClient] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [angleMode, setAngleMode] = useState<'DEG' | 'RAD'>('RAD');
+  
   const mfRef = useRef<any>(null);
-
-  // Initialize ComputeEngine instance for advanced math parsing
   const ce = useRef<any>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close settings when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // Import heavy math libraries from CDN to completely bypass Vite bundling and prevent Vercel OOM
@@ -40,7 +53,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     }
   }, []);
 
-  const handleAction = (btn: any) => {
+  const handleAction = (btn: CalcButton) => {
     const mf = mfRef.current;
     if (!mf) return;
 
@@ -51,7 +64,9 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     } else if (btn.action === 'exec') {
       try {
         if (ce.current) {
-          // Extract math-json from MathLive, evaluate it using CortexJS, and set result
+          // Tell ComputeEngine our angle mode before evaluating
+          ce.current.angles = angleMode === 'DEG' ? 'degrees' : 'radians';
+          
           const mathJson = mf.getValue('math-json');
           const evaluated = ce.current.box(mathJson).evaluate().latex;
           mf.value = evaluated;
@@ -63,7 +78,6 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
       mf.executeCommand(['insert', btn.latex]);
     }
     
-    // Maintain focus on the mathfield
     mf.focus();
   };
 
@@ -97,23 +111,36 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
 
   const renderButtons = () => {
     const buttons = activeTab === '123' ? basicButtons : fxButtons;
-    return buttons.map((btn, idx) => (
-      <button
-        key={idx}
-        onClick={() => handleAction(btn)}
-        className={`
-          border-r border-b border-white/5 flex items-center justify-center transition-colors hover:bg-slate-800
-          ${btn.rowSpan ? 'row-span-2' : 'h-12'}
-          ${btn.isOrange ? 'bg-orange-600 hover:bg-orange-500 text-white font-bold' : ''}
-          ${btn.isTeal ? 'bg-teal-500 hover:bg-teal-400 text-white font-bold' : ''}
-          ${!btn.isOrange && !btn.isTeal && btn.isNum ? 'text-slate-100 font-medium text-lg' : ''}
-          ${!btn.isOrange && !btn.isTeal && btn.isOp ? 'text-cyan-400 font-medium text-lg' : ''}
-          ${!btn.isOrange && !btn.isTeal && !btn.isNum && !btn.isOp ? 'text-slate-300 text-sm' : ''}
-        `}
-      >
-        {btn.label}
-      </button>
-    ));
+    return buttons.map((btn, idx) => {
+      let btnBg = 'bg-[#1c2333] hover:bg-[#252d40]';
+      let textColor = 'text-slate-300 text-sm';
+      
+      if (btn.isOrange) {
+        btnBg = 'bg-[#eb5528] hover:opacity-90';
+        textColor = 'text-white font-bold text-lg';
+      } else if (btn.isTeal) {
+        btnBg = 'bg-[#10b299] hover:opacity-90';
+        textColor = 'text-white font-bold text-lg';
+      } else if (btn.isNum) {
+        textColor = 'text-slate-100 font-medium text-lg';
+      } else if (btn.isOp) {
+        textColor = 'text-cyan-400 font-medium text-lg';
+      }
+
+      return (
+        <button
+          key={idx}
+          onClick={() => handleAction(btn)}
+          className={`
+            border-r border-b border-slate-700/50 flex items-center justify-center transition-colors 
+            ${btn.rowSpan ? 'row-span-2' : 'h-12'}
+            ${btnBg} ${textColor}
+          `}
+        >
+          {btn.label}
+        </button>
+      );
+    });
   };
 
   return (
@@ -130,15 +157,15 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
       dragHandleClassName="drag-handle"
       className="z-[9999]"
     >
-      <div className="bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none">
+      <div className="bg-[#121826] border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
         
         {/* Header / Drag Handle */}
-        <div className="drag-handle bg-slate-900 px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-800">
-          <div className="flex bg-slate-800 rounded-md p-1">
+        <div className="drag-handle bg-[#121826] px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-700/50">
+          <div className="flex bg-[#1c2333] rounded-md p-1 border border-slate-700/50">
             <button
               onClick={() => setActiveTab('123')}
               className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
-                activeTab === '123' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === '123' ? 'bg-[#252d40] text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               123
@@ -146,37 +173,61 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
             <button
               onClick={() => setActiveTab('fx')}
               className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
-                activeTab === 'fx' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                activeTab === 'fx' ? 'bg-[#252d40] text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               f(x)
             </button>
           </div>
           
-          <div className="flex items-center space-x-3 text-slate-400">
-            <button onClick={() => mfRef.current?.executeCommand('moveToPreviousChar')} className="hover:text-white cursor-pointer"><ArrowLeft size={16} /></button>
-            <button onClick={() => mfRef.current?.executeCommand('moveToNextChar')} className="hover:text-white cursor-pointer"><ArrowRight size={16} /></button>
-            <button className="hover:text-white cursor-pointer ml-2"><Settings size={16} /></button>
+          <div className="flex items-center space-x-3 text-slate-400 relative" ref={settingsRef}>
+            <button onClick={() => mfRef.current?.executeCommand('moveToPreviousChar')} className="hover:text-white cursor-pointer transition-colors"><ArrowLeft size={16} /></button>
+            <button onClick={() => mfRef.current?.executeCommand('moveToNextChar')} className="hover:text-white cursor-pointer transition-colors"><ArrowRight size={16} /></button>
+            
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`cursor-pointer transition-colors ${isSettingsOpen ? 'text-white' : 'hover:text-white'}`}>
+              <Settings size={16} />
+            </button>
+            
+            {/* Settings Dropdown */}
+            {isSettingsOpen && (
+              <div className="absolute right-6 top-8 w-44 bg-[#1c2333] border border-slate-700/50 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col">
+                <button 
+                  onClick={() => { if(mfRef.current) mfRef.current.value = ''; setIsSettingsOpen(false); }} 
+                  className="px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-[#252d40] border-b border-slate-700/50 transition-colors"
+                >
+                  Clear History
+                </button>
+                <button 
+                  onClick={() => { setAngleMode(angleMode === 'DEG' ? 'RAD' : 'DEG'); setIsSettingsOpen(false); }} 
+                  className="px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-[#252d40] transition-colors"
+                >
+                  Angle: {angleMode}
+                </button>
+              </div>
+            )}
+            
             <div className="w-[1px] h-4 bg-slate-700 mx-1"></div>
-            <button onClick={onClose} className="hover:text-red-400 cursor-pointer"><X size={18} /></button>
+            <button onClick={onClose} className="hover:text-[#eb5528] cursor-pointer transition-colors"><X size={18} /></button>
           </div>
         </div>
 
         {/* Display Screen (MathLive) */}
-        <div className="bg-[#0f172a] p-4 border-b border-slate-800 flex items-center justify-end overflow-hidden min-h-[100px]">
+        <div className="bg-white p-4 border-b border-slate-700/50 flex items-center justify-end overflow-hidden min-h-[110px]">
           {isClient && React.createElement('math-field', {
               ref: mfRef,
-              class: "w-full text-right text-4xl text-white outline-none font-math",
+              class: "w-full text-right text-4xl outline-none font-math text-[#0f172a]",
               style: {
-                '--caret-color': '#06b6d4',
-                '--selection-background-color': 'rgba(6, 182, 212, 0.3)',
-                '--selection-color': 'white',
+                '--text-color': '#0f172a',
+                backgroundColor: 'white',
+                '--caret-color': '#10b299',
+                '--selection-background-color': 'rgba(16, 178, 153, 0.3)',
+                '--selection-color': '#0f172a',
               } as React.CSSProperties
             })}
         </div>
 
         {/* CSS Grid Keypad */}
-        <div className={`grid ${activeTab === '123' ? 'grid-cols-9' : 'grid-cols-8'} bg-slate-900 border-l border-t border-white/5`}>
+        <div className={`grid ${activeTab === '123' ? 'grid-cols-9' : 'grid-cols-8'} bg-[#121826] border-l border-t border-slate-700/50`}>
           {renderButtons()}
         </div>
       </div>
