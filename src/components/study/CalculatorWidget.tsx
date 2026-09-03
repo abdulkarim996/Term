@@ -164,12 +164,11 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     >
       <div className="bg-[#121826] border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
         
-        {/* Header / Drag Handle */}
-        <div 
-          className="drag-handle bg-[#121826] px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-700/50"
-          style={{ touchAction: 'none' }}
-        >
-          <div className="flex bg-[#1c2333] rounded-md p-1 border border-slate-700/50">
+        {/* Header Container (Buttons are separated from drag handle) */}
+        <div className="bg-[#121826] px-4 py-2 flex justify-between items-center border-b border-slate-700/50 relative">
+          
+          {/* Tabs - Interactive (Not Draggable) */}
+          <div className="flex bg-[#1c2333] rounded-md p-1 border border-slate-700/50 z-10 relative">
             <button
               onClick={() => setActiveTab('123')}
               className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
@@ -188,17 +187,29 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
             </button>
           </div>
           
-          <div className="flex items-center space-x-3 text-slate-400 relative" ref={settingsRef}>
-            <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="hover:text-white cursor-pointer transition-colors"><ArrowLeft size={16} /></button>
-            <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="hover:text-white cursor-pointer transition-colors"><ArrowRight size={16} /></button>
+          {/* Empty Space - Explicit Drag Handle */}
+          <div 
+            className="drag-handle flex-1 h-10 mx-2 cursor-move absolute inset-0 z-0" 
+            style={{ touchAction: 'none' }}
+            aria-label="Drag Calculator"
+          />
+          
+          {/* Controls - Interactive (Not Draggable) */}
+          <div className="flex items-center space-x-3 text-slate-400 relative z-10" ref={settingsRef}>
+            <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="hover:text-white cursor-pointer transition-colors p-1" title="Move Left">
+              <ArrowLeft size={16} />
+            </button>
+            <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="hover:text-white cursor-pointer transition-colors p-1" title="Move Right">
+              <ArrowRight size={16} />
+            </button>
             
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`cursor-pointer transition-colors ${isSettingsOpen ? 'text-white' : 'hover:text-white'}`}>
+            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`cursor-pointer transition-colors p-1 ${isSettingsOpen ? 'text-white' : 'hover:text-white'}`} title="Settings">
               <Settings size={16} />
             </button>
             
             {/* Settings Dropdown */}
             {isSettingsOpen && (
-              <div className="absolute right-6 top-8 w-44 bg-[#1c2333] border border-slate-700/50 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col">
+              <div className="absolute right-8 top-10 w-44 bg-[#1c2333] border border-slate-700/50 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col">
                 <button 
                   onClick={() => { if(mfRef.current) mfRef.current.value = ''; setIsSettingsOpen(false); }} 
                   className="px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-[#252d40] border-b border-slate-700/50 transition-colors"
@@ -215,7 +226,10 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
             )}
             
             <div className="w-[1px] h-4 bg-slate-700 mx-1"></div>
-            <button onClick={onClose} className="hover:text-[#eb5528] cursor-pointer transition-colors"><X size={18} /></button>
+            
+            <button onClick={onClose} className="hover:text-[#eb5528] cursor-pointer transition-colors p-1" title="Close">
+              <X size={18} />
+            </button>
           </div>
         </div>
 
