@@ -147,7 +147,7 @@ export default function StudyScreen() {
       {/* Content Area */}
       <div className="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
         {isSplitScreen ? (
-          <div className="flex-1 flex flex-col lg:flex-row gap-4 w-full h-full relative">
+          <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative">
             {renderSplitPane(leftPaneContent, setLeftPaneContent)}
             {renderSplitPane(rightPaneContent, setRightPaneContent)}
           </div>

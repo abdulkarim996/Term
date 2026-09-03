@@ -160,7 +160,10 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
       <div className="bg-[#121826] border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
         
         {/* Header / Drag Handle */}
-        <div className="drag-handle bg-[#121826] px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-700/50">
+        <div 
+          className="drag-handle bg-[#121826] px-4 py-2 flex justify-between items-center cursor-move border-b border-slate-700/50"
+          style={{ touchAction: 'none' }}
+        >
           <div className="flex bg-[#1c2333] rounded-md p-1 border border-slate-700/50">
             <button
               onClick={() => setActiveTab('123')}
@@ -216,6 +219,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
           {isClient && React.createElement('math-field', {
               ref: mfRef,
               class: "w-full text-right text-4xl outline-none font-math text-[#0f172a]",
+              'virtual-keyboard-mode': 'manual',
               style: {
                 '--text-color': '#0f172a',
                 backgroundColor: 'white',
