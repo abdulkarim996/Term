@@ -216,7 +216,8 @@ StudentDashBoard/
 5. **Add/Edit Subject Management:** Add courses with credit hours, course code, instructor name, custom color picker, and multiple weekly lecture timeslots.
 
 ### 6.5 Cloud Storage & Google Drive Integration (`src/components/storage/`)
-1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`).
+1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`). 
+   - *Note on Auth Configuration:* The app relies on a frontend-only OAuth flow, utilizing a dedicated `/oauth-callback` route parsed natively within the React `useEffect` hash router. The Google Cloud Console's OAuth Client ID must strictly authorize `https://<DOMAIN>/oauth-callback` in the "Authorized redirect URIs" to prevent `redirect_uri_mismatch` errors.
 2. **File Explorer:** Categorizes synced academic documents into **Lectures**, **Assignments**, **Exams**, **Projects**, and **Other**.
 3. **MIME Type Detection:** Automatically displays tailored icons for PDFs, PowerPoint presentations, Word documents, images, and videos.
 4. **Metadata Viewer:** Shows file size formatted in B/KB/MB and last-modified dates.
@@ -246,6 +247,20 @@ StudentDashBoard/
 #### C. Synthesized Pomodoro Timer (`MiniTimer.tsx` & `src/store/timerStore.ts`)
 - Modes: **Pomodoro** (25 min), **Short Break** (5 min), **Long Break** (15 min), and **Custom Duration**.
 - Audio Synthesizer: When the timer expires, it uses the **Web Audio API** (`AudioContext`) to generate a clean, musical chime pattern (C5 ➔ E5 ➔ G5 ➔ C6) without requiring external audio files.
+
+#### D. Dynamic Split-Screen Workspace (`StudyScreen.tsx`)
+- **Flexible Layout Engine:** Provides an integrated dual-pane workspace optimizing large screens and tablets. Users can toggle instantly between a focused single view and a 50/50 side-by-side split screen.
+- **Independent Context Controls:** Each pane includes its own contextual header dropdown, allowing the student to independently select and render content (e.g., placing the PDF File Viewer on the left, and the Excalidraw Whiteboard on the right).
+- **iPad & Mobile Responsive Design:** The flex layout strictly adapts to the device's viewport. On portrait iPads (width < 768px), the panes stack vertically (`md:flex-row` threshold) to maintain usability, while rotating to landscape instantly snaps them side-by-side.
+
+#### E. Advanced Scientific Calculator (`CalculatorWidget.tsx`)
+- **Visual Math Typesetting (`mathlive`):** Integrates an advanced mathematical `<math-field>` enabling visual fraction blocks, integral bounds, limits, and exponents utilizing interactive empty square placeholders (□).
+- **Symbolic Evaluation Engine (`@cortex-js/compute-engine`):** Evaluates complex arithmetic, trigonometric, and calculus inputs in real time based on active angle modes (DEG/RAD).
+- **Vercel OOM & Memory Protection:** Due to the massive AST parsing requirements of MathLive and CortexJS, these libraries cause Node.js 'Out of Memory' (OOM) crashes on Vercel's free tier during Vite builds. This is bypassed entirely via asynchronous client-side CDN dynamic imports (`https://esm.sh/mathlive`) in a `useEffect` hook, completely excluding them from the build bundle.
+- **iPad Touch Compatibility Fixes:** Engineered for flawless tablet interactions:
+  - Drag handles (`react-rnd`) utilize strict non-overlapping boundaries (`touch-action: none` applied strictly to empty header space) to prevent the draggable overlay from stealing touch events from navigational buttons.
+  - The native MathLive virtual keyboard is forcibly disabled across both element attributes (`math-virtual-keyboard-policy="manual"`) and global window policies (`window.mathVirtualKeyboard.policy = 'manual'`) to prevent iPadOS virtual keyboard collision and layout disruption.
+- **Keyboard & Touch Navigation:** Left/Right navigational arrows are explicitly bound to the math-field's internal API (`moveToPreviousChar`, `moveToNextChar`) for precise cursor control inside complex equation trees.
 
 ### 6.7 Context-Aware AI Assistant (`src/components/ai/AIScreen.tsx`)
 1. **Model Selection:**
