@@ -217,7 +217,7 @@ StudentDashBoard/
 
 ### 6.5 Cloud Storage & Google Drive Integration (`src/components/storage/`)
 1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`). 
-   - *Note on Auth Configuration:* The app relies on a frontend-only OAuth flow, utilizing a dedicated `/oauth-callback` route parsed natively within the React `useEffect` hash router. The Google Cloud Console's OAuth Client ID must strictly authorize `https://<DOMAIN>/oauth-callback` in the "Authorized redirect URIs" to prevent `redirect_uri_mismatch` errors.
+   - *Note on Auth Configuration & Vercel Routing:* The app utilizes a frontend-only OAuth flow via a dedicated `/oauth-callback` route. This requires two critical infrastructure rules: 1) Google Cloud Console must strictly authorize `https://<DOMAIN>/oauth-callback` in its OAuth Client "Authorized redirect URIs". 2) Vercel must be configured with a `vercel.json` rewrite rule (`"source": "/(.*)", "destination": "/index.html"`) to prevent 404 NOT FOUND errors when Google redirects back to the SPA.
 2. **File Explorer:** Categorizes synced academic documents into **Lectures**, **Assignments**, **Exams**, **Projects**, and **Other**.
 3. **MIME Type Detection:** Automatically displays tailored icons for PDFs, PowerPoint presentations, Word documents, images, and videos.
 4. **Metadata Viewer:** Shows file size formatted in B/KB/MB and last-modified dates.
@@ -240,9 +240,10 @@ StudentDashBoard/
   - Geometric Shapes (Rectangles, Circles, Arrows)
   - Text insertion with draggable placement
   - Image insertion directly into document pages
-- **Selection & Manipulation Engine:** Move, drag, and resize placed elements with 4 corner anchors (`nw`, `ne`, `sw`, `se`).
-- **Full Undo/Redo Stack:** History tracking per page.
-- **Baking & Cloud Save:** Uses `pdf-lib` to embed vector paths and text directly into the binary PDF structure, saving the annotated file back to cloud storage.
+  - **Selection & Manipulation Engine:** Move, drag, and resize placed elements with 4 corner anchors (`nw`, `ne`, `sw`, `se`).
+  - **Full Undo/Redo Stack:** History tracking per page.
+  - **Baking & Cloud Save:** Uses `pdf-lib` to embed vector paths and text directly into the binary PDF structure, saving the annotated file back to cloud storage.
+  - **In-Context Math Capabilities:** The Advanced Scientific Calculator (`CalculatorWidget`) is directly embedded within the full-screen annotator toolbar, allowing students to seamlessly toggle the calculator and perform complex calculations without closing their lecture slides.
 
 #### C. Synthesized Pomodoro Timer (`MiniTimer.tsx` & `src/store/timerStore.ts`)
 - Modes: **Pomodoro** (25 min), **Short Break** (5 min), **Long Break** (15 min), and **Custom Duration**.
