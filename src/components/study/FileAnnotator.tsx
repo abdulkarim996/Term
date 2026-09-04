@@ -8,8 +8,9 @@ import { PDFDocument, rgb } from 'pdf-lib'
 import type {  DriveFile  } from '../../store/dataStore'
 import { useSettingsStore, useUIStore } from '../../store'
 import { useDataStore } from '../../store/dataStore'
-import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2 } from 'lucide-react'
+import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2, Calculator } from 'lucide-react'
 import MiniTimer from './MiniTimer'
+import CalculatorWidget from './CalculatorWidget'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
@@ -41,6 +42,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   
   const [numPages, setNumPages] = useState<number>(0)
   const [scale, setScale] = useState(1)
+  const [showCalculator, setShowCalculator] = useState(false)
   
   const [objectsByPage, setObjectsByPage] = useState<Record<number, PageObject[]>>({})
   const [currentStroke, setCurrentStroke] = useState<{ page: number, stroke: StrokeObj } | null>(null)
@@ -904,6 +906,16 @@ export default function FileAnnotator({ file, onClose }: Props) {
         {/* Right Section: Timer, Zoom, Close */}
         <div className="flex items-center gap-2 justify-end shrink-0 min-w-[200px] w-1/4">
           
+          <button 
+            onClick={() => setShowCalculator(!showCalculator)} 
+            className={`p-2 rounded-lg transition-colors border border-surface-border shrink-0 ${
+              showCalculator ? 'bg-accent-blue text-white' : 'text-text-muted hover:bg-surface-hover'
+            }`}
+            title="Calculator"
+          >
+            <Calculator size={18} />
+          </button>
+          
           {/* Mini Timer */}
           <MiniTimer />
 
@@ -1035,6 +1047,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
           </Document>
         )}
       </div>
+
+      {showCalculator && (
+        <CalculatorWidget onClose={() => setShowCalculator(false)} />
+      )}
     </div>
   )
 }
