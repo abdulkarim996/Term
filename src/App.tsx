@@ -228,7 +228,7 @@ export default function App() {
       {/* Main Content */}
       <main
           ref={mainRef}
-          className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative min-h-0"
+          className="flex-1 flex flex-col overflow-hidden relative min-h-0"
           style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
         >
           {/* Pull to refresh visual indicator */}
