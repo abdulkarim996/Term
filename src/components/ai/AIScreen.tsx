@@ -5,6 +5,10 @@ import { useDataStore } from '../../store/dataStore'
 import { cloudDeleteChatSession, cloudUpdateChatSession, cloudAddChatSession, cloudAddChatMessage } from '../../lib/firestore'
 import React, { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import remarkGfm from 'remark-gfm'
+import 'katex/dist/katex.min.css'
 import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Edit2, Calendar, CheckSquare, BookOpen, ChevronDown, Plus, AlertCircle, Loader2 } from 'lucide-react'
 import { ChatMessage } from '../../store/dataStore'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -224,7 +228,7 @@ export default function AIScreen() {
 const currentSession = sessions.find(s => s.id === currentSessionId)
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full flex-1 min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-surface-border flex-shrink-0 z-20">
         <div className="flex items-center gap-3">
@@ -434,7 +438,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                   }`}
                 >
                   <div dir="rtl" className="prose prose-invert prose-p:text-right prose-headings:text-right prose-sm max-w-none">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown>
                   </div>
                   <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/60' : 'text-text-muted'}`}>
                     {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -457,7 +461,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </div>
             <div className="max-w-[82%] rounded-xl2 px-3.5 py-2.5 bg-surface-card border border-surface-border text-text-primary rounded-tl-sm">
               <div dir="rtl" className="prose prose-invert prose-p:text-right prose-headings:text-right prose-sm max-w-none">
-                <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{streamingMessage}</ReactMarkdown>
               </div>
               <span className="animate-pulse inline-block w-1 h-3 mt-1 bg-current"></span>
             </div>

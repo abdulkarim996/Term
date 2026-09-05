@@ -68,7 +68,7 @@ export default function StudyScreen() {
             </button>
          </div>
          {/* Pane Content Container */}
-         <div className="flex-1 relative w-full h-full">
+         <div className="flex-1 relative w-full h-full min-h-0">
            <div className="absolute inset-0 w-full h-full">
              <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>}>
                {content === 'files' ? <FileViewer /> : <WhiteBoard />}
@@ -80,7 +80,7 @@ export default function StudyScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background" style={{ minHeight: '100vh' }}>
+    <div className="flex flex-col bg-background flex-1 h-full min-h-0">
       {/* Header */}
       <div className="bg-surface-elevated pt-12 pb-4 px-6 rounded-b-[2rem] shadow-sm mb-4 relative z-10">
         <div className="flex items-center justify-between mb-2">
@@ -171,17 +171,17 @@ export default function StudyScreen() {
       )}
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-row px-4 pb-4 overflow-hidden gap-4">
+      <div className="flex-1 flex flex-row px-4 pb-4 overflow-hidden gap-4 min-h-0">
         
         {/* Main Workspace */}
         <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 relative h-full">
           {isSplitScreen ? (
-            <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative">
+            <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative min-h-0">
               {renderSplitPane(leftPaneContent, setLeftPaneContent)}
               {renderSplitPane(rightPaneContent, setRightPaneContent)}
             </div>
           ) : (
-            <div className="flex-1 relative w-full h-full">
+            <div className="flex-1 relative w-full h-full min-h-0">
               {renderPane(activeTab)}
             </div>
           )}
@@ -189,8 +189,8 @@ export default function StudyScreen() {
 
         {/* AI Sidebar */}
         {showAISidebar && (
-          <div className="w-[350px] flex-shrink-0 bg-surface-elevated rounded-2xl shadow-sm border border-surface-border overflow-hidden transition-all duration-300 animate-fade-in flex flex-col h-full hidden lg:flex">
-             <div className="flex-1 overflow-hidden relative">
+          <div className="w-[350px] flex-shrink-0 bg-surface-elevated rounded-2xl shadow-sm border border-surface-border overflow-hidden transition-all duration-300 animate-fade-in flex flex-col h-full hidden lg:flex min-h-0">
+             <div className="flex-1 overflow-hidden relative min-h-0 flex flex-col">
                 <AIScreen />
              </div>
           </div>
