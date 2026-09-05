@@ -228,7 +228,7 @@ export default function AIScreen() {
 const currentSession = sessions.find(s => s.id === currentSessionId)
 
   return (
-    <div className="flex flex-col h-full w-full flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 w-full">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between px-4 pt-5 pb-3 border-b border-surface-border flex-shrink-0 z-20 gap-2">
         <div className="flex flex-wrap items-center gap-3">

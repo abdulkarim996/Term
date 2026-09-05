@@ -48,7 +48,7 @@ export default function WhiteBoard() {
          <MiniTimer />
       </div>
 
-      <div className="flex-1 w-full relative" style={{ height: '60vh', minHeight: '400px' }}>
+      <div className="flex-1 w-full relative h-full">
         <Excalidraw
           initialData={initialData}
           onChange={onChange}
