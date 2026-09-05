@@ -68,7 +68,7 @@ export default function StudyScreen() {
             </button>
          </div>
          {/* Pane Content Container */}
-         <div className="flex-1 relative w-full h-full min-h-0">
+         <div className="flex-1 relative w-full min-h-0">
            <div className="absolute inset-0 w-full h-full">
              <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>}>
                {content === 'files' ? <FileViewer /> : <WhiteBoard />}
@@ -174,14 +174,14 @@ export default function StudyScreen() {
       <div className="flex-1 flex flex-row px-4 pb-4 overflow-hidden gap-4 min-h-0">
         
         {/* Main Workspace */}
-        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 relative h-full">
+        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
           {isSplitScreen ? (
-            <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative min-h-0">
+            <div className="flex-1 flex flex-col md:flex-row gap-4 w-full relative min-h-0">
               {renderSplitPane(leftPaneContent, setLeftPaneContent)}
               {renderSplitPane(rightPaneContent, setRightPaneContent)}
             </div>
           ) : (
-            <div className="flex-1 relative w-full h-full min-h-0">
+            <div className="flex-1 relative w-full min-h-0">
               {renderPane(activeTab)}
             </div>
           )}

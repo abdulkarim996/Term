@@ -224,11 +224,11 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-surface" dir={dir}>
+    <div className="flex flex-col h-[100dvh] bg-surface" dir={dir}>
       {/* Main Content */}
       <main
           ref={mainRef}
-          className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative"
+          className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden relative min-h-0"
           style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
         >
           {/* Pull to refresh visual indicator */}
