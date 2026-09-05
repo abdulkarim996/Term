@@ -1,6 +1,7 @@
 import { Client } from '@upstash/qstash';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 const client = new Client({
   token: process.env.QSTASH_TOKEN || '',
@@ -20,7 +21,6 @@ export default async function handler(req, res) {
     }
 
     if (getApps().length === 0) {
-
       initializeApp({
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
@@ -30,8 +30,26 @@ export default async function handler(req, res) {
             : undefined,
         }),
       });
-
     }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = authHeader.split('Bearer ')[1];
+    let decodedToken;
+    try {
+      decodedToken = await getAuth().verifyIdToken(token);
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    if (uid !== decodedToken.uid) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const sanitize = (str: any) => typeof str === 'string' ? str.replace(/[<>]/g, '') : str;
+    const sTitle = sanitize(title);
+    const sBody = sanitize(body);
 
     const db = getFirestore();
     const userDoc = await db.collection('users').doc(uid).get();
@@ -43,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     const destination = `https://${req.headers.host}/api/tasks/execute`;
-    const payload = { title, body, fcmToken };
+    const payload = { title: sTitle, body: sBody, fcmToken };
     console.log('QStash Destination:', destination);
 
     if (isRecurring && cron) {

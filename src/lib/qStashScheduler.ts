@@ -1,3 +1,5 @@
+import { auth } from './firebase';
+
 export interface SchedulePayload {
   title: string;
   body: string;
@@ -9,11 +11,13 @@ export interface SchedulePayload {
 
 export const scheduleNotification = async (payload: SchedulePayload): Promise<string | null> => {
   try {
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : '';
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch('/api/tasks/schedule', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -39,9 +43,11 @@ export const scheduleNotification = async (payload: SchedulePayload): Promise<st
 
 export const cancelNotification = async (id: string, isRecurring: boolean) => {
   try {
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : '';
     await fetch('/api/tasks/cancel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ id, isRecurring }),
     });
   } catch (error) {

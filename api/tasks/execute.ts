@@ -1,9 +1,29 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
+import { Receiver } from '@upstash/qstash';
+
+const receiver = new Receiver({
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
+});
 
 export default async function handler(req: any, res: any) {
   try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+    const signature = req.headers['upstash-signature'];
+    if (!signature) {
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    const isValid = await receiver.verify({
+      signature: signature as string,
+      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+    });
+
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
 
     // 1. Initialize Firebase
     if (getApps().length === 0) {
