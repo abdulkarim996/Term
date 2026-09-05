@@ -1,10 +1,12 @@
 // @ts-nocheck
 import { useTranslation } from '../../hooks/useTranslation'
-import React, { useState } from 'react'
-import { BookOpen, PenTool, FolderOpen, Calculator, Columns, Square } from 'lucide-react'
-import WhiteBoard from './WhiteBoard'
-import FileViewer from './FileViewer'
+import React, { useState, Suspense, lazy } from 'react'
+import { BookOpen, PenTool, FolderOpen, Calculator, Columns, Square, Sparkles } from 'lucide-react'
 import CalculatorWidget from './CalculatorWidget'
+import AIScreen from '../ai/AIScreen'
+
+const WhiteBoard = lazy(() => import('./WhiteBoard'))
+const FileViewer = lazy(() => import('./FileViewer'))
 
 type PaneContent = 'whiteboard' | 'files'
 
@@ -20,11 +22,14 @@ export default function StudyScreen() {
   const [rightPaneContent, setRightPaneContent] = useState<PaneContent>('whiteboard')
   
   const [showCalculator, setShowCalculator] = useState(false)
+  const [showAISidebar, setShowAISidebar] = useState(false)
 
   const renderPane = (content: PaneContent) => {
     return (
       <div className="absolute inset-0 w-full h-full bg-surface rounded-xl overflow-hidden shadow-sm">
-        {content === 'files' ? <FileViewer /> : <WhiteBoard />}
+        <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>}>
+          {content === 'files' ? <FileViewer /> : <WhiteBoard />}
+        </Suspense>
       </div>
     )
   }
@@ -52,11 +57,22 @@ export default function StudyScreen() {
               <PenTool size={14} />
               <span>{t('whiteboard') || 'Whiteboard'}</span>
             </button>
+            <button
+              onClick={() => setShowAISidebar(!showAISidebar)}
+              className={`ml-1 px-2.5 flex items-center justify-center rounded-lg transition-all ${
+                showAISidebar ? 'bg-accent-blue/10 text-accent-blue shadow-sm' : 'text-text-muted hover:text-text-primary hover:bg-surface'
+              }`}
+              title="AI Assistant"
+            >
+              <Sparkles size={14} />
+            </button>
          </div>
          {/* Pane Content Container */}
          <div className="flex-1 relative w-full h-full">
            <div className="absolute inset-0 w-full h-full">
-             {content === 'files' ? <FileViewer /> : <WhiteBoard />}
+             <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>}>
+               {content === 'files' ? <FileViewer /> : <WhiteBoard />}
+             </Suspense>
            </div>
          </div>
       </div>
@@ -126,6 +142,16 @@ export default function StudyScreen() {
           >
             <Calculator size={18} />
           </button>
+
+          <button
+            onClick={() => setShowAISidebar(!showAISidebar)}
+            className={`px-4 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all shadow-sm ${
+              showAISidebar ? 'bg-accent-blue/10 text-accent-blue' : 'bg-surface-elevated text-text-muted hover:text-text-primary'
+            }`}
+            title="AI Assistant"
+          >
+            <Sparkles size={18} />
+          </button>
         </div>
       )}
 
@@ -145,17 +171,31 @@ export default function StudyScreen() {
       )}
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
-        {isSplitScreen ? (
-          <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative">
-            {renderSplitPane(leftPaneContent, setLeftPaneContent)}
-            {renderSplitPane(rightPaneContent, setRightPaneContent)}
-          </div>
-        ) : (
-          <div className="flex-1 relative w-full h-full">
-            {renderPane(activeTab)}
+      <div className="flex-1 flex flex-row px-4 pb-4 overflow-hidden gap-4">
+        
+        {/* Main Workspace */}
+        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 relative h-full">
+          {isSplitScreen ? (
+            <div className="flex-1 flex flex-col md:flex-row gap-4 w-full h-full relative">
+              {renderSplitPane(leftPaneContent, setLeftPaneContent)}
+              {renderSplitPane(rightPaneContent, setRightPaneContent)}
+            </div>
+          ) : (
+            <div className="flex-1 relative w-full h-full">
+              {renderPane(activeTab)}
+            </div>
+          )}
+        </div>
+
+        {/* AI Sidebar */}
+        {showAISidebar && (
+          <div className="w-[350px] flex-shrink-0 bg-surface-elevated rounded-2xl shadow-sm border border-surface-border overflow-hidden transition-all duration-300 animate-fade-in flex flex-col h-full hidden lg:flex">
+             <div className="flex-1 overflow-hidden relative">
+                <AIScreen />
+             </div>
           </div>
         )}
+
       </div>
 
       {showCalculator && (

@@ -1,31 +1,42 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 import MiniTimer from './MiniTimer'
+import { useDataStore } from '../../store/dataStore'
 
 export default function WhiteBoard() {
+  const whiteboardData = useDataStore((state) => state.whiteboardData)
+  const setWhiteboardData = useDataStore((state) => state.setWhiteboardData)
   const [initialData, setInitialData] = useState<any>(null)
   
   useEffect(() => {
-    // Load from local storage
-    const saved = localStorage.getItem('excalidraw_data')
-    if (saved) {
-      try {
-        setInitialData(JSON.parse(saved))
-      } catch (e) {
-        console.error('Failed to parse excalidraw data')
-      }
+    if (whiteboardData) {
+      setInitialData(whiteboardData)
     } else {
-      setInitialData({ elements: [], appState: {} })
+      // Load from local storage
+      const saved = localStorage.getItem('excalidraw_data')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setInitialData(parsed)
+          setWhiteboardData(parsed)
+        } catch (e) {
+          console.error('Failed to parse excalidraw data')
+          setInitialData({ elements: [], appState: {} })
+        }
+      } else {
+        setInitialData({ elements: [], appState: {} })
+      }
     }
   }, [])
 
-  const onChange = (elements: readonly any[], appState: any) => {
+  const onChange = useCallback((elements: readonly any[], appState: any) => {
     // Debounce or save directly
     const data = { elements, appState: { viewBackgroundColor: appState.viewBackgroundColor } }
     localStorage.setItem('excalidraw_data', JSON.stringify(data))
-  }
+    setWhiteboardData(data)
+  }, [setWhiteboardData])
 
   if (!initialData) return <div className="flex-1 w-full h-full flex items-center justify-center bg-white rounded-2xl"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>
 

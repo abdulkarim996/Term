@@ -94,6 +94,8 @@ interface DataStore {
   setDriveFiles: (data: DriveFile[]) => void
   setChatSessions: (data: ChatSession[]) => void
   setMessages: (data: ChatMessage[]) => void
+  whiteboardData: any
+  setWhiteboardData: (data: any) => void
 }
 
 export const useDataStore = create<DataStore>((set) => ({
@@ -109,4 +111,7 @@ export const useDataStore = create<DataStore>((set) => ({
   setEvents: (data) => set({ events: data }),
   setDriveFiles: (data) => set({ driveFiles: data }),
   setChatSessions: (data) => set({ chatSessions: data }),
-  setMessages: (data) => set({ messages: data }) }))
+  setMessages: (data) => set({ messages: data }),
+  whiteboardData: null,
+  setWhiteboardData: (data) => set({ whiteboardData: data }),
+}))

@@ -19,13 +19,13 @@ export default function FileViewer() {
   const subjects = useDataStore(state => state.subjects)
   
   const allFiles = useDataStore(state => state.driveFiles);
-  const files = (() => {
-    let results = allFiles || [];
+  const files = React.useMemo(() => {
+    let results = [...(allFiles || [])];
     if (selectedSubjectId !== 'all') {
       results = results.filter((f: any) => String(f.subjectId) === String(selectedSubjectId));
     }
     return results.sort((a, b) => a.name.localeCompare(b.name));
-  })();
+  }, [allFiles, selectedSubjectId]);
 
   const getSubjectColor = (sid?: number | string) => {
     if (!sid || !subjects) return '#9ca3af'
