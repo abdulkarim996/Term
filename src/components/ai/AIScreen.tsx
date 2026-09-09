@@ -198,26 +198,41 @@ export default function AIScreen() {
         
         // Build Expanded Context
         const tasks = useDataStore.getState().tasks.filter((t: any) => !t.completed);
-        const userTasks = tasks.map((t: any) => `- ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' [Due: ' + new Date(t.dueDate).toLocaleDateString() + ']' : ''}`).join('\n');
-        
         const events = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date(Date.now() - 86400000));
-        const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n');
-        
-        const files = useDataStore.getState().driveFiles;
         const subjects = useDataStore.getState().subjects;
+        const files = useDataStore.getState().driveFiles;
+        const s = useSettingsStore.getState();
+
+        const profileInfo = `Name: ${s.userName || "Not specified"}\nMajor: ${s.userMajor || "Not specified"}\nSemester: ${s.currentSemester || "Not specified"}`;
+
+        const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const userSubjects = subjects.map((sub: any) => {
+           let subInfo = `- ${sub.name} (Code: ${sub.code || 'N/A'}, Credits: ${sub.creditHours || 'N/A'}, Instructor: ${sub.instructor || 'N/A'})`;
+           if (sub.lectures && sub.lectures.length > 0) {
+              const scheduleText = sub.lectures.map((l: any) => `${daysMap[l.dayOfWeek] || l.dayOfWeek} ${l.startTime}-${l.endTime} @ ${l.location || 'Unknown'}`).join(', ');
+              subInfo += `\n  Schedule: ${scheduleText}`;
+           }
+           return subInfo;
+        }).join('\n');
+
+        const userTasks = tasks.map((t: any) => {
+           const linkedSub = subjects.find((sub: any) => sub.id === t.subjectId);
+           const subName = linkedSub ? linkedSub.name : 'General';
+           return `- [${subName}] ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' -> Due: ' + new Date(t.dueDate).toLocaleDateString() : ''} [Priority: ${t.priority || 'medium'}]`;
+        }).join('\n');
+
+        const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n');
+
         const userFiles = files.map((f: any) => {
-           const sub = subjects.find(s => s.id === f.subjectId);
+           const sub = subjects.find((sub: any) => sub.id === f.subjectId);
            return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`;
         }).join('\n');
-        
-        const s = useSettingsStore.getState();
-        const profileInfo = "Name: " + (s.userName || "Not specified") + ", Major: " + (s.userMajor || "Not specified") + ", Semester: " + (s.currentSemester || "Not specified");
         
         // PDF Text Extraction Logic
         let appendedFileText = '';
         const lowerInput = userMsgText.toLowerCase();
         // Simple heuristic: if the user mentions a file name (without extension) that is > 3 chars
-        const referencedFiles = files.filter(f => {
+        const referencedFiles = files.filter((f: any) => {
            const simpleName = f.name.replace(/\.[^/.]+$/, "").toLowerCase();
            return simpleName.length > 3 && lowerInput.includes(simpleName);
         });
@@ -234,7 +249,7 @@ export default function AIScreen() {
            }
         }
         
-        const sysInst = t('aiInstruction') + "\n\nUser Profile:\n" + profileInfo + "\n\nCurrent Pending Tasks:\n" + (userTasks || 'None') + "\n\nUpcoming Events:\n" + (userEvents || 'None') + "\n\nUser Files:\n" + (userFiles || 'None');
+        const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}\n\n===================`;
 
         const generateAttempt = async (modelId: string) => {
           // If we have file text, we can either append it to sysInst or to the user's message.
