@@ -73,6 +73,8 @@ export default async function handler(req: any, res: any) {
       notification: { title, body },
     });
     
+    console.log(`[QStash] Successfully sent notification: "${title}" (Message ID: ${response})`);
+
     return res.status(200).json({ success: true, messageId: response });
   } catch (error: any) {
     console.error('Global Error in execute.ts:', error);

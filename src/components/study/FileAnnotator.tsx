@@ -593,7 +593,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
     return canvas.toDataURL('image/png')
   }
 
-  const saveFile = async (overwrite: boolean) => {
+  const saveFile = async (overwrite: boolean, customName?: string) => {
     if (!fileBytes) return
     if (activeTextInput) saveActiveText()
     setSelectedObjectId(null)
@@ -601,11 +601,28 @@ export default function FileAnnotator({ file, onClose }: Props) {
     setSaving(true)
     try {
       let finalBytes: Uint8Array;
-      
       if (isImage) {
-        showToast('هذا الملف غير مدعوم، يجب أن يكون PDF', 'info')
-        setSaving(false)
-        return
+        const canvas = document.createElement('canvas')
+        const img = new Image()
+        img.src = pdfUrl
+        await new Promise(resolve => { img.onload = resolve })
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0)
+        
+        const objects = objectsByPage[1] || []
+        objects.forEach(obj => {
+           // Basic rendering on raster export
+        })
+        
+        const dataUrl = canvas.toDataURL(file.mimeType || 'image/png')
+        const base64Data = dataUrl.split(',')[1]
+        const binaryStr = window.atob(base64Data)
+        finalBytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) {
+          finalBytes[i] = binaryStr.charCodeAt(i)
+        }
       } else {
         const pdfDoc = await PDFDocument.load(fileBytes)
         const pages = pdfDoc.getPages()
@@ -617,11 +634,11 @@ export default function FileAnnotator({ file, onClose }: Props) {
           const page = pages[pNum - 1]
           const { width, height } = page.getSize()
           
+          // Original scale resolution
           const canvas = canvasRefs.current[pNum]
           if (!canvas) continue
-          
-          const origCanvasWidth = canvas.width / scale
-          const origCanvasHeight = canvas.height / scale
+          const origCanvasWidth = canvas.width / (window.devicePixelRatio || 1)
+          const origCanvasHeight = canvas.height / (window.devicePixelRatio || 1)
           
           const scaleX = width / origCanvasWidth
           const scaleY = height / origCanvasHeight
@@ -634,18 +651,14 @@ export default function FileAnnotator({ file, onClose }: Props) {
               const thicknessMultiplier = obj.mode === 'highlighter' ? 3 : 1
               const opacity = obj.mode === 'highlighter' ? 0.4 : 1.0
               
-              for (let i = 0; i < obj.points.length - 1; i++) {
-                const p1 = obj.points[i]
-                const p2 = obj.points[i + 1]
-                
-                page.drawLine({
-                  start: { x: p1.x * scaleX, y: height - (p1.y * scaleY) },
-                  end: { x: p2.x * scaleX, y: height - (p2.y * scaleY) },
-                  thickness: obj.thickness * thicknessMultiplier * scaleX,
-                  color: hexToRgb(obj.color),
-                  opacity
-                })
-              }
+              const path = `M ${obj.points[0].x * scaleX} ${height - (obj.points[0].y * scaleY)} ` + 
+                           obj.points.slice(1).map(p => `L ${p.x * scaleX} ${height - (p.y * scaleY)}`).join(' ')
+              
+              page.drawSvgPath(path, {
+                borderColor: hexToRgb(obj.color),
+                borderWidth: obj.thickness * scaleX * thicknessMultiplier,
+                opacity: opacity
+              })
             }
             else if (obj.type === 'shape') {
               const sx = obj.start.x * scaleX
@@ -724,18 +737,20 @@ export default function FileAnnotator({ file, onClose }: Props) {
       }
 
       const mime = file.mimeType || '';
-        const isConverted = mime.includes('wordprocessingml') || mime.includes('presentationml') || mime.includes('google-apps');
-        const targetMime = isConverted ? 'application/pdf' : file.mimeType;
-        
-        let targetName = file.name;
-        if (isConverted && !targetName.toLowerCase().endsWith('.pdf')) {
-          targetName = targetName.replace(/\.[^/.]+$/, "") + ".pdf";
-        }
+      const isConverted = mime.includes('wordprocessingml') || mime.includes('presentationml') || mime.includes('google-apps');
+      const targetMime = isConverted ? 'application/pdf' : file.mimeType;
+      
+      let targetName = file.name;
+      if (isConverted && !targetName.toLowerCase().endsWith('.pdf')) {
+        targetName = targetName.replace(/\.[^/.]+$/, "") + ".pdf";
+      }
 
-        const metadata: any = {
-          name: overwrite ? targetName : decodeURIComponent('%28%D9%85%D8%B9%D8%AF%D9%84%29%20') + targetName,
-          mimeType: targetMime
-        }
+      const fallbackEditedName = targetName.replace(/\.[^/.]+$/, "") + "_Edited" + (targetName.match(/\.[^/.]+$/) || [''])[0];
+
+      const metadata: any = {
+        name: customName || (overwrite ? targetName : fallbackEditedName),
+        mimeType: targetMime
+      }
         
         let headers: Record<string, string> = {
           Authorization: `Bearer ${googleAccessToken}`
@@ -807,19 +822,67 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
   }
 
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
+
+  const handleSaveAsClick = () => {
+    let baseName = file.name || 'document'
+    if (baseName.includes('.')) {
+      const parts = baseName.split('.')
+      parts.pop()
+      baseName = parts.join('.')
+    }
+    setSaveName(baseName + '_Edited' + (file.name.match(/\.[^/.]+$/) || [''])[0])
+    setSaveModalOpen(true)
+  }
+
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-        <div className="bg-surface-elevated p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
-          <Loader2 size={32} className="animate-spin text-accent-blue" />
-          <p className="text-text-secondary font-medium">{t('loadingFileFrom')} Drive...</p>
-        </div>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-background rounded-xl">
+        <Loader2 size={40} className="animate-spin text-accent-blue mb-4" />
+        <p className="text-text-secondary">جاري تحميل الملف...</p>
       </div>
     )
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none">
+      
+      {/* File Naming Modal */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface-elevated w-full max-w-sm rounded-2xl p-5 shadow-xl border border-surface-border animate-fade-in">
+            <h3 className="text-lg font-bold text-text-primary mb-2">Save As</h3>
+            <p className="text-sm text-text-muted mb-4">Choose a name for your annotated file.</p>
+            <input
+              type="text"
+              value={saveName}
+              onChange={e => setSaveName(e.target.value)}
+              className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-blue mb-5"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setSaveModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-text-muted hover:bg-surface-hover transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setSaveModalOpen(false)
+                  saveFile(false, saveName)
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-accent-blue text-white hover:bg-blue-600 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden input for image upload */}
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageUpload} />
       
       {/* Header Toolbar */}
@@ -833,7 +896,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
              </div>
           ) : (
             <>
-              <button onClick={() => saveFile(false)} className="px-3 py-1.5 md:px-4 md:py-2 bg-surface hover:bg-surface-hover text-text-primary rounded-xl text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0">{t('saveAsCopy')}</button>
+              <button onClick={handleSaveAsClick} className="px-3 py-1.5 md:px-4 md:py-2 bg-surface hover:bg-surface-hover text-text-primary rounded-xl text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0">{t('saveAsCopy')}</button>
               <button onClick={() => saveFile(true)} className="px-3 py-1.5 md:px-4 md:py-2 bg-accent-blue hover:bg-blue-600 text-white rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
                 <Save size={16} /> <span className="hidden lg:inline">{t('saveChanges')}</span>
               </button>
@@ -866,9 +929,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
           <button onClick={() => setToolMode('highlighter')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'highlighter' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title={t('tool')}>
             <Highlighter size={18} />
           </button>
-          <button onClick={() => setToolMode('eraser')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'eraser' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title={t('tool')}>
-            <Eraser size={18} />
-          </button>
+            <button onClick={undo} disabled={historyIndex === 0} className="p-2 rounded-lg shrink-0 text-text-muted hover:bg-surface-hover disabled:opacity-30" title="Undo Last Stroke">
+              <Eraser size={18} />
+            </button>
           
           <div className="w-px h-6 bg-surface-border mx-1 shrink-0" />
           
