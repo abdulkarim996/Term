@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
-import { Settings, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import nerdamer from 'nerdamer/all.min';
 
 interface CalculatorWidgetProps {
   onClose: () => void;
@@ -10,51 +11,24 @@ interface CalcButton {
   label: string;
   latex?: string;
   action?: string;
-  isNum?: boolean;
-  isOp?: boolean;
-  isOrange?: boolean;
-  isTeal?: boolean;
-  rowSpan?: number;
+  type?: 'num' | 'op' | 'func' | 'sec' | 'exec';
+  colSpan?: number;
 }
 
 export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const [activeTab, setActiveTab] = useState<'123' | 'fx'>('123');
   const [isClient, setIsClient] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [angleMode, setAngleMode] = useState<'DEG' | 'RAD'>('RAD');
-  
   const mfRef = useRef<any>(null);
-  const ce = useRef<any>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
-
-  // Close settings when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-        setIsSettingsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
-    // Import heavy math libraries from CDN to completely bypass Vite bundling and prevent Vercel OOM
     if (typeof window !== 'undefined') {
-      Promise.all([
-        // @ts-ignore
-        import('https://esm.sh/mathlive'),
-        // @ts-ignore
-        import('https://esm.sh/@cortex-js/compute-engine')
-      ]).then(([_, cortex]) => {
-        // Force disable MathLive's virtual keyboard completely
+      // @ts-ignore
+      import('https://esm.sh/mathlive').then(() => {
         if ((window as any).mathVirtualKeyboard) {
           (window as any).mathVirtualKeyboard.policy = 'manual';
         }
-        
-        ce.current = new cortex.ComputeEngine();
         setIsClient(true);
-      }).catch(err => console.error("Failed to load math libraries", err));
+      }).catch(err => console.error("Failed to load MathLive", err));
     }
   }, []);
 
@@ -67,80 +41,91 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     } else if (btn.action === 'del') {
       mf.executeCommand('deleteBackward');
     } else if (btn.action === 'exec') {
-      try {
-        if (ce.current) {
-          // Tell ComputeEngine our angle mode before evaluating
-          ce.current.angles = angleMode === 'DEG' ? 'degrees' : 'radians';
-          
-          const mathJson = mf.getValue('math-json');
-          const evaluated = ce.current.box(mathJson).evaluate().latex;
-          mf.value = evaluated;
-        }
-      } catch (e) {
-        console.error('Math evaluation error:', e);
-      }
+      executeMath();
     } else if (btn.latex) {
       mf.executeCommand(['insert', btn.latex]);
+    } else if (btn.label) {
+      mf.executeCommand(['insert', btn.label]);
     }
-    
-    mf.focus();
+  };
+
+  const executeMath = () => {
+    const mf = mfRef.current;
+    if (!mf) return;
+    try {
+      let expr = mf.getValue('ascii-math');
+      
+      // Clean up ascii-math output from MathLive for nerdamer
+      // limits: lim_(x->0) expr => limit(expr, x, 0)
+      expr = expr.replace(/lim_\(([a-zA-Z]+)->([^)]+)\)\s*(.*)/g, 'limit($3, $1, $2)');
+      
+      // derivatives: d/dx expr => diff(expr, x)
+      expr = expr.replace(/d\/d([a-zA-Z]+)\s*(.*)/g, 'diff($2, $1)');
+      
+      // definite integral: int_0^2 expr dx => defint(expr, 0, 2, x)
+      expr = expr.replace(/int_([^\^]+)\^([^\s]+)\s*(.*?)\s*d([a-zA-Z]+)/g, 'defint($3, $1, $2, $4)');
+      
+      // indefinite integral: int expr dx => integrate(expr, x)
+      expr = expr.replace(/int\s+(.*?)\s*d([a-zA-Z]+)/g, 'integrate($1, $2)');
+      
+      // convert PI
+      expr = expr.replace(/pi/g, 'pi');
+
+      const result = nerdamer(expr).toTeX();
+      mf.value = result;
+    } catch (e) {
+      console.error('Math evaluation error:', e);
+      // Fallback: If evaluation fails, do nothing or flash red (handled via CSS if wanted)
+    }
   };
 
   const basicButtons: CalcButton[] = [
-    { label: 'x', latex: 'x' }, { label: 'y', latex: 'y' }, { label: '□/□', latex: '\\frac{#?}{#?}' }, { label: 'x^□', latex: '^{#?}' },
-    { label: '7', latex: '7', isNum: true }, { label: '8', latex: '8', isNum: true }, { label: '9', latex: '9', isNum: true },
-    { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
-
-    { label: '√□', latex: '\\sqrt{#?}' }, { label: '∛□', latex: '\\sqrt[3]{#?}' }, { label: 'π', latex: '\\pi' }, { label: 'e', latex: 'e' },
-    { label: '4', latex: '4', isNum: true }, { label: '5', latex: '5', isNum: true }, { label: '6', latex: '6', isNum: true },
-    { label: '×', latex: '\\times', isOp: true }, { label: 'DEL', action: 'del' },
-
-    { label: 'sin', latex: '\\sin(' }, { label: 'cos', latex: '\\cos(' }, { label: 'tan', latex: '\\tan(' }, { label: 'log', latex: '\\log_{10}(' },
-    { label: '1', latex: '1', isNum: true }, { label: '2', latex: '2', isNum: true }, { label: '3', latex: '3', isNum: true },
-    { label: '−', latex: '-', isOp: true }, { label: 'EXEC', action: 'exec', isTeal: true, rowSpan: 2 },
-
-    { label: '(', latex: '(' }, { label: ')', latex: ')' }, { label: '|□|', latex: '\\left|#?\\right|' }, { label: ',', latex: ',' },
-    { label: '0', latex: '0', isNum: true }, { label: '.', latex: '.', isNum: true }, { label: '10^x', latex: '10^{#?}' },
-    { label: '+', latex: '+', isOp: true }
+    { label: 'AC', action: 'ac', type: 'sec' }, { label: 'DEL', action: 'del', type: 'sec' }, { label: '(', latex: '(', type: 'sec' }, { label: ')', latex: ')', type: 'sec' },
+    { label: '7', type: 'num' }, { label: '8', type: 'num' }, { label: '9', type: 'num' }, { label: '÷', latex: '\\div', type: 'op' },
+    { label: '4', type: 'num' }, { label: '5', type: 'num' }, { label: '6', type: 'num' }, { label: '×', latex: '\\times', type: 'op' },
+    { label: '1', type: 'num' }, { label: '2', type: 'num' }, { label: '3', type: 'num' }, { label: '-', latex: '-', type: 'op' },
+    { label: '0', type: 'num' }, { label: '.', latex: '.', type: 'num' }, { label: '=', action: 'exec', type: 'exec' }, { label: '+', latex: '+', type: 'op' }
   ];
 
   const fxButtons: CalcButton[] = [
-    { label: 'sin⁻¹', latex: '\\arcsin(' }, { label: 'cos⁻¹', latex: '\\arccos(' }, { label: 'tan⁻¹', latex: '\\arctan(' }, { label: 'lim', latex: '\\lim_{x \\to #?}' }, { label: 'd/dx', latex: '\\frac{d}{dx} #?' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx' }, { label: '÷', latex: '\\div', isOp: true }, { label: 'AC', action: 'ac', isOrange: true },
-
-    { label: 'sinh', latex: '\\sinh(' }, { label: 'cosh', latex: '\\cosh(' }, { label: 'tanh', latex: '\\tanh(' }, { label: 'Σ', latex: '\\sum_{#?}^{#?} #?' }, { label: 'Π', latex: '\\prod_{#?}^{#?} #?' }, { label: '∞', latex: '\\infty' }, { label: '×', latex: '\\times', isOp: true }, { label: 'DEL', action: 'del' },
-
-    { label: '<', latex: '<' }, { label: '>', latex: '>' }, { label: '≤', latex: '\\le' }, { label: '≥', latex: '\\ge' }, { label: '=', latex: '=' }, { label: '≠', latex: '\\neq' }, { label: '−', latex: '-', isOp: true }, { label: 'EXEC', action: 'exec', isTeal: true, rowSpan: 2 },
-
-    { label: 'A', latex: 'A' }, { label: 'B', latex: 'B' }, { label: 'C', latex: 'C' }, { label: 'X', latex: 'X' }, { label: 'Y', latex: 'Y' }, { label: 'Z', latex: 'Z' }, { label: '+', latex: '+', isOp: true }
+    { label: 'sin', latex: '\\sin(', type: 'func' }, { label: 'cos', latex: '\\cos(', type: 'func' }, { label: 'tan', latex: '\\tan(', type: 'func' }, { label: 'log', latex: '\\log_{10}(', type: 'func' },
+    { label: 'sin⁻¹', latex: '\\arcsin(', type: 'func' }, { label: 'cos⁻¹', latex: '\\arccos(', type: 'func' }, { label: 'tan⁻¹', latex: '\\arctan(', type: 'func' }, { label: 'ln', latex: '\\ln(', type: 'func' },
+    { label: 'lim', latex: '\\lim_{x \\to #?}', type: 'func' }, { label: 'd/dx', latex: '\\frac{d}{dx} #?', type: 'func' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx', type: 'func' }, { label: 'π', latex: '\\pi', type: 'func' },
+    { label: 'x', latex: 'x', type: 'func' }, { label: 'y', latex: 'y', type: 'func' }, { label: '^', latex: '^{#?}', type: 'func' }, { label: '√', latex: '\\sqrt{#?}', type: 'func' },
+    { label: 'AC', action: 'ac', type: 'sec' }, { label: 'DEL', action: 'del', type: 'sec' }, { label: ',', latex: ',', type: 'func' }, { label: '∞', latex: '\\infty', type: 'func' }
   ];
 
   const renderButtons = () => {
     const buttons = activeTab === '123' ? basicButtons : fxButtons;
     return buttons.map((btn, idx) => {
-      let btnBg = 'bg-[#1c2333] hover:bg-[#252d40]';
-      let textColor = 'text-slate-300 text-sm';
+      let btnClasses = 'flex items-center justify-center rounded-full text-xl font-medium transition-all active:scale-95 ';
       
-      if (btn.isOrange) {
-        btnBg = 'bg-[#eb5528] hover:opacity-90';
-        textColor = 'text-white font-bold text-lg';
-      } else if (btn.isTeal) {
-        btnBg = 'bg-[#10b299] hover:opacity-90';
-        textColor = 'text-white font-bold text-lg';
-      } else if (btn.isNum) {
-        textColor = 'text-slate-100 font-medium text-lg';
-      } else if (btn.isOp) {
-        textColor = 'text-cyan-400 font-medium text-lg';
+      switch (btn.type) {
+        case 'num':
+          btnClasses += 'bg-zinc-700 text-white hover:bg-zinc-600';
+          break;
+        case 'op':
+          btnClasses += 'bg-indigo-500 text-white hover:bg-indigo-400 text-3xl font-normal pb-1';
+          break;
+        case 'sec':
+          btnClasses += 'bg-zinc-600 text-zinc-100 hover:bg-zinc-500 text-lg';
+          break;
+        case 'func':
+          btnClasses += 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-base';
+          break;
+        case 'exec':
+          btnClasses += 'bg-indigo-600 text-white hover:bg-indigo-500 text-3xl font-normal pb-1';
+          break;
+        default:
+          btnClasses += 'bg-zinc-700 text-white hover:bg-zinc-600';
       }
 
       return (
         <button
           key={idx}
           onClick={() => handleAction(btn)}
-          className={`
-            border-r border-b border-slate-700/50 flex items-center justify-center transition-colors 
-            ${btn.rowSpan ? 'row-span-2' : 'h-12'}
-            ${btnBg} ${textColor}
-          `}
+          className={`${btnClasses} ${btn.colSpan ? `col-span-${btn.colSpan}` : ''}`}
+          style={{ minHeight: '65px', width: '100%' }}
         >
           {btn.label}
         </button>
@@ -151,107 +136,86 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   return (
     <Rnd
       default={{
-        x: typeof window !== 'undefined' ? window.innerWidth / 2 - 250 : 50,
+        x: typeof window !== 'undefined' ? window.innerWidth / 2 - 180 : 50,
         y: 80,
-        width: 500,
+        width: 360,
         height: 'auto',
       }}
-      minWidth={450}
-      maxWidth={800}
+      minWidth={320}
+      maxWidth={400}
       bounds="window"
       dragHandleClassName="drag-handle"
       className="z-[9999]"
     >
-      <div className="bg-[#121826] border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
         
-        {/* Header Container (Buttons are separated from drag handle) */}
-        <div className="bg-[#121826] px-4 py-2 flex justify-between items-center border-b border-slate-700/50 relative">
-          
-          {/* Tabs - Interactive (Not Draggable) */}
-          <div className="flex bg-[#1c2333] rounded-md p-1 border border-slate-700/50 z-10 relative">
-            <button
-              onClick={() => setActiveTab('123')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
-                activeTab === '123' ? 'bg-[#252d40] text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              123
-            </button>
-            <button
-              onClick={() => setActiveTab('fx')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
-                activeTab === 'fx' ? 'bg-[#252d40] text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              f(x)
-            </button>
-          </div>
-          
-          {/* Empty Space - Explicit Drag Handle */}
-          <div 
-            className="drag-handle flex-1 h-10 mx-2 cursor-move absolute inset-0 z-0" 
-            style={{ touchAction: 'none' }}
-            aria-label="Drag Calculator"
-          />
-          
-          {/* Controls - Interactive (Not Draggable) */}
-          <div className="flex items-center space-x-3 text-slate-400 relative z-10" ref={settingsRef}>
-            <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="hover:text-white cursor-pointer transition-colors p-1" title="Move Left">
-              <ArrowLeft size={16} />
-            </button>
-            <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="hover:text-white cursor-pointer transition-colors p-1" title="Move Right">
-              <ArrowRight size={16} />
-            </button>
-            
-            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`cursor-pointer transition-colors p-1 ${isSettingsOpen ? 'text-white' : 'hover:text-white'}`} title="Settings">
-              <Settings size={16} />
-            </button>
-            
-            {/* Settings Dropdown */}
-            {isSettingsOpen && (
-              <div className="absolute right-8 top-10 w-44 bg-[#1c2333] border border-slate-700/50 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col">
-                <button 
-                  onClick={() => { if(mfRef.current) mfRef.current.value = ''; setIsSettingsOpen(false); }} 
-                  className="px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-[#252d40] border-b border-slate-700/50 transition-colors"
-                >
-                  Clear History
-                </button>
-                <button 
-                  onClick={() => { setAngleMode(angleMode === 'DEG' ? 'RAD' : 'DEG'); setIsSettingsOpen(false); }} 
-                  className="px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-[#252d40] transition-colors"
-                >
-                  Angle: {angleMode}
-                </button>
-              </div>
-            )}
-            
-            <div className="w-[1px] h-4 bg-slate-700 mx-1"></div>
-            
-            <button onClick={onClose} className="hover:text-[#eb5528] cursor-pointer transition-colors p-1" title="Close">
-              <X size={18} />
-            </button>
-          </div>
+        {/* Header - Drag Handle */}
+        <div className="drag-handle w-full h-10 flex justify-center items-center cursor-move pt-3 opacity-40 hover:opacity-100 transition-opacity absolute top-0 left-0 right-0 z-0">
+          <div className="w-14 h-1.5 bg-zinc-500 rounded-full" />
+        </div>
+        
+        {/* Controls Overlay */}
+        <div className="absolute top-5 right-5 flex items-center space-x-2 z-10">
+          <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-zinc-800/80 rounded-full" title="Move Left">
+            <ChevronLeft size={16} />
+          </button>
+          <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-zinc-800/80 rounded-full" title="Move Right">
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 bg-zinc-800/80 rounded-full ml-1" title="Close">
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Display Screen (MathLive) */}
-        <div className="bg-white p-4 border-b border-slate-700/50 flex items-center justify-end overflow-hidden min-h-[110px]">
+        {/* Display Screen */}
+        <div className="pt-20 pb-4 px-6 flex items-center justify-end overflow-hidden min-h-[160px]">
           {isClient && React.createElement('math-field', {
               ref: mfRef,
-              class: "w-full text-right text-4xl outline-none font-math text-[#0f172a]",
+              class: "w-full text-right text-5xl outline-none font-math text-white",
               'math-virtual-keyboard-policy': 'manual',
               style: {
-                '--text-color': '#0f172a',
-                backgroundColor: 'white',
-                '--caret-color': '#10b299',
-                '--selection-background-color': 'rgba(16, 178, 153, 0.3)',
-                '--selection-color': '#0f172a',
+                '--text-color': '#ffffff',
+                backgroundColor: 'transparent',
+                '--caret-color': '#6366f1',
+                '--selection-background-color': 'rgba(99, 102, 241, 0.3)',
+                '--selection-color': '#ffffff',
               } as React.CSSProperties
             })}
         </div>
 
-        {/* CSS Grid Keypad */}
-        <div className={`grid ${activeTab === '123' ? 'grid-cols-9' : 'grid-cols-8'} bg-[#121826] border-l border-t border-slate-700/50`}>
-          {renderButtons()}
+        {/* Tab Switcher */}
+        <div className="px-6 pb-5 flex justify-between items-center relative z-10">
+          <div className="flex bg-zinc-800 rounded-full p-1 w-full relative">
+            <button
+              onClick={() => setActiveTab('123')}
+              className={`flex-1 py-1.5 rounded-full text-sm font-medium transition-all z-10 ${
+                activeTab === '123' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              1 2 3
+            </button>
+            <button
+              onClick={() => setActiveTab('fx')}
+              className={`flex-1 py-1.5 rounded-full text-sm font-medium transition-all z-10 ${
+                activeTab === 'fx' ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              f (x)
+            </button>
+            {/* Active Tab Background Pill */}
+            <div 
+              className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-zinc-600 rounded-full shadow transition-all duration-300 ease-in-out ${
+                activeTab === '123' ? 'left-1' : 'left-[calc(50%+2px)]'
+              }`}
+            />
+          </div>
+        </div>
+
+        {/* Keypad */}
+        <div className="px-5 pb-8">
+          <div className="grid grid-cols-4 gap-3">
+            {renderButtons()}
+          </div>
         </div>
       </div>
     </Rnd>

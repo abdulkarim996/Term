@@ -321,6 +321,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [penDetected, setPenDetected] = useState(false)
 
   const [erasedSomething, setErasedSomething] = useState(false)
+  const [isErasing, setIsErasing] = useState(false)
 
   const getPos = (e: React.PointerEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect()
@@ -471,6 +472,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
 
     if (toolMode === 'eraser') {
+      setIsErasing(true)
       moveDraw(e, page)
       return
     }
@@ -488,6 +490,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
     const pos = getPos(e, canvas)
 
     if (toolMode === 'eraser') {
+      if (!isErasing && e.buttons < 1) return;
       const objects = objectsByPage[page] || []
       const eraserRadius = 15 / scale // Hit radius
       let changed = false
@@ -570,6 +573,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const endDraw = () => {
+    setIsErasing(false)
     if (erasedSomething) {
       pushToHistory(objectsByPage)
       setErasedSomething(false)
