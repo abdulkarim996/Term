@@ -13,10 +13,46 @@ import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Edit2, Calenda
 import { ChatMessage } from '../../store/dataStore'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useSettingsStore } from '../../store'
- // wait, getTaskAttachments was in syncEngine? No, we didn't export it. We'll just skip attachments for now or write a simple get.
+import { pdfjs } from 'react-pdf'
 
-// Actually getTaskAttachments is not exported from syncEngine, let's just omit it and use the local db.
-// Wait, I will just build the context from db.
+async function extractTextFromDriveFile(file: any, token: string) {
+  try {
+    const isGoogleDoc = file.mimeType === 'application/vnd.google-apps.document';
+    const isGoogleSlides = file.mimeType === 'application/vnd.google-apps.presentation';
+    const headers = { Authorization: `Bearer ${token}` };
+    
+    if (isGoogleDoc || isGoogleSlides) {
+      const fetchUrl = `https://www.googleapis.com/drive/v3/files/${file.driveFileId}/export?mimeType=text/plain`;
+      const res = await fetch(fetchUrl, { headers });
+      if (res.ok) {
+        const text = await res.text();
+        return text.substring(0, 50000); // Max 50k chars
+      }
+    } else if (file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      const fetchUrl = `https://www.googleapis.com/drive/v3/files/${file.driveFileId}?alt=media`;
+      const res = await fetch(fetchUrl, { headers });
+      if (!res.ok) return '';
+      const arrayBuffer = await res.arrayBuffer();
+      
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      let fullText = '';
+      const maxPages = Math.min(pdf.numPages, 30); // limit to 30 pages
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + '\n';
+      }
+      return fullText.substring(0, 100000); // Limit to 100k chars
+    }
+    return '';
+  } catch (err) {
+    console.error("Error extracting text from file", err);
+    return '';
+  }
+}
 
 export default function AIScreen() {
   const { t } = useTranslation();
@@ -157,22 +193,56 @@ export default function AIScreen() {
           history.pop();
         }
 
-      let currentModelId = selectedModel;
-      let genAI = new GoogleGenerativeAI(geminiApiKey.trim());
-      
-      
-        const userTasks = useDataStore.getState().tasks.filter((t: any) => !t.completed).map((t: any) => t.title).join(', ');
-        const userEvents = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date()).map((e: any) => e.title).join(', ');
-        const userFiles = useDataStore.getState().driveFiles.map((f: any) => f.name).join(', ');
+        let currentModelId = selectedModel;
+        let genAI = new GoogleGenerativeAI(geminiApiKey.trim());
+        
+        // Build Expanded Context
+        const tasks = useDataStore.getState().tasks.filter((t: any) => !t.completed);
+        const userTasks = tasks.map((t: any) => `- ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' [Due: ' + new Date(t.dueDate).toLocaleDateString() + ']' : ''}`).join('\n');
+        
+        const events = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date(Date.now() - 86400000));
+        const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n');
+        
+        const files = useDataStore.getState().driveFiles;
+        const subjects = useDataStore.getState().subjects;
+        const userFiles = files.map((f: any) => {
+           const sub = subjects.find(s => s.id === f.subjectId);
+           return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`;
+        }).join('\n');
+        
         const s = useSettingsStore.getState();
         const profileInfo = "Name: " + (s.userName || "Not specified") + ", Major: " + (s.userMajor || "Not specified") + ", Semester: " + (s.currentSemester || "Not specified");
+        
+        // PDF Text Extraction Logic
+        let appendedFileText = '';
+        const lowerInput = userMsgText.toLowerCase();
+        // Simple heuristic: if the user mentions a file name (without extension) that is > 3 chars
+        const referencedFiles = files.filter(f => {
+           const simpleName = f.name.replace(/\.[^/.]+$/, "").toLowerCase();
+           return simpleName.length > 3 && lowerInput.includes(simpleName);
+        });
+
+        if (referencedFiles.length > 0) {
+           setStreamingMessage(t('extractingFileText') || 'Extracting file text for context...');
+           const f = referencedFiles[0]; // just grab the first match
+           const token = useSettingsStore.getState().googleAccessToken;
+           if (token) {
+              const extracted = await extractTextFromDriveFile(f, token);
+              if (extracted) {
+                 appendedFileText = `\n\n[FILE CONTEXT: ${f.name}]\n${extracted}\n[/FILE CONTEXT]\n`;
+              }
+           }
+        }
         
         const sysInst = t('aiInstruction') + "\n\nUser Profile:\n" + profileInfo + "\n\nCurrent Pending Tasks:\n" + (userTasks || 'None') + "\n\nUpcoming Events:\n" + (userEvents || 'None') + "\n\nUser Files:\n" + (userFiles || 'None');
 
         const generateAttempt = async (modelId: string) => {
+          // If we have file text, we can either append it to sysInst or to the user's message.
+          // Appending to the user's message is usually better for attention in Gemini.
+          const finalUserMsgText = appendedFileText ? userMsgText + appendedFileText : userMsgText;
           const model = genAI.getGenerativeModel({ model: modelId, systemInstruction: sysInst });
           const chat = model.startChat({ history });
-          const result = await chat.sendMessageStream(userMsgText);
+          const result = await chat.sendMessageStream(finalUserMsgText);
           
           let generated = '';
           let lastUpdateTime = 0;
