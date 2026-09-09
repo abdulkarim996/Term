@@ -7,6 +7,21 @@ const receiver = new Receiver({
   nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
 });
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+async function getRawBody(req: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString('utf8'); });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -16,9 +31,11 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: 'Missing signature' });
     }
 
+    const rawBody = await getRawBody(req);
+
     const isValid = await receiver.verify({
       signature: signature as string,
-      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+      body: rawBody,
     });
 
     if (!isValid) {
@@ -39,7 +56,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // 2. Parse Body safely
-    const bodyObj = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const bodyObj = JSON.parse(rawBody);
     const { fcmToken, title, body } = bodyObj;
 
     if (!fcmToken) return res.status(400).json({ error: 'Missing fcmToken' });

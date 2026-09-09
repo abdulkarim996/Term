@@ -318,18 +318,12 @@ export default function FileAnnotator({ file, onClose }: Props) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
-  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+  const [penDetected, setPenDetected] = useState(false)
+
+  const getPos = (e: React.PointerEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect()
-    let clientX, clientY
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX
-      clientY = e.touches[0].clientY
-    } else {
-      clientX = (e as React.MouseEvent).clientX
-      clientY = (e as React.MouseEvent).clientY
-    }
-    const x = (clientX - rect.left) * (canvas.width / rect.width)
-    const y = (clientY - rect.top) * (canvas.height / rect.height)
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width)
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height)
     return { x: x / scale, y: y / scale }
   }
 
@@ -472,8 +466,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
     setCurrentStroke({ page, stroke: { id: 'temp', type: 'stroke', points: [pos], color, thickness, mode: toolMode } })
   }
 
-  const moveDraw = (e: React.MouseEvent | React.TouchEvent, page: number) => {
+  const moveDraw = (e: React.PointerEvent, page: number) => {
     if (toolMode === 'text' || toolMode === 'image') return
+    if (penDetected && e.pointerType === 'touch') return // Palm rejection
     e.preventDefault()
     
     const canvas = canvasRefs.current[page]
@@ -824,10 +819,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
       <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageUpload} />
       
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 gap-4 w-full min-h-16 bg-surface-elevated border-b border-surface-border overflow-x-auto hide-scrollbar">
+      <div className="flex flex-wrap items-center justify-center sm:justify-between px-4 py-2 gap-4 w-full min-h-16 bg-surface-elevated border-b border-surface-border">
         
         {/* Left Section: Save */}
-        <div className="flex items-center gap-2 justify-start shrink-0 min-w-[200px] w-1/4">
+        <div className="flex items-center gap-2 justify-start shrink-0">
           {saving ? (
              <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-accent-blue text-white rounded-xl opacity-70">
                <Loader2 size={18} className="animate-spin" /> <span className="hidden md:inline">جاري الحفظ...</span>
@@ -904,7 +899,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
         </div>
 
         {/* Right Section: Timer, Zoom, Close */}
-        <div className="flex items-center gap-2 justify-end shrink-0 min-w-[200px] w-1/4">
+        <div className="flex flex-wrap items-center gap-2 justify-end shrink-0">
           
           <button 
             onClick={() => setShowCalculator(!showCalculator)} 
@@ -945,9 +940,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
              }} />
              <canvas
                 ref={(el) => { if (el) canvasRefs.current[1] = el }}
-                className={`absolute inset-0 touch-none ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
-                onMouseDown={e => startDraw(e, 1)} onMouseMove={e => moveDraw(e, 1)} onMouseUp={endDraw} onMouseOut={endDraw}
-                onTouchStart={e => startDraw(e, 1)} onTouchMove={e => moveDraw(e, 1)} onTouchEnd={endDraw}
+                className={`absolute inset-0 \ ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                onPointerDown={e => startDraw(e, 1)} onPointerMove={e => moveDraw(e, 1)} onPointerUp={endDraw} onPointerOut={endDraw}
+                  
              />
              {activeTextInput && activeTextInput.page === 1 && (
                <textarea
@@ -1009,9 +1004,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
                   />
                   <canvas
                     ref={(el) => { if (el) canvasRefs.current[pageNum] = el }}
-                    className={`absolute inset-0 touch-none ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
-                    onMouseDown={e => startDraw(e, pageNum)} onMouseMove={e => moveDraw(e, pageNum)} onMouseUp={endDraw} onMouseOut={endDraw}
-                    onTouchStart={e => startDraw(e, pageNum)} onTouchMove={e => moveDraw(e, pageNum)} onTouchEnd={endDraw}
+                    className={`absolute inset-0 \ ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                    onPointerDown={e => startDraw(e, pageNum)} onPointerMove={e => moveDraw(e, pageNum)} onPointerUp={endDraw} onPointerOut={endDraw}
+                      
                   />
                   {activeTextInput && activeTextInput.page === pageNum && (
                      <textarea

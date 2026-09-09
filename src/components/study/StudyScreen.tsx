@@ -26,7 +26,7 @@ export default function StudyScreen() {
 
   const renderPane = (content: PaneContent) => {
     return (
-      <div className="flex-1 w-full bg-surface rounded-xl overflow-hidden shadow-sm relative flex flex-col">
+      <div className="w-full bg-surface rounded-xl overflow-hidden shadow-sm relative grid">
         <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin"></div></div>}>
           {content === 'files' ? <FileViewer /> : <WhiteBoard />}
         </Suspense>
@@ -80,7 +80,7 @@ export default function StudyScreen() {
   }
 
   return (
-    <div className="flex flex-col bg-background flex-1 min-h-0 overflow-hidden">
+    <div className="grid grid-rows-[auto_auto_1fr] bg-background flex-1 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="bg-surface-elevated pt-12 pb-4 px-6 rounded-b-[2rem] shadow-sm mb-4 relative z-10">
         <div className="flex items-center justify-between mb-2">
@@ -174,14 +174,14 @@ export default function StudyScreen() {
       <div className="flex-1 flex flex-row px-4 pb-4 overflow-hidden gap-4 min-h-0">
         
         {/* Main Workspace */}
-        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
+        <div className="flex-1 grid min-w-0 transition-all duration-300 relative">
           {isSplitScreen ? (
             <div className="flex-1 flex flex-col md:flex-row gap-4 w-full relative min-h-0">
               {renderSplitPane(leftPaneContent, setLeftPaneContent)}
               {renderSplitPane(rightPaneContent, setRightPaneContent)}
             </div>
           ) : (
-            <div className="flex-1 relative w-full min-h-0 flex flex-col">
+            <div className="relative w-full min-h-0 grid">
               {renderPane(activeTab)}
             </div>
           )}
