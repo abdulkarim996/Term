@@ -1,18 +1,27 @@
 import { useTranslation } from '../../hooks/useTranslation'
 // @ts-nocheck
 import { useDataStore } from '../../store/dataStore'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { DriveFile } from '../../store/dataStore'
 import { FolderOpen, FileText, Image as ImageIcon, ExternalLink, Filter, FileType } from 'lucide-react'
 import { SUBJECT_COLORS } from '../../lib/utils'
 import FileAnnotator from './FileAnnotator'
-
+import { useUIStore } from '../../store'
 import { ErrorBoundary } from 'react-error-boundary'
 
 export default function FileViewer() {
   const { t } = useTranslation();
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | string>('all')
   const [selectedFile, setSelectedFile] = useState<DriveFile | null>(null)
+  const { quickReviewFile, setQuickReviewFile } = useUIStore()
+
+  useEffect(() => {
+    const quickFile = useUIStore.getState().quickReviewFile;
+    if (quickFile) {
+      setSelectedFile(quickFile);
+      useUIStore.getState().setQuickReviewFile(null);
+    }
+  }, []);
 
   // early return removed from here
 

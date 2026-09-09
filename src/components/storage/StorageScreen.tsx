@@ -6,7 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import {
   FolderOpen, Upload, ExternalLink, File, FileText,
   Image, Film, Search, Plus, Folder, ChevronRight,
-  RefreshCw, Loader2, Link, Pencil
+  RefreshCw, Loader2, Link, Pencil, BookOpen
 } from 'lucide-react'
 import type { DriveFile } from '../../store/dataStore'
 import { useSettingsStore, useUIStore } from '../../store'
@@ -373,6 +373,16 @@ export default function StorageScreen() {
                             </div>
 
                             <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => {
+                                  useUIStore.getState().setQuickReviewFile(file);
+                                  useUIStore.getState().setActiveTab('study');
+                                }}
+                                className="p-2 rounded-lg text-text-muted hover:text-accent-purple hover:bg-accent-purple/10 transition-all bg-surface-elevated border border-surface-border shadow-sm"
+                                title="Open in Study Room"
+                              >
+                                <BookOpen size={14} />
+                              </button>
                               <button
                                 onClick={() => openEditModal(file)}
                                 className="p-2 rounded-lg text-text-muted hover:text-accent-blue hover:bg-accent-blue/10 transition-all bg-surface-elevated border border-surface-border shadow-sm"

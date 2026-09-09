@@ -33,9 +33,14 @@ export default async function handler(req: any, res: any) {
 
     const rawBody = await getRawBody(req);
 
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host || '';
+    const endpointUrl = `${protocol}://${host}/api/tasks/execute`;
+
     const isValid = await receiver.verify({
       signature: signature as string,
       body: rawBody,
+      url: endpointUrl,
     });
 
     if (!isValid) {

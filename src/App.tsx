@@ -228,7 +228,7 @@ export default function App() {
       {/* Main Content */}
       <main
           ref={mainRef}
-          className={`flex-1 flex flex-col relative min-h-0 ${activeTab === 'study' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+          className={`flex-1 flex flex-col relative min-h-0 overflow-hidden`}
           style={{ paddingBottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
         >
           {/* Pull to refresh visual indicator */}
@@ -247,15 +247,16 @@ export default function App() {
               />
             </div>
           </div>
-        <div key={activeTab} className="animate-fade-in">
+        <div key={activeTab} className="animate-fade-in overflow-y-auto overflow-x-hidden flex-1">
           {activeTab === 'home' && <HomeScreen />}
           {activeTab === 'calendar' && <CalendarScreen />}
           {activeTab === 'tasks' && <TasksScreen />}
           {activeTab === 'storage' && <StorageScreen />}
-          {activeTab === 'study' && <StudyScreen />}
           {activeTab === 'ai' && <AIScreen />}
           {activeTab === 'more' && <MoreScreen />}
         </div>
+        {/* StudyScreen rendered outside the animated wrapper to participate in flex layout */}
+        {activeTab === 'study' && <StudyScreen />}
       </main>
 
       <UpdatePrompt />

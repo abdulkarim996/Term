@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -23,6 +23,7 @@ interface UIStore {
   toastType: 'success' | 'error' | 'info'
   currentUser: AppUser | null
   authLoading: boolean
+  quickReviewFile: import('../store/dataStore').DriveFile | null
 
   setActiveTab: (tab: Tab) => void
   setCalendarView: (view: CalendarView) => void
@@ -34,6 +35,7 @@ interface UIStore {
   clearToast: () => void
   setCurrentUser: (user: AppUser | null) => void
   setAuthLoading: (v: boolean) => void
+  setQuickReviewFile: (file: any | null) => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -47,6 +49,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   toastType: 'success',
   currentUser: null,
   authLoading: true,
+  quickReviewFile: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setCalendarView: (view) => set({ calendarView: view }),
@@ -60,7 +63,9 @@ export const useUIStore = create<UIStore>()((set) => ({
   },
   clearToast: () => set({ toastMessage: null }),
   setCurrentUser: (user) => set({ currentUser: user }),
-  setAuthLoading: (v) => set({ authLoading: v }) }))
+  setAuthLoading: (v) => set({ authLoading: v }),
+  setQuickReviewFile: (file) => set({ quickReviewFile: file }),
+}))
 
 // Settings store (persisted)
 interface SettingsStore {
@@ -126,9 +131,11 @@ export const useSettingsStore = create<SettingsStore>()(
       setAutoStudyBlocks: (v) => set({ autoStudyBlocks: v }),
       setTheme: (t) => set({ theme: t }),
       setBannerUrl: (url) => set({ bannerUrl: url }),
-      setBlackboardUrl: (url) => set({ blackboardUrl: url }) }),
+      setBlackboardUrl: (url) => set({ blackboardUrl: url }),
+    }),
     {
       name: 'student-dashboard-settings',
-      storage: createJSONStorage(() => localStorage) }
+      storage: createJSONStorage(() => localStorage),
+    }
   )
 )

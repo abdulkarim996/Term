@@ -383,6 +383,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
     if (penDetected && e.pointerType === 'touch') return // Palm rejection
 
     e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
     if (activeTextInput) saveActiveText()
     
     const canvas = canvasRefs.current[page]
@@ -943,7 +944,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
              }} />
              <canvas
                 ref={(el) => { if (el) canvasRefs.current[1] = el }}
-                className={`absolute inset-0 \ ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                className={`absolute inset-0 touch-none ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                style={{touchAction:'none'}}
                 onPointerDown={e => startDraw(e, 1)} onPointerMove={e => moveDraw(e, 1)} onPointerUp={endDraw} onPointerOut={endDraw}
                   
              />
@@ -1007,7 +1009,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
                   />
                   <canvas
                     ref={(el) => { if (el) canvasRefs.current[pageNum] = el }}
-                    className={`absolute inset-0 \ ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                    className={`absolute inset-0 touch-none ${toolMode==='text'||toolMode==='image' ? 'cursor-pointer' : (toolMode==='select' ? 'cursor-default' : 'cursor-crosshair')} w-full h-full z-10`}
+                    style={{touchAction:'none'}}
                     onPointerDown={e => startDraw(e, pageNum)} onPointerMove={e => moveDraw(e, pageNum)} onPointerUp={endDraw} onPointerOut={endDraw}
                       
                   />
