@@ -80,10 +80,10 @@ export default function StudyScreen() {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-background">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-background">
       {/* Header */}
-      <div className="bg-surface-elevated pt-12 pb-4 px-6 rounded-b-[2rem] shadow-sm mb-4 relative z-10">
-        <div className="flex items-center justify-between mb-2">
+      <div className="bg-surface-elevated pt-safe-top pb-4 px-6 rounded-b-[2rem] shadow-sm relative z-10 shrink-0" style={{paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)'}}>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-accent-blue/10 flex items-center justify-center">
               <BookOpen className="text-accent-blue" size={24} />
@@ -111,7 +111,7 @@ export default function StudyScreen() {
 
       {/* Single View Tabs & Calculator (Only show if not split) */}
       {!isSplitScreen && (
-        <div className="px-4 mb-4 flex gap-2">
+        <div className="px-4 mt-4 mb-0 flex gap-2 shrink-0">
           <div className="flex bg-surface-elevated rounded-xl p-1 shadow-sm flex-1">
             <button
               onClick={() => setActiveTab('files')}
@@ -157,7 +157,7 @@ export default function StudyScreen() {
 
       {/* Calculator Toggle for Split View */}
       {isSplitScreen && (
-        <div className="px-4 mb-3 flex justify-end">
+        <div className="px-4 mt-4 mb-0 flex justify-end shrink-0">
           <button
             onClick={() => setShowCalculator(!showCalculator)}
             className={`px-4 flex items-center justify-center gap-2 py-2 rounded-xl transition-all shadow-sm text-sm font-medium ${
@@ -171,7 +171,7 @@ export default function StudyScreen() {
       )}
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-row px-4 pb-4 gap-4 overflow-hidden" style={{minHeight:0}}>
+      <div className="flex-1 flex flex-row px-4 pt-4 pb-4 gap-4 overflow-hidden" style={{minHeight: 0}}>
         
         {/* Main Workspace */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{minHeight:0}}>

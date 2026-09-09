@@ -247,14 +247,16 @@ export default function App() {
               />
             </div>
           </div>
-        <div key={activeTab} className="animate-fade-in overflow-y-auto overflow-x-hidden flex-1">
-          {activeTab === 'home' && <HomeScreen />}
-          {activeTab === 'calendar' && <CalendarScreen />}
-          {activeTab === 'tasks' && <TasksScreen />}
-          {activeTab === 'storage' && <StorageScreen />}
-          {activeTab === 'ai' && <AIScreen />}
-          {activeTab === 'more' && <MoreScreen />}
-        </div>
+        {activeTab !== 'study' && (
+          <div key={activeTab} className="animate-fade-in overflow-y-auto overflow-x-hidden flex-1">
+            {activeTab === 'home' && <HomeScreen />}
+            {activeTab === 'calendar' && <CalendarScreen />}
+            {activeTab === 'tasks' && <TasksScreen />}
+            {activeTab === 'storage' && <StorageScreen />}
+            {activeTab === 'ai' && <AIScreen />}
+            {activeTab === 'more' && <MoreScreen />}
+          </div>
+        )}
         {/* StudyScreen rendered outside the animated wrapper to participate in flex layout */}
         {activeTab === 'study' && <StudyScreen />}
       </main>
