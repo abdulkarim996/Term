@@ -52,7 +52,17 @@ export default function FileViewer() {
 
 
     return (
-      <ErrorBoundary fallback={<div className="p-4 text-accent-red">{t('errorOccurred')} في عرض الملف. يرجى إعادة المحاولة.</div>}>
+      <ErrorBoundary 
+        fallbackRender={({ error, resetErrorBoundary }) => {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          if (errMsg.includes('ResizeObserver')) {
+            // Suppress benign ResizeObserver warnings by recovering
+            setTimeout(resetErrorBoundary, 0);
+            return null;
+          }
+          return <div className="p-4 text-accent-red">{t('errorOccurred')} 😔. يرجى المحاولة مرة أخرى.</div>;
+        }}
+      >
         <FileAnnotator file={selectedFile} onClose={() => setSelectedFile(null)} />
       </ErrorBoundary>
     )

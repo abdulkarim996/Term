@@ -68,6 +68,9 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
       // indefinite integral: int expr dx => integrate(expr, x)
       expr = expr.replace(/int\s+(.*?)\s*d([a-zA-Z]+)/g, 'integrate($1, $2)');
       
+      // log base 10: log_(10)(x) => log10(x)
+      expr = expr.replace(/log_\(10\)/g, 'log10');
+      
       // convert PI
       expr = expr.replace(/pi/g, 'pi');
 
@@ -88,9 +91,9 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   ];
 
   const fxButtons: CalcButton[] = [
-    { label: 'sin', latex: '\\sin(', type: 'func' }, { label: 'cos', latex: '\\cos(', type: 'func' }, { label: 'tan', latex: '\\tan(', type: 'func' }, { label: 'log', latex: '\\log_{10}(', type: 'func' },
-    { label: 'sin⁻¹', latex: '\\arcsin(', type: 'func' }, { label: 'cos⁻¹', latex: '\\arccos(', type: 'func' }, { label: 'tan⁻¹', latex: '\\arctan(', type: 'func' }, { label: 'ln', latex: '\\ln(', type: 'func' },
-    { label: 'lim', latex: '\\lim_{x \\to #?}', type: 'func' }, { label: 'd/dx', latex: '\\frac{d}{dx} #?', type: 'func' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx', type: 'func' }, { label: 'π', latex: '\\pi', type: 'func' },
+    { label: 'sin', latex: '\\sin\\left(#?\\right)', type: 'func' }, { label: 'cos', latex: '\\cos\\left(#?\\right)', type: 'func' }, { label: 'tan', latex: '\\tan\\left(#?\\right)', type: 'func' }, { label: 'log', latex: '\\log_{10}\\left(#?\\right)', type: 'func' },
+    { label: 'sin⁻¹', latex: '\\arcsin\\left(#?\\right)', type: 'func' }, { label: 'cos⁻¹', latex: '\\arccos\\left(#?\\right)', type: 'func' }, { label: 'tan⁻¹', latex: '\\arctan\\left(#?\\right)', type: 'func' }, { label: 'ln', latex: '\\ln\\left(#?\\right)', type: 'func' },
+    { label: 'lim', latex: '\\lim_{x \\to #?} \\left(#?\\right)', type: 'func' }, { label: 'd/dx', latex: '\\frac{d}{dx} \\left(#?\\right)', type: 'func' }, { label: '∫', latex: '\\int_{#?}^{#?} #? \\, dx', type: 'func' }, { label: 'π', latex: '\\pi', type: 'func' },
     { label: 'x', latex: 'x', type: 'func' }, { label: 'y', latex: 'y', type: 'func' }, { label: '^', latex: '^{#?}', type: 'func' }, { label: '√', latex: '\\sqrt{#?}', type: 'func' },
     { label: 'AC', action: 'ac', type: 'sec' }, { label: 'DEL', action: 'del', type: 'sec' }, { label: ',', latex: ',', type: 'func' }, { label: '∞', latex: '\\infty', type: 'func' }
   ];

@@ -1,0 +1,53 @@
+البرومبت الأول (الأساسيات والأداء):
+
+Plaintext
+Phase 1: Security, Architecture & Performance
+Review the project and implement the following improvements without altering existing features:
+1. Security: Sanitize user inputs, secure API routes, and ensure safe data handling.
+2. Architecture & Data Consistency: Refactor state management if necessary to ensure synchronization between the file viewer and whiteboard.
+3. Performance: Optimize heavy component rendering using lazy loading and memoization (useMemo/useCallback).
+Do not rebuild from scratch. Output the updated code.
+
+CRITICAL SYSTEM RULE: Automatically run:
+1. git add .
+2. git commit -m "Auto-update: Phase 1 - Security & Performance"
+3. git push origin main
+البرومبت الثاني (تجربة المستخدم ومعالجة الأخطاء):
+
+Plaintext
+Phase 2: Error Handling, UX & Timezones
+Build upon the previous phase:
+1. Error Handling: Implement global Error Boundaries in React. Wrap all async calls (like AI requests) in try-catch blocks with clean fallback UIs.
+2. UX & Accessibility: Ensure all interactive elements have correct `aria-labels`, support keyboard navigation, and adhere to dark theme contrast standards.
+3. Timezone & Scheduling: Standardize all date/time processing to UTC in logic, formatting it to the local timezone only on the UI.
+Output the updated code.
+
+CRITICAL SYSTEM RULE: Automatically run:
+1. git add .
+2. git commit -m "Auto-update: Phase 2 - UX, Errors & Timezones"
+3. git push origin main
+البرومبت الثالث (الاختبار والذكاء الاصطناعي):
+
+Plaintext
+Phase 3: Testing, QA & AI Reliability
+1. AI Reliability: Add strict fallback logic and timeout handling for the AI Assistant side panel. If the AI fails, show a structured, user-friendly error message.
+2. Testing & QA: Generate essential unit tests for core utilities (e.g., calculation logic, split-screen state) using Jest/React Testing Library. Ensure no linting errors exist.
+Output the updated code and tests.
+
+CRITICAL SYSTEM RULE: Automatically run:
+1. git add .
+2. git commit -m "Auto-update: Phase 3 - Testing & AI Reliability"
+3. git push origin main
+البرومبت الرابع (التوثيق - ينفذ في النهاية):
+
+Plaintext
+Phase 4: Documentation Sync
+Review all recent changes across the codebase. 
+Update `PROJECT_DOCUMENTATION.md` to reflect the absolute current state of the project. Document all new security measures, error handling mechanisms, architecture decisions, and testing protocols.
+The documentation MUST match the codebase 100%. 
+Output the complete updated markdown content, followed by a brief summary of what was fixed and what is still missing.
+
+CRITICAL SYSTEM RULE: Automatically run:
+1. git add .
+2. git commit -m "Auto-update: Sync PROJECT_DOCUMENTATION.md"
+3. git push origin main
