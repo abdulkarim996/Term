@@ -320,6 +320,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
 
   const [penDetected, setPenDetected] = useState(false)
 
+  const [erasedSomething, setErasedSomething] = useState(false)
+
   const getPos = (e: React.PointerEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect()
     const x = (e.clientX - rect.left) * (canvas.width / rect.width)
@@ -360,9 +362,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
           let w = img.width
           let h = img.height
           if (w > maxDim || h > maxDim) {
-             const ratio = Math.min(maxDim/w, maxDim/h)
-             w *= ratio
-             h *= ratio
+             const aspect = w / h
+             if (w > h) { w = maxDim; h = maxDim / aspect }
+             else { h = maxDim; w = maxDim * aspect }
           }
           const c = document.createElement('canvas')
           c.width = w
@@ -376,6 +378,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
        img.src = ev.target?.result as string
     }
     reader.readAsDataURL(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const startDraw = (e: React.PointerEvent, page: number) => {
@@ -467,6 +470,11 @@ export default function FileAnnotator({ file, onClose }: Props) {
       return
     }
 
+    if (toolMode === 'eraser') {
+      moveDraw(e, page)
+      return
+    }
+
     setCurrentStroke({ page, stroke: { id: 'temp', type: 'stroke', points: [pos], color, thickness, mode: toolMode } })
   }
 
@@ -478,6 +486,31 @@ export default function FileAnnotator({ file, onClose }: Props) {
     const canvas = canvasRefs.current[page]
     if (!canvas) return
     const pos = getPos(e, canvas)
+
+    if (toolMode === 'eraser') {
+      const objects = objectsByPage[page] || []
+      const eraserRadius = 15 / scale // Hit radius
+      let changed = false
+      const newObjects = objects.filter(obj => {
+        if (obj.type === 'stroke') {
+          for (const pt of obj.points) {
+            const dx = pt.x - pos.x
+            const dy = pt.y - pos.y
+            if (dx * dx + dy * dy < eraserRadius * eraserRadius) {
+              changed = true
+              return false // Remove this stroke
+            }
+          }
+        }
+        return true
+      })
+      
+      if (changed) {
+        setObjectsByPage({ ...objectsByPage, [page]: newObjects })
+        setErasedSomething(true)
+      }
+      return
+    }
 
     if (toolMode === 'select' && selectedObjectId && selectedObjectId.page === page && dragState) {
        const objects = [...(objectsByPage[page] || [])]
@@ -537,6 +570,12 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const endDraw = () => {
+    if (erasedSomething) {
+      pushToHistory(objectsByPage)
+      setErasedSomething(false)
+      return
+    }
+
     if (dragState) {
        // Drag ended, push final position to history
        pushToHistory(objectsByPage)
@@ -929,7 +968,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
           <button onClick={() => setToolMode('highlighter')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'highlighter' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title={t('tool')}>
             <Highlighter size={18} />
           </button>
-            <button onClick={undo} disabled={historyIndex === 0} className="p-2 rounded-lg shrink-0 text-text-muted hover:bg-surface-hover disabled:opacity-30" title="Undo Last Stroke">
+            <button onClick={() => setToolMode('eraser')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'eraser' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title="Eraser">
               <Eraser size={18} />
             </button>
           

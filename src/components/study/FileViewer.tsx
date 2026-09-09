@@ -70,7 +70,7 @@ export default function FileViewer() {
         <div className="relative">
           <select
             value={selectedSubjectId}
-            onChange={(e) => setSelectedSubjectId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+            onChange={(e) => setSelectedSubjectId(e.target.value)}
             className="input-field w-full appearance-none pr-10 text-sm"
           >
             <option value="all">{t('allSubjects')}</option>
