@@ -8,8 +8,9 @@ import { PDFDocument, rgb } from 'pdf-lib'
 import type {  DriveFile  } from '../../store/dataStore'
 import { useSettingsStore, useUIStore } from '../../store'
 import { useDataStore } from '../../store/dataStore'
-import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2 } from 'lucide-react'
+import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2, Hand } from 'lucide-react'
 import MiniTimer from './MiniTimer'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
@@ -19,7 +20,7 @@ interface Props {
 }
 
 type Point = { x: number, y: number }
-type ToolMode = 'pen' | 'highlighter' | 'eraser' | 'text' | 'rect' | 'circle' | 'arrow' | 'image' | 'select'
+type ToolMode = 'pen' | 'highlighter' | 'eraser' | 'text' | 'rect' | 'circle' | 'arrow' | 'image' | 'select' | 'pan'
 
 type BaseObj = { id: string }
 type StrokeObj = BaseObj & { type: 'stroke', points: Point[], color: string, thickness: number, mode: 'pen' | 'highlighter' | 'eraser' }
@@ -40,7 +41,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   
   const [numPages, setNumPages] = useState<number>(0)
-  const [scale, setScale] = useState(1)
+  const scale = 1.2
   
   const [objectsByPage, setObjectsByPage] = useState<Record<number, PageObject[]>>({})
   const [currentStroke, setCurrentStroke] = useState<{ page: number, stroke: StrokeObj } | null>(null)
@@ -381,6 +382,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const startDraw = (e: React.PointerEvent, page: number) => {
+    if (toolMode === 'pan') return
     if (e.pointerType === 'pen') setPenDetected(true)
     if (penDetected && e.pointerType === 'touch') return // Palm rejection
 
@@ -479,7 +481,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const moveDraw = (e: React.PointerEvent, page: number) => {
-    if (toolMode === 'text' || toolMode === 'image') return
+    if (toolMode === 'text' || toolMode === 'image' || toolMode === 'pan') return
     if (penDetected && e.pointerType === 'touch') return // Palm rejection
     e.preventDefault()
     
@@ -887,7 +889,16 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   return (
-    <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none">
+    <TransformWrapper
+      initialScale={1}
+      minScale={0.1}
+      maxScale={10}
+      wheel={{ step: 0.1 }}
+      pinch={{ step: 5 }}
+      panning={{ disabled: toolMode !== 'pan' && toolMode !== 'select', activationKeys: [' '] }}
+    >
+      {({ zoomIn, zoomOut, state }) => (
+        <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none">
       
       {/* File Naming Modal */}
       {saveModalOpen && (
@@ -956,8 +967,12 @@ export default function FileAnnotator({ file, onClose }: Props) {
           
           <div className="w-px h-6 bg-surface-border mx-1 shrink-0" />
           
-          <button onClick={() => setToolMode('select')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'select' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title="تحديد (نقر مزدوج لحذف)">
+          <button onClick={() => setToolMode('select')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'select' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title="Select">
             <MousePointer2 size={18} />
+          </button>
+          
+          <button onClick={() => setToolMode('pan')} className={`p-2 rounded-lg shrink-0 ${toolMode === 'pan' ? 'bg-accent-blue/10 text-accent-blue' : 'text-text-muted hover:bg-surface-hover'}`} title="Pan">
+            <Hand size={18} />
           </button>
           
           <div className="w-px h-6 bg-surface-border mx-1 shrink-0" />
@@ -1013,9 +1028,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
           <MiniTimer />
 
           <div className="flex items-center bg-surface p-1 rounded-xl mx-2 hidden md:flex border border-surface-border">
-            <button onClick={() => setScale(s => Math.max(0.5, s - 0.25))} className="p-1 text-text-muted hover:bg-surface-hover rounded" title={t('zoomOut')}><ZoomOut size={16} /></button>
-            <span className="text-xs font-medium px-2 min-w-[3rem] text-center">{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale(s => Math.min(3, s + 0.25))} className="p-1 text-text-muted hover:bg-surface-hover rounded" title={t('zoomIn')}><ZoomIn size={16} /></button>
+            <button onClick={() => zoomOut()} className="p-1 text-text-muted hover:bg-surface-hover rounded" title={t('zoomOut')}><ZoomOut size={16} /></button>
+            <span className="text-xs font-medium px-2 min-w-[3rem] text-center">{Math.round(state.scale * 100)}%</span>
+            <button onClick={() => zoomIn()} className="p-1 text-text-muted hover:bg-surface-hover rounded" title={t('zoomIn')}><ZoomIn size={16} /></button>
           </div>
           
           <button onClick={onClose} className="p-2 hover:bg-surface rounded-xl text-text-muted transition-colors border border-surface-border">
@@ -1025,9 +1040,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto bg-surface relative flex justify-center py-8" ref={containerRef}>
+      <div className="flex-1 overflow-hidden bg-surface relative flex justify-center py-8" ref={containerRef}>
+        <TransformComponent wrapperClass="w-full h-full" contentClass="w-full flex-col items-center">
         {!fileBytes ? null : isImage ? (
-           <div className="relative shadow-xl" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
+           <div className="relative shadow-xl mx-auto">
              <img src={URL.createObjectURL(new Blob([fileBytes]))} alt="file" className="max-w-full" onLoad={(e) => {
                const canvas = canvasRefs.current[1]
                if (canvas) {
@@ -1141,7 +1157,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
             </div>
           </Document>
         )}
+        </TransformComponent>
         </div>
       </div>
-    )
-  }
+      )}
+    </TransformWrapper>
+  )
+}
