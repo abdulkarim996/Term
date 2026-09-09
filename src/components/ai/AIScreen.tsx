@@ -467,7 +467,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain pointer-events-auto px-4 py-3 space-y-3" onClick={() => setShowModelPicker(false)}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pointer-events-auto px-4 py-3 space-y-3" onClick={() => setShowModelPicker(false)}>
         {!hasMessages ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8 space-y-6">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-blue/15 to-accent-purple/15 flex items-center justify-center">
