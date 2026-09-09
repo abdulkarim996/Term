@@ -18,6 +18,7 @@ interface CalcButton {
 export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const [activeTab, setActiveTab] = useState<'123' | 'fx'>('123');
   const [isClient, setIsClient] = useState(false);
+  const [angleMode, setAngleMode] = useState<'DEG' | 'RAD'>('DEG');
   const mfRef = useRef<any>(null);
 
   useEffect(() => {
@@ -55,6 +56,15 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
     try {
       let expr = mf.getValue('ascii-math');
       
+      // 1. Reconstruct known math functions that might be split by MathLive's ascii-math exporter
+      // MathLive sometimes exports 'tan' as 't a n' or 't*a*n' if it treats them as implicit variables
+      const funcs = ['arcsin', 'arccos', 'arctan', 'sin', 'cos', 'tan', 'log', 'ln', 'lim', 'pi'];
+      funcs.forEach(f => {
+        const pattern = f.split('').join('[\\s\\*]*');
+        const regex = new RegExp(pattern, 'gi');
+        expr = expr.replace(regex, f);
+      });
+      
       // Clean up ascii-math output from MathLive for nerdamer
       // limits: lim_(x->0) expr => limit(expr, x, 0)
       expr = expr.replace(/lim_\(([a-zA-Z]+)->([^)]+)\)\s*(.*)/g, 'limit($3, $1, $2)');
@@ -74,7 +84,37 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
       // convert PI
       expr = expr.replace(/pi/g, 'pi');
 
-      const result = nerdamer(expr).toTeX();
+      // Handle DEG/RAD
+      if (angleMode === 'DEG') {
+        // Register degree-based trig wrappers in nerdamer
+        nerdamer.setFunction('sind', ['x'], 'sin(x * pi / 180)');
+        nerdamer.setFunction('cosd', ['x'], 'cos(x * pi / 180)');
+        nerdamer.setFunction('tand', ['x'], 'tan(x * pi / 180)');
+        nerdamer.setFunction('asind', ['x'], 'asin(x) * 180 / pi');
+        nerdamer.setFunction('acosd', ['x'], 'acos(x) * 180 / pi');
+        nerdamer.setFunction('atand', ['x'], 'atan(x) * 180 / pi');
+        
+        // Swap standard functions for our degree wrappers
+        expr = expr.replace(/\bsin\b/g, 'sind');
+        expr = expr.replace(/\bcos\b/g, 'cosd');
+        expr = expr.replace(/\btan\b/g, 'tand');
+        expr = expr.replace(/\barcsin\b/g, 'asind');
+        expr = expr.replace(/\barccos\b/g, 'acosd');
+        expr = expr.replace(/\barctan\b/g, 'atand');
+      }
+
+      // Evaluate and format
+      let result = nerdamer(expr).evaluate().toTeX();
+      // Replace sind back to sin in the output if it couldn't fully evaluate
+      if (angleMode === 'DEG') {
+        result = result.replace(/\\mathrm{sind}/g, '\\sin');
+        result = result.replace(/\\mathrm{cosd}/g, '\\cos');
+        result = result.replace(/\\mathrm{tand}/g, '\\tan');
+        result = result.replace(/\\mathrm{asind}/g, '\\arcsin');
+        result = result.replace(/\\mathrm{acosd}/g, '\\arccos');
+        result = result.replace(/\\mathrm{atand}/g, '\\arctan');
+      }
+      
       mf.value = result;
     } catch (e) {
       console.error('Math evaluation error:', e);
@@ -157,7 +197,17 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
           <div className="w-14 h-1.5 bg-zinc-500 rounded-full" />
         </div>
         
-        {/* Controls Overlay */}
+        {/* Angle Mode Toggle (Left) */}
+        <div className="absolute top-5 left-5 z-10">
+          <button 
+            onClick={() => setAngleMode(angleMode === 'DEG' ? 'RAD' : 'DEG')}
+            className="text-xs font-semibold text-zinc-300 bg-zinc-800/80 px-2.5 py-1 rounded-md border border-zinc-700/50 hover:bg-zinc-700 transition-colors"
+          >
+            {angleMode}
+          </button>
+        </div>
+
+        {/* Controls Overlay (Right) */}
         <div className="absolute top-5 right-5 flex items-center space-x-2 z-10">
           <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-zinc-800/80 rounded-full" title="Move Left">
             <ChevronLeft size={16} />
