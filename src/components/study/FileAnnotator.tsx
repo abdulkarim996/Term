@@ -378,7 +378,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
     reader.readAsDataURL(file)
   }
 
-  const startDraw = (e: React.MouseEvent | React.TouchEvent, page: number) => {
+  const startDraw = (e: React.PointerEvent, page: number) => {
+    if (e.pointerType === 'pen') setPenDetected(true)
+    if (penDetected && e.pointerType === 'touch') return // Palm rejection
+
     e.preventDefault()
     if (activeTextInput) saveActiveText()
     
