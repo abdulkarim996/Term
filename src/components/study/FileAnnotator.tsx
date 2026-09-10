@@ -382,9 +382,9 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const startDraw = (e: React.PointerEvent, page: number) => {
+    if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
     if (toolMode === 'pan') return
     if (e.pointerType === 'pen') setPenDetected(true)
-    if (penDetected && e.pointerType === 'touch') return // Palm rejection
 
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -481,8 +481,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const moveDraw = (e: React.PointerEvent, page: number) => {
+    if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
     if (toolMode === 'text' || toolMode === 'image' || toolMode === 'pan') return
-    if (penDetected && e.pointerType === 'touch') return // Palm rejection
     e.preventDefault()
     
     const canvas = canvasRefs.current[page]
@@ -893,9 +893,14 @@ export default function FileAnnotator({ file, onClose }: Props) {
       initialScale={1}
       minScale={0.1}
       maxScale={10}
-      wheel={{ step: 0.1 }}
+      wheel={{ step: 0.1, activationKeys: ['Control', 'Meta'] }}
       pinch={{ step: 5 }}
-      panning={{ disabled: toolMode !== 'pan' && toolMode !== 'select', activationKeys: [' '] }}
+      panning={{ 
+        disabled: false, 
+        allowLeftClickPan: toolMode === 'pan' || toolMode === 'select',
+        allowMiddleClickPan: true,
+        activationKeys: [' '] 
+      }}
     >
       {({ zoomIn, zoomOut, state }) => (
         <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none">
