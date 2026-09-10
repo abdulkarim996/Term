@@ -5,9 +5,10 @@ import React, { useState, useEffect } from 'react'
 import { DriveFile } from '../../store/dataStore'
 import { FolderOpen, FileText, Image as ImageIcon, ExternalLink, Filter, FileType } from 'lucide-react'
 import { SUBJECT_COLORS } from '../../lib/utils'
-import FileAnnotator from './FileAnnotator'
 import { useUIStore } from '../../store'
 import { ErrorBoundary } from 'react-error-boundary'
+
+const FileAnnotator = React.lazy(() => import('./FileAnnotator'))
 
 export default function FileViewer() {
   const { t } = useTranslation();
@@ -63,7 +64,9 @@ export default function FileViewer() {
           return <div className="p-4 text-accent-red">{t('errorOccurred')} 😔. يرجى المحاولة مرة أخرى.</div>;
         }}
       >
-        <FileAnnotator file={selectedFile} onClose={() => setSelectedFile(null)} />
+        <React.Suspense fallback={<div className="p-4 text-center">جاري تحميل المعاين...</div>}>
+          <FileAnnotator file={selectedFile} onClose={() => setSelectedFile(null)} />
+        </React.Suspense>
       </ErrorBoundary>
     )
   }
