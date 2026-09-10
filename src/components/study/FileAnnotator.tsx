@@ -43,7 +43,13 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [numPages, setNumPages] = useState<number>(0)
   const scale = 1.2
   
+
+
   const [isSpacePressed, setIsSpacePressed] = useState(false)
+  const isSpacePressedRef = useRef(false)
+  useEffect(() => {
+    isSpacePressedRef.current = isSpacePressed
+  }, [isSpacePressed])
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,6 +63,49 @@ export default function FileAnnotator({ file, onClose }: Props) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  // Aggressive capture-phase protection to prevent react-zoom-pan-pinch from stealing drawing events
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const blockPan = (e: Event) => {
+      const tool = toolModeRef.current
+      if (tool === 'pan') return // allow panning
+
+      if (e.type === 'touchstart') {
+        const touchEvent = e as TouchEvent
+        if (touchEvent.touches && touchEvent.touches[0] && (touchEvent.touches[0] as any).touchType === 'stylus') {
+          e.stopPropagation()
+        }
+      } else if (e.type === 'pointerdown' || e.type === 'mousedown') {
+        const pe = e as PointerEvent | MouseEvent
+        if ('pointerType' in pe && pe.pointerType === 'pen') {
+          e.stopPropagation()
+          return
+        }
+        if ('pointerType' in pe && pe.pointerType === 'touch') {
+          return // allow touch to pan
+        }
+        // Mouse left-click
+        if (pe.button === 0) {
+          if (!isSpacePressedRef.current && tool !== 'select') {
+             e.stopPropagation() // Block left-click panning if drawing
+          }
+        }
+      }
+    }
+
+    el.addEventListener('pointerdown', blockPan, { capture: true })
+    el.addEventListener('touchstart', blockPan, { capture: true, passive: false })
+    el.addEventListener('mousedown', blockPan, { capture: true })
+
+    return () => {
+      el.removeEventListener('pointerdown', blockPan, { capture: true })
+      el.removeEventListener('touchstart', blockPan, { capture: true })
+      el.removeEventListener('mousedown', blockPan, { capture: true })
     }
   }, [])
 
@@ -82,6 +131,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [historyIndex, setHistoryIndex] = useState(0)
 
   const [toolMode, setToolMode] = useState<ToolMode>('pen')
+  const toolModeRef = useRef<ToolMode>('pen')
+  useEffect(() => {
+    toolModeRef.current = toolMode
+  }, [toolMode])
   const [color, setColor] = useState('#ff0000')
   const [thickness, setThickness] = useState(3)
   const [textSize, setTextSize] = useState(24)
