@@ -975,6 +975,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
       initialScale={1}
       minScale={0.1}
       maxScale={10}
+      limitToBounds={false}
       wheel={{ wheelDisabled: true }} // Disabled so our native wheel handler takes over
       pinch={{ step: 5 }}
       panning={{ 
