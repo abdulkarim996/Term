@@ -66,10 +66,28 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
   }, [])
 
+  // Custom native wheel handler to allow standard scrolling unless Ctrl/Meta is pressed
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault() // Stop standard scrolling
+        const zoomIn = (el as any).__zoomIn
+        const zoomOut = (el as any).__zoomOut
+        if (e.deltaY < 0 && zoomIn) {
+          zoomIn(0.2)
+        } else if (e.deltaY > 0 && zoomOut) {
+          zoomOut(0.2)
+        }
+      }
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [])
 
 
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [isPanning, setIsPanning] = useState(false)
+
   const [objectsByPage, setObjectsByPage] = useState<Record<number, PageObject[]>>({})
   const [currentStroke, setCurrentStroke] = useState<{ page: number, stroke: StrokeObj } | null>(null)
   const [currentShape, setCurrentShape] = useState<{ page: number, shape: ShapeObj } | null>(null)
@@ -408,32 +426,22 @@ export default function FileAnnotator({ file, onClose }: Props) {
        }
        img.src = ev.target?.result as string
     }
-    reader.readAsDataURL(file)
+      reader.readAsDataURL(file)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const startDraw = (e: React.PointerEvent, page: number) => {
-    if (e.pointerType === 'pen') {
-      setIsDrawing(true)
-      e.stopPropagation()
-      if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
-      setPenDetected(true)
-    } else if (e.pointerType === 'touch') {
-      setIsPanning(true)
-      return; // DO NOT leave any ink/strokes
-    } else {
-      // Desktop mouse
-      if (isSpacePressed || e.button === 1 || toolMode === 'pan') {
-        setIsPanning(true)
-        return; // Allow pan
-      } else if (e.button === 0) {
-        setIsDrawing(true)
-        e.stopPropagation()
-        if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
-      } else {
-        return;
-      }
+    // Strict Mode Enforcement
+    if (toolMode === 'pan' || isSpacePressed || e.button === 1 || e.button === 2) {
+      return; // Allow panning/moving the document
     }
+
+    // Only draw/interact if it's a primary pointer action (left click / touch / pen)
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    // Block panning logic from stealing the draw interaction
+    e.stopPropagation()
+    if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
 
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -462,21 +470,20 @@ export default function FileAnnotator({ file, onClose }: Props) {
          }
       }
       
-      // Check for object hits (only images for now)
-      // Reverse iterate to click top-most object
-      for (let i = objects.length - 1; i >= 0; i--) {
-         const obj = objects[i]
+      // Check if clicking inside an existing object
+      const clickedObj = objects.slice().reverse().find(obj => {
          if (obj.type === 'image') {
-            if (pos.x >= obj.x && pos.x <= obj.x + obj.width && pos.y >= obj.y && pos.y <= obj.y + obj.height) {
-               setSelectedObjectId({ page, id: obj.id })
-               setDragState({ type: 'move', startX: pos.x, startY: pos.y, origX: obj.x, origY: obj.y, origW: obj.width, origH: obj.height })
-               return
-            }
+           return pos.x >= obj.x && pos.x <= obj.x + obj.width && pos.y >= obj.y && pos.y <= obj.y + obj.height
          }
+         return false
+      })
+
+      if (clickedObj && clickedObj.type === 'image') {
+         setSelectedObjectId({ page, id: clickedObj.id })
+         setDragState({ type: 'move', startX: pos.x, startY: pos.y, origX: clickedObj.x, origY: clickedObj.y, origW: clickedObj.width, origH: clickedObj.height })
+      } else {
+         setSelectedObjectId(null)
       }
-      
-      // Clicked outside, deselect
-      setSelectedObjectId(null)
       return
     }
     
@@ -492,10 +499,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
           const img = new Image()
           img.onload = () => {
              const newId = Date.now().toString()
-             const newObj: ImageObj = { id: newId, type: 'image', x: pos.x, y: pos.y, width: img.width, height: img.height, dataUrl: pendingImage }
+             const newObj: ImageObj = { id: newId, type: 'image', x: pos.x, y: pos.y, width: img.width / 2, height: img.height / 2, dataUrl: pendingImage }
              const newObjects = {
-               ...objectsByPage,
-               [page]: [...(objectsByPage[page] || []), newObj]
+                ...objectsByPage,
+                [page]: [...(objectsByPage[page] || []), newObj]
              }
              setObjectsByPage(newObjects)
              pushToHistory(newObjects)
@@ -530,14 +537,13 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const moveDraw = (e: React.PointerEvent, page: number) => {
-    if (isPanning || e.pointerType === 'touch') return;
-    if (toolMode === 'text' || toolMode === 'image' || toolMode === 'pan') return
-    if (isSpacePressed || e.button === 1 || e.button === 2) return;
-
-    if (isDrawing || e.pointerType === 'pen') {
-      e.stopPropagation()
-      if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
+    if (toolMode === 'pan' || isSpacePressed || e.button === 1 || e.button === 2) {
+      return;
     }
+    if (toolMode === 'text' || toolMode === 'image') return
+
+    e.stopPropagation()
+    if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
 
     e.preventDefault()
     
@@ -546,7 +552,6 @@ export default function FileAnnotator({ file, onClose }: Props) {
     const pos = getPos(e, canvas)
 
     if (toolMode === 'eraser') {
-      if (!isErasing && e.buttons < 1) return;
       const objects = objectsByPage[page] || []
       const eraserRadius = 15 / scale // Hit radius
       let changed = false
@@ -555,11 +560,22 @@ export default function FileAnnotator({ file, onClose }: Props) {
           for (const pt of obj.points) {
             const dx = pt.x - pos.x
             const dy = pt.y - pos.y
-            if (dx * dx + dy * dy < eraserRadius * eraserRadius) {
+            if (Math.sqrt(dx*dx + dy*dy) < eraserRadius) {
               changed = true
-              return false // Remove this stroke
+              return false // remove stroke
             }
           }
+        } else if (obj.type === 'shape') {
+           const cx = (obj.start.x + obj.end.x)/2
+           const cy = (obj.start.y + obj.end.y)/2
+           const dx = cx - pos.x
+           const dy = cy - pos.y
+           if (Math.sqrt(dx*dx + dy*dy) < eraserRadius * 2) {
+              changed = true
+              return false
+           }
+        } else if (obj.type === 'image') {
+           // erasing images? usually better to select and delete, but if eraser hits center...
         }
         return true
       })
@@ -629,8 +645,6 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const endDraw = () => {
-    setIsDrawing(false)
-    setIsPanning(false)
     setIsErasing(false)
     if (erasedSomething) {
       pushToHistory(objectsByPage)
@@ -951,18 +965,23 @@ export default function FileAnnotator({ file, onClose }: Props) {
       initialScale={1}
       minScale={0.1}
       maxScale={10}
-      wheel={{ step: 0.2, activationKeys: ['Control', 'Meta'] }}
+      wheel={{ wheelDisabled: true }} // Disabled so our native wheel handler takes over
       pinch={{ step: 5 }}
       panning={{ 
-        disabled: false, 
-        allowLeftClickPan: isSpacePressed || toolMode === 'pan',
+        disabled: toolMode !== 'pan' && !isSpacePressed, 
+        allowLeftClickPan: true,
         allowMiddleClickPan: true,
         allowRightClickPan: true,
         activationKeys: [] 
       }}
     >
-      {({ zoomIn, zoomOut, state }) => (
-        <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
+      {({ zoomIn, zoomOut, state }) => {
+        if (containerRef.current) {
+          (containerRef.current as any).__zoomIn = zoomIn;
+          (containerRef.current as any).__zoomOut = zoomOut;
+        }
+        return (
+          <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
       
       {/* File Naming Modal */}
       {saveModalOpen && (
@@ -1224,7 +1243,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
         </TransformComponent>
         </div>
       </div>
-      )}
+      );
+      }}
     </TransformWrapper>
   )
 }
