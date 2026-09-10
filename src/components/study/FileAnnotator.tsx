@@ -66,19 +66,29 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
   }, [])
 
-  // Custom native wheel handler to allow standard scrolling unless Ctrl/Meta is pressed
+  // Custom native wheel handler to allow standard scrolling (vertical panning) unless Ctrl/Meta is pressed
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const handleWheel = (e: WheelEvent) => {
+      e.preventDefault() // Stop standard scrolling since wrapper is overflow-hidden
+      const zoomIn = (el as any).__zoomIn
+      const zoomOut = (el as any).__zoomOut
+      const setTransform = (el as any).__setTransform
+      const state = (el as any).__state
+
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault() // Stop standard scrolling
-        const zoomIn = (el as any).__zoomIn
-        const zoomOut = (el as any).__zoomOut
         if (e.deltaY < 0 && zoomIn) {
           zoomIn(0.2)
         } else if (e.deltaY > 0 && zoomOut) {
           zoomOut(0.2)
+        }
+      } else {
+        // Vertical panning (standard scroll)
+        if (state && setTransform) {
+          const deltaY = e.deltaY
+          const newY = state.positionY - deltaY
+          setTransform(state.positionX, newY, state.scale, 0)
         }
       }
     }
@@ -975,10 +985,12 @@ export default function FileAnnotator({ file, onClose }: Props) {
         activationKeys: [] 
       }}
     >
-      {({ zoomIn, zoomOut, state }) => {
+      {({ zoomIn, zoomOut, state, setTransform }) => {
         if (containerRef.current) {
           (containerRef.current as any).__zoomIn = zoomIn;
           (containerRef.current as any).__zoomOut = zoomOut;
+          (containerRef.current as any).__state = state;
+          (containerRef.current as any).__setTransform = setTransform;
         }
         return (
           <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
