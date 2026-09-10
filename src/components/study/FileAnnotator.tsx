@@ -43,6 +43,23 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [numPages, setNumPages] = useState<number>(0)
   const scale = 1.2
   
+  const [isSpacePressed, setIsSpacePressed] = useState(false)
+  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setIsSpacePressed(true)
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setIsSpacePressed(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
   const [objectsByPage, setObjectsByPage] = useState<Record<number, PageObject[]>>({})
   const [currentStroke, setCurrentStroke] = useState<{ page: number, stroke: StrokeObj } | null>(null)
   const [currentShape, setCurrentShape] = useState<{ page: number, shape: ShapeObj } | null>(null)
@@ -384,6 +401,14 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const startDraw = (e: React.PointerEvent, page: number) => {
     if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
     if (toolMode === 'pan') return
+    if (e.button === 1 || e.button === 2 || isSpacePressed) return; // Allow middle/right click or Spacebar to fall through to panning
+
+    // Protect drawing/selecting from pan hijacking
+    e.stopPropagation();
+    if (e.nativeEvent && e.nativeEvent.stopPropagation) {
+      e.nativeEvent.stopPropagation();
+    }
+
     if (e.pointerType === 'pen') setPenDetected(true)
 
     e.preventDefault()
@@ -483,6 +508,13 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const moveDraw = (e: React.PointerEvent, page: number) => {
     if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
     if (toolMode === 'text' || toolMode === 'image' || toolMode === 'pan') return
+    if (e.button === 1 || e.button === 2 || isSpacePressed) return;
+
+    e.stopPropagation();
+    if (e.nativeEvent && e.nativeEvent.stopPropagation) {
+      e.nativeEvent.stopPropagation();
+    }
+
     e.preventDefault()
     
     const canvas = canvasRefs.current[page]
@@ -897,13 +929,14 @@ export default function FileAnnotator({ file, onClose }: Props) {
       pinch={{ step: 5 }}
       panning={{ 
         disabled: false, 
-        allowLeftClickPan: toolMode === 'pan' || toolMode === 'select',
+        allowLeftClickPan: toolMode === 'pan',
         allowMiddleClickPan: true,
+        allowRightClickPan: true,
         activationKeys: [' '] 
       }}
     >
       {({ zoomIn, zoomOut, state }) => (
-        <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none">
+        <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
       
       {/* File Naming Modal */}
       {saveModalOpen && (
