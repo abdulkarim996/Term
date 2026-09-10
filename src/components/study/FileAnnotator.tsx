@@ -66,49 +66,10 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
   }, [])
 
-  // Aggressive capture-phase protection to prevent react-zoom-pan-pinch from stealing drawing events
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
 
-    const blockPan = (e: Event) => {
-      const tool = toolModeRef.current
-      if (tool === 'pan') return // allow panning
 
-      if (e.type === 'touchstart') {
-        const touchEvent = e as TouchEvent
-        if (touchEvent.touches && touchEvent.touches[0] && (touchEvent.touches[0] as any).touchType === 'stylus') {
-          e.stopPropagation()
-        }
-      } else if (e.type === 'pointerdown' || e.type === 'mousedown') {
-        const pe = e as PointerEvent | MouseEvent
-        if ('pointerType' in pe && pe.pointerType === 'pen') {
-          e.stopPropagation()
-          return
-        }
-        if ('pointerType' in pe && pe.pointerType === 'touch') {
-          return // allow touch to pan
-        }
-        // Mouse left-click
-        if (pe.button === 0) {
-          if (!isSpacePressedRef.current && tool !== 'select') {
-             e.stopPropagation() // Block left-click panning if drawing
-          }
-        }
-      }
-    }
-
-    el.addEventListener('pointerdown', blockPan, { capture: true })
-    el.addEventListener('touchstart', blockPan, { capture: true, passive: false })
-    el.addEventListener('mousedown', blockPan, { capture: true })
-
-    return () => {
-      el.removeEventListener('pointerdown', blockPan, { capture: true })
-      el.removeEventListener('touchstart', blockPan, { capture: true })
-      el.removeEventListener('mousedown', blockPan, { capture: true })
-    }
-  }, [])
-
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [isPanning, setIsPanning] = useState(false)
   const [objectsByPage, setObjectsByPage] = useState<Record<number, PageObject[]>>({})
   const [currentStroke, setCurrentStroke] = useState<{ page: number, stroke: StrokeObj } | null>(null)
   const [currentShape, setCurrentShape] = useState<{ page: number, shape: ShapeObj } | null>(null)
@@ -452,17 +413,27 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const startDraw = (e: React.PointerEvent, page: number) => {
-    if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
-    if (toolMode === 'pan') return
-    if (e.button === 1 || e.button === 2 || isSpacePressed) return; // Allow middle/right click or Spacebar to fall through to panning
-
-    // Protect drawing/selecting from pan hijacking
-    e.stopPropagation();
-    if (e.nativeEvent && e.nativeEvent.stopPropagation) {
-      e.nativeEvent.stopPropagation();
+    if (e.pointerType === 'pen') {
+      setIsDrawing(true)
+      e.stopPropagation()
+      if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
+      setPenDetected(true)
+    } else if (e.pointerType === 'touch') {
+      setIsPanning(true)
+      return; // DO NOT leave any ink/strokes
+    } else {
+      // Desktop mouse
+      if (isSpacePressed || e.button === 1 || toolMode === 'pan') {
+        setIsPanning(true)
+        return; // Allow pan
+      } else if (e.button === 0) {
+        setIsDrawing(true)
+        e.stopPropagation()
+        if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
+      } else {
+        return;
+      }
     }
-
-    if (e.pointerType === 'pen') setPenDetected(true)
 
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -555,17 +526,17 @@ export default function FileAnnotator({ file, onClose }: Props) {
       return
     }
 
-    setCurrentStroke({ page, stroke: { id: 'temp', type: 'stroke', points: [pos], color, thickness, mode: toolMode } })
+    setCurrentStroke({ page, stroke: { id: 'temp', type: 'stroke', points: [pos], color, thickness, mode: toolMode as 'pen' | 'highlighter' | 'eraser' } })
   }
 
   const moveDraw = (e: React.PointerEvent, page: number) => {
-    if (e.pointerType === 'touch') return; // Strict input separation: touch is ONLY for panning/zooming
+    if (isPanning || e.pointerType === 'touch') return;
     if (toolMode === 'text' || toolMode === 'image' || toolMode === 'pan') return
-    if (e.button === 1 || e.button === 2 || isSpacePressed) return;
+    if (isSpacePressed || e.button === 1 || e.button === 2) return;
 
-    e.stopPropagation();
-    if (e.nativeEvent && e.nativeEvent.stopPropagation) {
-      e.nativeEvent.stopPropagation();
+    if (isDrawing || e.pointerType === 'pen') {
+      e.stopPropagation()
+      if (e.nativeEvent && e.nativeEvent.stopPropagation) e.nativeEvent.stopPropagation()
     }
 
     e.preventDefault()
@@ -658,6 +629,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
   }
 
   const endDraw = () => {
+    setIsDrawing(false)
+    setIsPanning(false)
     setIsErasing(false)
     if (erasedSomething) {
       pushToHistory(objectsByPage)
@@ -978,14 +951,14 @@ export default function FileAnnotator({ file, onClose }: Props) {
       initialScale={1}
       minScale={0.1}
       maxScale={10}
-      wheel={{ step: 0.1, activationKeys: ['Control', 'Meta'] }}
+      wheel={{ step: 0.2, activationKeys: ['Control', 'Meta'] }}
       pinch={{ step: 5 }}
       panning={{ 
         disabled: false, 
-        allowLeftClickPan: toolMode === 'pan',
+        allowLeftClickPan: isSpacePressed || toolMode === 'pan',
         allowMiddleClickPan: true,
         allowRightClickPan: true,
-        activationKeys: [' '] 
+        activationKeys: [] 
       }}
     >
       {({ zoomIn, zoomOut, state }) => (
