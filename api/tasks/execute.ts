@@ -40,7 +40,9 @@ export default async function handler(req: any, res: any) {
     const isValid = await receiver.verify({
       signature: signature as string,
       body: rawBody,
-      url: endpointUrl,
+    }).catch(err => {
+      console.error('QStash verification failed:', err);
+      return false;
     });
 
     if (!isValid) {
