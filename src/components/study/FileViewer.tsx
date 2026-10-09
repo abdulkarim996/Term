@@ -24,6 +24,13 @@ export default function FileViewer() {
     }
   }, []);
 
+  useEffect(() => {
+    useUIStore.getState().setActiveStudyFile(selectedFile);
+    return () => {
+      useUIStore.getState().setActiveStudyFile(null);
+    };
+  }, [selectedFile]);
+
   // early return removed from here
 
   const subjects = useDataStore(state => state.subjects)

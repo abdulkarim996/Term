@@ -24,6 +24,7 @@ interface UIStore {
   currentUser: AppUser | null
   authLoading: boolean
   quickReviewFile: import('../store/dataStore').DriveFile | null
+  activeStudyFile: import('../store/dataStore').DriveFile | null
   showGpaModal: boolean
   showAdminModal: boolean
   systemConfig: any
@@ -46,6 +47,7 @@ interface UIStore {
   setCurrentUser: (user: AppUser | null) => void
   setAuthLoading: (v: boolean) => void
   setQuickReviewFile: (file: any | null) => void
+  setActiveStudyFile: (file: any | null) => void
 }
 
 export const SUPER_ADMIN_EMAIL = 'kromsa2006@gmail.com'
@@ -67,6 +69,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   currentUser: null,
   authLoading: true,
   quickReviewFile: null,
+  activeStudyFile: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setCalendarView: (view) => set({ calendarView: view }),
@@ -87,6 +90,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   setCurrentUser: (user) => set({ currentUser: user }),
   setAuthLoading: (v) => set({ authLoading: v }),
   setQuickReviewFile: (file) => set({ quickReviewFile: file }),
+  setActiveStudyFile: (file) => set({ activeStudyFile: file }),
 }))
 
 // Settings store (persisted)

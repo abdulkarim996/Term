@@ -9,12 +9,19 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import 'katex/dist/katex.min.css'
-import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Edit2, Calendar, CheckSquare, BookOpen, ChevronDown, Plus, AlertCircle, Loader2 } from 'lucide-react'
+import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Edit2, Calendar, CheckSquare, BookOpen, ChevronDown, Plus, AlertCircle, Loader2, Square, Copy, Check, RotateCcw, Image as ImageIcon, X } from 'lucide-react'
 import { ChatMessage } from '../../store/dataStore'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { useSettingsStore } from '../../store'
+import { useSettingsStore, useUIStore } from '../../store'
 import { calculateAcademicSummary } from '../../lib/gpa'
 import { pdfjs } from 'react-pdf'
+
+interface AttachedImage {
+  base64: string
+  mimeType: string
+  previewUrl: string
+  name: string
+}
 
 async function extractTextFromDriveFile(file: any, token: string) {
   try {
@@ -64,20 +71,89 @@ export default function AIScreen() {
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editingSessionTitle, setEditingSessionTitle] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gemini-3.6-flash')
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
+  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
+  const [copiedId, setCopiedId] = useState<string | number | null>(null)
   
   const [streamingMessage, setStreamingMessage] = useState('')
 
   const { geminiApiKey } = useSettingsStore()
+  const activeStudyFile = useUIStore(state => state.activeStudyFile)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortStreamRef = useRef(false)
 
   const allMessages = useDataStore(state => state.messages)
   const messages = allMessages.filter(m => m.sessionId === currentSessionId).sort((a, b) => a.timestamp - b.timestamp)
   const sessions = useDataStore(state => state.chatSessions)
   const tasksCount = useDataStore(state => state.tasks.length)
   const driveFilesCount = useDataStore(state => state.driveFiles.length)
+
+  const stopGeneration = () => {
+    abortStreamRef.current = true
+  }
+
+  const handleCopy = (id: string | number, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const regenerateLastMessage = () => {
+    if (loading) return
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+    if (lastUserMsg) {
+      sendMessage(lastUserMsg.content)
+    }
+  }
+
+  const processImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert(t('chooseImageFile') || 'يرجى اختيار ملف صورة صالح (JPG, PNG, WebP)')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert(t('imageTooLarge') || 'حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 10 ميجابايت')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const base64 = dataUrl.split(',')[1]
+      setAttachedImage({
+        base64,
+        mimeType: file.type || 'image/png',
+        previewUrl: dataUrl,
+        name: file.name || 'image.png'
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      processImageFile(file)
+    }
+    e.target.value = ''
+  }
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile()
+        if (file) {
+          e.preventDefault()
+          processImageFile(file)
+          break
+        }
+      }
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -133,9 +209,34 @@ export default function AIScreen() {
   ]
 
   const MODELS = [
-  { id: 'gemini-3.6-flash', label: 'Flash 3.6', icon: Zap, color: 'text-accent-yellow', bg: 'bg-accent-yellow/10', desc: t('fastDailyTasks') },
-  { id: 'gemini-3.1-pro-preview', label: 'Pro 3.1', icon: Brain, color: 'text-accent-blue', bg: 'bg-accent-blue/10', desc: t('complexAnalysis') }
-]
+    { 
+      id: 'gemini-2.5-flash', 
+      label: 'Flash 2.5', 
+      badge: 'مجاني · موصى به', 
+      icon: Zap, 
+      color: 'text-accent-yellow', 
+      bg: 'bg-accent-yellow/10', 
+      desc: 'النموذج الرسمي الأسرع والمجاني بالكامل: سياق 1M توكن، يدعم الصور والملفات والمقررات' 
+    },
+    { 
+      id: 'gemini-2.5-flash-lite', 
+      label: 'Flash Lite', 
+      badge: 'فوري وخفيف', 
+      icon: Sparkles, 
+      color: 'text-accent-green', 
+      bg: 'bg-accent-green/10', 
+      desc: 'فائق السرعة للمحادثات الخفيفة والردود اللحظية بحصص مجانية عالية' 
+    },
+    { 
+      id: 'gemini-1.5-pro', 
+      label: 'Pro 1.5', 
+      badge: 'يتطلب بطاقة', 
+      icon: Brain, 
+      color: 'text-accent-purple', 
+      bg: 'bg-accent-purple/10', 
+      desc: 'للتحليلات والحلول العميقة المعقدة (يتطلب تفعيل الفوترة في Google AI Studio)' 
+    }
+  ]
 
   const currentModel = MODELS.find((m) => m.id === selectedModel) || MODELS[0]
 
@@ -150,164 +251,236 @@ export default function AIScreen() {
 
   const hasMessages = messages && messages.length > 0
 
-    const sendMessage = async (text: string = input) => {
-    if (!text.trim() || loading) return
+  const sendMessage = async (text: string = input) => {
+    const userMsgText = text.trim()
+    const imageToSend = attachedImage
+
+    if ((!userMsgText && !imageToSend) || loading) return
     if (!geminiApiKey) {
       alert(t('apiKeyMissing') || 'Please add Gemini API Key in Settings first')
       return
     }
 
-    const userMsgText = text.trim()
+    abortStreamRef.current = false
+    setAttachedImage(null)
 
     if (!hasMessages) {
-      const title = userMsgText.length > 25 ? userMsgText.substring(0, 25) + '...' : userMsgText
+      const titlePrompt = userMsgText || (imageToSend ? `تحليل صورة: ${imageToSend.name}` : t('newChat'))
+      const title = titlePrompt.length > 25 ? titlePrompt.substring(0, 25) + '...' : titlePrompt
       await ensureSessionExists(title)
     } else {
       await ensureSessionExists()
     }
 
+    const recordedContent = userMsgText 
+      ? (imageToSend ? `${userMsgText}\n\n📷 [مرفق: ${imageToSend.name}]` : userMsgText)
+      : `📷 [مرفق: ${imageToSend?.name || 'صورة'}]`
+
     const userMsg: ChatMessage = {
       role: 'user',
-      content: userMsgText,
+      content: recordedContent,
       timestamp: Date.now(),
-      sessionId: currentSessionId }
+      sessionId: currentSessionId
+    }
 
     await cloudAddChatMessage(userMsg)
     setInput('')
     setLoading(true)
 
     try {
-      let history = [];
-        let expectedRole = 'user';
-        for (const m of (messages || [])) {
-          const role = m.role === 'assistant' ? 'model' : 'user';
-          if (role === expectedRole) {
-            history.push({ role, parts: [{ text: m.content || ' ' }] });
-            expectedRole = role === 'user' ? 'model' : 'user';
-          } else {
-            if (history.length > 0) {
-              history[history.length - 1].parts[0].text += "\n" + (m.content || ' ');
-            }
-          }
-        }
-        if (history.length > 0 && history[history.length - 1].role === 'user') {
-          history.pop();
-        }
-
-        let currentModelId = selectedModel;
-        let genAI = new GoogleGenerativeAI(geminiApiKey.trim());
-        
-        // Build Expanded Context
-        const tasks = useDataStore.getState().tasks.filter((t: any) => !t.completed);
-        const events = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date(Date.now() - 86400000));
-        const subjects = useDataStore.getState().subjects;
-        const files = useDataStore.getState().driveFiles;
-        const s = useSettingsStore.getState();
-
-        const profileInfo = `Name: ${s.userName || "Not specified"}\nMajor: ${s.userMajor || "Not specified"}\nSemester: ${s.currentSemester || "Not specified"}`;
-
-        const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const userSubjects = subjects.map((sub: any) => {
-           let subInfo = `- ${sub.name} (Code: ${sub.code || 'N/A'}, Credits: ${sub.creditHours || 'N/A'}, Instructor: ${sub.instructor || 'N/A'})`;
-           if (sub.lectures && sub.lectures.length > 0) {
-              const scheduleText = sub.lectures.map((l: any) => `${daysMap[l.dayOfWeek] || l.dayOfWeek} ${l.startTime}-${l.endTime} @ ${l.location || 'Unknown'}`).join(', ');
-              subInfo += `\n  Schedule: ${scheduleText}`;
-           }
-           return subInfo;
-        }).join('\n');
-
-        const userTasks = tasks.map((t: any) => {
-           const linkedSub = subjects.find((sub: any) => sub.id === t.subjectId);
-           const subName = linkedSub ? linkedSub.name : 'General';
-           return `- [${subName}] ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' -> Due: ' + new Date(t.dueDate).toLocaleDateString() : ''} [Priority: ${t.priority || 'medium'}]`;
-        }).join('\n');
-
-        const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n');
-
-        const userFiles = files.map((f: any) => {
-           const sub = subjects.find((sub: any) => sub.id === f.subjectId);
-           return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`;
-        }).join('\n');
-
-        // Academic Records, GPA & Course Grades
-        const semesters = useDataStore.getState().semesters || [];
-        const gpaSummary = calculateAcademicSummary(
-          semesters,
-          s.gpaScale,
-          s.targetGraduationHours,
-          s.baselineGpa,
-          s.baselineHours
-        );
-        let academicInfo = `Grading Scale: ${s.gpaScale}.00\nCumulative GPA: ${gpaSummary.cumulativeGpa.toFixed(2)} / ${s.gpaScale}.00\nCompleted Credit Hours: ${gpaSummary.totalCompletedHours} / ${s.targetGraduationHours} (Progress: ${gpaSummary.progressPercentage}%)\nHonors Standing: ${gpaSummary.honorsTitle || 'None'}`;
-        if (semesters.length > 0) {
-          academicInfo += '\n\nSemesters Breakdown:';
-          semesters.forEach((sem: any) => {
-            const semCourses = (sem.courses || []).map((c: any) => `    * ${c.name} (${c.creditHours} credits) -> Grade: ${c.grade}`).join('\n');
-            academicInfo += `\n- Semester: ${sem.name} [Term GPA: ${sem.termGpa || 'N/A'}]\n${semCourses || '    (No courses listed)'}`;
-          });
-        }
-        
-        // PDF Text Extraction Logic
-        let appendedFileText = '';
-        const lowerInput = userMsgText.toLowerCase();
-        // Simple heuristic: if the user mentions a file name (without extension) that is > 3 chars
-        const referencedFiles = files.filter((f: any) => {
-           const simpleName = f.name.replace(/\.[^/.]+$/, "").toLowerCase();
-           return simpleName.length > 3 && lowerInput.includes(simpleName);
-        });
-
-        if (referencedFiles.length > 0) {
-           setStreamingMessage(t('extractingFileText') || 'Extracting file text for context...');
-           const f = referencedFiles[0]; // just grab the first match
-           const token = useSettingsStore.getState().googleAccessToken;
-           if (token) {
-              const extracted = await extractTextFromDriveFile(f, token);
-              if (extracted) {
-                 appendedFileText = `\n\n[FILE CONTEXT: ${f.name}]\n${extracted}\n[/FILE CONTEXT]\n`;
-              }
-           }
-        }
-        
-        const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ACADEMIC RECORDS & GPA]\n${academicInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}\n\n===================`;
-
-        const generateAttempt = async (modelId: string) => {
-          // If we have file text, we can either append it to sysInst or to the user's message.
-          // Appending to the user's message is usually better for attention in Gemini.
-          const finalUserMsgText = appendedFileText ? userMsgText + appendedFileText : userMsgText;
-          const model = genAI.getGenerativeModel({ model: modelId, systemInstruction: sysInst });
-          const chat = model.startChat({ history });
-          const result = await chat.sendMessageStream(finalUserMsgText);
-          
-          let generated = '';
-          let lastUpdateTime = 0;
-          
-          for await (const chunk of result.stream) {
-            generated += chunk.text();
-            
-            const now = Date.now();
-            if (now - lastUpdateTime > 100) {
-              setStreamingMessage(generated);
-              lastUpdateTime = now;
-            }
-          }
-          
-          if (!generated) {
-            generated = "I'm sorry, I couldn't generate a response.";
-          }
-          
-          return generated;
-        }
-      
-      let fullText = '';
-      try {
-        fullText = await generateAttempt(currentModelId);
-      } catch (err: any) {
-        if (err.message && (err.message.includes('429') || err.message.includes('Resource has been exhausted'))) {
-           console.log("Pro model rate limited. Falling back to Flash...");
-           setStreamingMessage('عذراً، مفتاح API الخاص بك لا يدعم نموذج Pro (يتطلب ربط بطاقة في Google AI Studio). جاري استخدام Flash مجاناً...');
-           fullText = await generateAttempt('gemini-3.6-flash');
+      let history = []
+      let expectedRole = 'user'
+      for (const m of (messages || [])) {
+        const role = m.role === 'assistant' ? 'model' : 'user'
+        if (role === expectedRole) {
+          history.push({ role, parts: [{ text: m.content || ' ' }] })
+          expectedRole = role === 'user' ? 'model' : 'user'
         } else {
-           throw err;
+          if (history.length > 0) {
+            history[history.length - 1].parts[0].text += "\n" + (m.content || ' ')
+          }
+        }
+      }
+      if (history.length > 0 && history[history.length - 1].role === 'user') {
+        history.pop()
+      }
+
+      let currentModelId = selectedModel
+      let genAI = new GoogleGenerativeAI(geminiApiKey.trim())
+      
+      // Build Expanded Context
+      const tasks = useDataStore.getState().tasks.filter((t: any) => !t.completed)
+      const events = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date(Date.now() - 86400000))
+      const subjects = useDataStore.getState().subjects
+      const files = useDataStore.getState().driveFiles
+      const s = useSettingsStore.getState()
+
+      const profileInfo = `Name: ${s.userName || "Not specified"}\nMajor: ${s.userMajor || "Not specified"}\nSemester: ${s.currentSemester || "Not specified"}`
+
+      const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      const userSubjects = subjects.map((sub: any) => {
+         let subInfo = `- ${sub.name} (Code: ${sub.code || 'N/A'}, Credits: ${sub.creditHours || 'N/A'}, Instructor: ${sub.instructor || 'N/A'})`
+         if (sub.lectures && sub.lectures.length > 0) {
+            const scheduleText = sub.lectures.map((l: any) => `${daysMap[l.dayOfWeek] || l.dayOfWeek} ${l.startTime}-${l.endTime} @ ${l.location || 'Unknown'}`).join(', ')
+            subInfo += `\n  Schedule: ${scheduleText}`
+         }
+         return subInfo
+      }).join('\n')
+
+      const userTasks = tasks.map((t: any) => {
+         const linkedSub = subjects.find((sub: any) => sub.id === t.subjectId)
+         const subName = linkedSub ? linkedSub.name : 'General'
+         return `- [${subName}] ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' -> Due: ' + new Date(t.dueDate).toLocaleDateString() : ''} [Priority: ${t.priority || 'medium'}]`
+      }).join('\n')
+
+      const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n')
+
+      const userFiles = files.map((f: any) => {
+         const sub = subjects.find((sub: any) => sub.id === f.subjectId)
+         return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`
+      }).join('\n')
+
+      // Academic Records, GPA & Course Grades
+      const semesters = useDataStore.getState().semesters || []
+      const gpaSummary = calculateAcademicSummary(
+        semesters,
+        s.gpaScale,
+        s.targetGraduationHours,
+        s.baselineGpa,
+        s.baselineHours
+      )
+      let academicInfo = `Grading Scale: ${s.gpaScale}.00\nCumulative GPA: ${gpaSummary.cumulativeGpa.toFixed(2)} / ${s.gpaScale}.00\nCompleted Credit Hours: ${gpaSummary.totalCompletedHours} / ${s.targetGraduationHours} (Progress: ${gpaSummary.progressPercentage}%)\nHonors Standing: ${gpaSummary.honorsTitle || 'None'}`
+      if (semesters.length > 0) {
+        academicInfo += '\n\nSemesters Breakdown:'
+        semesters.forEach((sem: any) => {
+          const semCourses = (sem.courses || []).map((c: any) => `    * ${c.name} (${c.creditHours} credits) -> Grade: ${c.grade}`).join('\n')
+          academicInfo += `\n- Semester: ${sem.name} [Term GPA: ${sem.termGpa || 'N/A'}]\n${semCourses || '    (No courses listed)'}`
+        })
+      }
+      
+      // Active File / PDF Text Extraction Logic
+      let appendedFileText = ''
+      const lowerInput = userMsgText.toLowerCase()
+      
+      let referencedFiles = files.filter((f: any) => {
+         const simpleName = f.name.replace(/\.[^/.]+$/, "").toLowerCase()
+         return simpleName.length > 3 && lowerInput.includes(simpleName)
+      })
+
+      let targetDocToRead = referencedFiles.length > 0 ? referencedFiles[0] : null
+
+      if (!targetDocToRead && activeStudyFile) {
+        const isStudyQuery = 
+          lowerInput.includes('ملف') || 
+          lowerInput.includes('سلايد') || 
+          lowerInput.includes('شرح') || 
+          lowerInput.includes('لخص') || 
+          lowerInput.includes('اختبر') || 
+          lowerInput.includes('واجب') || 
+          lowerInput.includes('محتوى') || 
+          lowerInput.includes('file') || 
+          lowerInput.includes('summary') || 
+          lowerInput.includes('explain') ||
+          userMsgText.includes(activeStudyFile.name)
+        if (isStudyQuery) {
+          targetDocToRead = activeStudyFile
+        }
+      }
+
+      if (targetDocToRead) {
+         setStreamingMessage(`جاري قراءة محتوى الملف: ${targetDocToRead.name}...`)
+         const token = useSettingsStore.getState().googleAccessToken
+         if (token) {
+            const extracted = await extractTextFromDriveFile(targetDocToRead, token)
+            if (extracted) {
+               appendedFileText = `\n\n[FILE CONTEXT: ${targetDocToRead.name}]\n${extracted}\n[/FILE CONTEXT]\n`
+            }
+         }
+      }
+      
+      const activeFileNotice = activeStudyFile ? `\n[CURRENTLY OPEN IN STUDY ROOM: ${activeStudyFile.name}]` : ''
+      const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ACADEMIC RECORDS & GPA]\n${academicInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}${activeFileNotice}\n\n===================`
+
+      const generateAttempt = async (modelId: string, imgData?: AttachedImage | null) => {
+        const promptText = appendedFileText ? (userMsgText + appendedFileText) : userMsgText
+        const model = genAI.getGenerativeModel({ model: modelId, systemInstruction: sysInst })
+        const chat = model.startChat({ history })
+        
+        let requestPayload: any
+        if (imgData) {
+          requestPayload = [
+            {
+              inlineData: {
+                data: imgData.base64,
+                mimeType: imgData.mimeType
+              }
+            },
+            { text: promptText || 'يرجى قراءة وتحليل هذه الصورة وشرح كل ما فيها بالتفصيل والإجابة على أي أسئلة أو مسائل بداخلها بدقة.' }
+          ]
+        } else {
+          requestPayload = promptText
+        }
+
+        const result = await chat.sendMessageStream(requestPayload)
+        
+        let generated = ''
+        let lastUpdateTime = 0
+        
+        for await (const chunk of result.stream) {
+          if (abortStreamRef.current) {
+            break
+          }
+          generated += chunk.text()
+          
+          const now = Date.now()
+          if (now - lastUpdateTime > 80) {
+            setStreamingMessage(generated)
+            lastUpdateTime = now
+          }
+        }
+        
+        if (!generated && !abortStreamRef.current) {
+          generated = "عذراً، لم أتمكن من الحصول على إجابة من الخادم."
+        }
+        
+        return generated
+      }
+    
+      let fullText = ''
+      try {
+        fullText = await generateAttempt(currentModelId, imageToSend)
+      } catch (err: any) {
+        const errMsg = err?.message || String(err)
+        console.warn("AI generation attempt error:", errMsg)
+
+        const isQuotaOrUnavail = 
+          errMsg.includes('429') || 
+          errMsg.includes('Resource has been exhausted') ||
+          errMsg.includes('limit: 0') ||
+          errMsg.includes('404') ||
+          errMsg.includes('not found') ||
+          errMsg.includes('Quota exceeded')
+
+        if (isQuotaOrUnavail && currentModelId !== 'gemini-2.5-flash') {
+          setStreamingMessage('⚠️ النموذج المحدد غير متاح في الخطة المجانية لمفتاحك. جاري التبديل التلقائي إلى Flash 2.5 المجاني...')
+          try {
+            fullText = await generateAttempt('gemini-2.5-flash', imageToSend)
+          } catch (fbErr: any) {
+            console.warn("Fallback to gemini-2.0-flash / gemini-1.5-flash:", fbErr)
+            try {
+              fullText = await generateAttempt('gemini-2.0-flash', imageToSend)
+            } catch {
+              fullText = await generateAttempt('gemini-1.5-flash', imageToSend)
+            }
+          }
+        } else if (isQuotaOrUnavail) {
+          try {
+            fullText = await generateAttempt('gemini-2.0-flash', imageToSend)
+          } catch {
+            fullText = await generateAttempt('gemini-1.5-flash', imageToSend)
+          }
+        } else {
+          throw err
         }
       }
 
@@ -315,14 +488,16 @@ export default function AIScreen() {
         role: 'assistant',
         content: fullText,
         timestamp: Date.now(),
-        sessionId: currentSessionId })
+        sessionId: currentSessionId
+      })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
       await cloudAddChatMessage({
         role: 'assistant',
         content: 'Error: ' + msg,
         timestamp: Date.now(),
-        sessionId: currentSessionId })
+        sessionId: currentSessionId
+      })
     } finally {
       setLoading(false)
       setStreamingMessage('')
@@ -455,9 +630,16 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                       <m.icon size={15} className={m.color} />
                     </div>
                     <div className="text-start flex-1">
-                      <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
-                        {m.label}
-                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
+                          {m.label}
+                        </p>
+                        {m.badge && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface border border-surface-border text-text-muted font-normal">
+                            {m.badge}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed whitespace-normal break-words">{m.desc}</p>
                     </div>
                   </button>
@@ -484,6 +666,37 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
           )}
         </div>
       </div>
+
+      {/* Active Study File Banner */}
+      {activeStudyFile && (
+        <div className="mx-4 mt-2 px-3 py-2 bg-accent-blue/10 border border-accent-blue/20 rounded-xl flex items-center justify-between text-xs animate-in fade-in flex-shrink-0">
+          <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+            <div className="w-6 h-6 rounded-lg bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
+              <BookOpen size={13} className="text-accent-blue" />
+            </div>
+            <div className="truncate">
+              <p className="text-[10px] text-text-muted leading-tight">الملف المفتوح في غرفة المذاكرة</p>
+              <p className="text-xs font-semibold text-text-primary truncate">{activeStudyFile.name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0 ms-2">
+            <button
+              onClick={() => sendMessage(`لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم والأسئلة الهامة.`)}
+              disabled={loading}
+              className="px-2.5 py-1 rounded-lg bg-accent-blue text-white hover:bg-blue-500 text-[11px] font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+              💡 تلخيص
+            </button>
+            <button
+              onClick={() => sendMessage(`اختبرني في محتوى ملف "${activeStudyFile.name}" بـ 3 أسئلة اختيار من متعدد مع شرح الحل.`)}
+              disabled={loading}
+              className="px-2.5 py-1 rounded-lg bg-surface-elevated hover:bg-surface-hover border border-surface-border text-text-primary text-[11px] font-medium transition-all active:scale-95 disabled:opacity-50"
+            >
+              ❓ اختبرني
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Chat Area */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pointer-events-auto px-4 py-3 space-y-3" onClick={() => setShowModelPicker(false)}>
@@ -524,10 +737,10 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
+          messages.map((msg, idx) => (
             <div
               key={msg.id}
-              className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
+              className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up group`}
             >
               {msg.role === 'assistant' && (
                 <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${currentModel.bg}`}>
@@ -535,18 +748,53 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                 </div>
               )}
               <div
-                className={`max-w-[82%] rounded-xl2 px-3.5 py-2.5 ${
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
                   msg.role === 'user'
                     ? 'bg-accent-blue text-white rounded-tr-sm'
-                    : 'bg-surface-card border border-surface-border text-text-primary rounded-tl-sm'
+                    : 'bg-surface-card border border-surface-border text-text-primary rounded-tl-sm shadow-sm'
                   }`}
                 >
                   <div dir="rtl" className="prose prose-invert prose-p:text-right prose-headings:text-right prose-sm max-w-none">
                     <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown>
                   </div>
-                  <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-white/60' : 'text-text-muted'}`}>
-                    {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                </p>
+
+                  <div className="flex items-center justify-between gap-2 mt-1.5 pt-1 border-t border-white/5">
+                    <p className={`text-[10px] ${msg.role === 'user' ? 'text-white/60' : 'text-text-muted'}`}>
+                      {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+
+                    {msg.role === 'assistant' && (
+                      <div className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleCopy(msg.id, msg.content)}
+                          className="p-1 hover:bg-surface-elevated rounded text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 text-[10px]"
+                          title="نسخ الرد"
+                        >
+                          {copiedId === msg.id ? (
+                            <>
+                              <Check size={11} className="text-accent-green" />
+                              <span className="text-accent-green">تم النسخ</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={11} />
+                              <span>نسخ</span>
+                            </>
+                          )}
+                        </button>
+                        {idx === messages.length - 1 && !loading && (
+                          <button
+                            onClick={regenerateLastMessage}
+                            className="p-1 hover:bg-surface-elevated rounded text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 text-[10px]"
+                            title="إعادة المحاولة"
+                          >
+                            <RotateCcw size={11} />
+                            <span>إعادة</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
               </div>
   
               {msg.role === 'user' && (
@@ -563,11 +811,11 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${currentModel.bg}`}>
               <currentModel.icon size={13} className={currentModel.color} />
             </div>
-            <div className="max-w-[82%] rounded-xl2 px-3.5 py-2.5 bg-surface-card border border-surface-border text-text-primary rounded-tl-sm">
+            <div className="max-w-[85%] rounded-2xl px-3.5 py-2.5 bg-surface-card border border-surface-border text-text-primary rounded-tl-sm shadow-sm">
               <div dir="rtl" className="prose prose-invert prose-p:text-right prose-headings:text-right prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{streamingMessage}</ReactMarkdown>
               </div>
-              <span className="animate-pulse inline-block w-1 h-3 mt-1 bg-current"></span>
+              <span className="animate-pulse inline-block w-1.5 h-3.5 mt-1 bg-current"></span>
             </div>
           </div>
         )}
@@ -594,16 +842,62 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
       </div>
 
       {/* Context indicator bar */}
-      <div className="px-4 py-1.5 border-t border-surface-border/50 flex items-center gap-3 flex-shrink-0">
-        <span className="text-[10px] text-text-muted">{t('context')}:</span>
-        <span className="text-[10px] text-accent-green">{t('upcomingTasks')}</span>
-        <span className="text-[10px] text-accent-yellow">{t('eventsAndExams')}</span>
-        
+      <div className="px-4 py-1.5 border-t border-surface-border/50 flex items-center justify-between text-[10px] text-text-muted flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span>{t('context')}:</span>
+          <span className="text-accent-green">✓ {t('upcomingTasks')}</span>
+          <span className="text-accent-yellow">✓ {t('eventsAndExams')}</span>
+          {activeStudyFile && <span className="text-accent-blue font-medium">✓ {activeStudyFile.name}</span>}
+        </div>
+        <div className="text-text-muted text-[9px] opacity-70">
+          يدعم إرفاق ولصق الصور (Ctrl+V) 📷
+        </div>
       </div>
 
       {/* Input */}
       <div className="px-4 pb-3 pt-2 border-t border-surface-border flex-shrink-0">
+        {/* Attached Image Preview */}
+        {attachedImage && (
+          <div className="mb-2 p-1.5 bg-surface-elevated border border-surface-border rounded-xl flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <img
+                src={attachedImage.previewUrl}
+                alt="Preview"
+                className="w-10 h-10 object-cover rounded-lg border border-surface-border flex-shrink-0"
+              />
+              <div className="truncate">
+                <p className="text-xs font-medium text-text-primary truncate">{attachedImage.name}</p>
+                <p className="text-[10px] text-accent-green">صورة جاهزة للتحليل والشرح 📷</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAttachedImage(null)}
+              className="p-1 hover:bg-surface-hover text-text-muted hover:text-accent-red rounded-lg transition-colors flex-shrink-0"
+              title="إزالة الصورة"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
+          {/* File input for images */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-10 h-10 rounded-xl bg-surface-elevated border border-surface-border flex items-center justify-center text-text-muted hover:text-accent-blue hover:border-accent-blue/40 transition-all flex-shrink-0 active:scale-95"
+            title="إرفاق صورة مسألة أو ملف (أو الصق مباشرة بالضغط على Ctrl+V)"
+          >
+            <ImageIcon size={18} />
+          </button>
+
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}
@@ -613,34 +907,42 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                 e.target.style.height = 'auto'
                 e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
               }}
+              onPaste={handlePaste}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
                   sendMessage()
                 }
               }}
-              placeholder={t('askAi') + '...'}
+              placeholder={attachedImage ? 'اكتب سؤالك أو اطلب شرح الصورة...' : (t('askAi') + '...')}
               className="w-full bg-surface-elevated border border-surface-border rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-blue/50 transition-all"
               style={{ minHeight: '44px', maxHeight: '120px' }}
               disabled={loading}
               onClick={() => setShowModelPicker(false)}
             />
           </div>
-          <button
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || loading}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-              input.trim() && !loading
-                ? 'bg-accent-blue text-white hover:bg-blue-500 active:scale-95'
-                : 'bg-surface-elevated text-text-muted'
-            }`}
-          >
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
+
+          {loading ? (
+            <button
+              onClick={stopGeneration}
+              className="w-10 h-10 rounded-xl bg-accent-red/20 text-accent-red hover:bg-accent-red/30 flex items-center justify-center flex-shrink-0 transition-all border border-accent-red/30 animate-pulse active:scale-95"
+              title="إيقاف التوليد"
+            >
+              <Square size={14} className="fill-accent-red" />
+            </button>
+          ) : (
+            <button
+              onClick={() => sendMessage()}
+              disabled={(!input.trim() && !attachedImage) || loading}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                (input.trim() || attachedImage) && !loading
+                  ? 'bg-accent-blue text-white hover:bg-blue-500 active:scale-95 shadow-sm'
+                  : 'bg-surface-elevated text-text-muted'
+              }`}
+            >
               <Send size={16} className="rtl-flip" />
-            )}
-          </button>
+            </button>
+          )}
         </div>
         <div className="text-center mt-1.5 text-[9px] text-text-muted">
           Enter {t('toSendOr')} Shift+Enter {t('forNewLine')}
