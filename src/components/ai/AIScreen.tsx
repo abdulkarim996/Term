@@ -88,7 +88,7 @@ export default function AIScreen() {
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editingSessionTitle, setEditingSessionTitle] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gemini-3.8-flash')
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash')
   const [availableModelIds, setAvailableModelIds] = useState<string[]>([])
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [copiedId, setCopiedId] = useState<string | number | null>(null)
@@ -105,10 +105,9 @@ export default function AIScreen() {
         setAvailableModelIds(models)
         setSelectedModel((prev) => {
           if (models.includes(prev)) return prev
-          const best = models.find(m => m.includes('3.8-flash')) 
-            || models.find(m => m.includes('3.6-flash')) 
+          const best = models.find(m => m.includes('3.5-flash') && !m.includes('lite')) 
             || models.find(m => m.includes('3.5-flash-lite')) 
-            || models.find(m => m.includes('3.5-flash')) 
+            || models.find(m => m.includes('3.8-flash')) 
             || models.find(m => m.includes('flash') && !m.includes('tts') && !m.includes('image'))
             || models[0]
           return best || prev
@@ -247,13 +246,13 @@ export default function AIScreen() {
 
   const DEFAULT_MODELS = [
     { 
-      id: 'gemini-3.8-flash', 
-      label: 'Flash 3.8', 
-      badge: 'الأحدث · مجاني', 
+      id: 'gemini-3.5-flash', 
+      label: 'Flash 3.5', 
+      badge: 'موصى به · سريع ومستقر', 
       icon: Zap, 
-      color: 'text-accent-yellow', 
-      bg: 'bg-accent-yellow/10', 
-      desc: 'النموذج الرسمي الأحدث والأقوى من فئة Flash، ذكاء متقدم وسياق 1M توكن مجاناً 100%' 
+      color: 'text-accent-blue', 
+      bg: 'bg-accent-blue/10', 
+      desc: 'النموذج المعتمد، استجابة سريعة جداً بدون أي تأخير ومثالي لجميع المهام والمحادثات اليومية' 
     },
     { 
       id: 'gemini-3.5-flash-lite', 
@@ -262,16 +261,16 @@ export default function AIScreen() {
       icon: Sparkles, 
       color: 'text-accent-green', 
       bg: 'bg-accent-green/10', 
-      desc: 'فائق السرعة والخفة للمحادثات السريعة والردود اللحظية بحصص مجانية عالية' 
+      desc: 'فائق السرعة والخفة للمحادثات القصيرة والردود اللحظية بحصص مجانية ضخمة' 
     },
     { 
-      id: 'gemini-3.5-flash', 
-      label: 'Flash 3.5', 
-      badge: 'مستقر ومتزن', 
+      id: 'gemini-3.8-flash', 
+      label: 'Flash 3.8', 
+      badge: 'تفكير متقدم', 
       icon: Brain, 
-      color: 'text-accent-blue', 
-      bg: 'bg-accent-blue/10', 
-      desc: 'نموذج مستقر ومتكامل لكافة مهام المذاكرة والمقررات اليومية' 
+      color: 'text-accent-purple', 
+      bg: 'bg-accent-purple/10', 
+      desc: 'ذكاء عميق واستيعاب للمسائل المعقدة والتحليل العميق (قد يستغرق وقتاً إضافياً للتفكير)' 
     }
   ]
 
@@ -355,7 +354,17 @@ export default function AIScreen() {
       let currentModelId = selectedModel
       let genAI = new GoogleGenerativeAI(geminiApiKey.trim())
       
-      // Build Expanded Context
+      // Build Accurate Real-Time Context
+      const now = new Date()
+      const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+      const englishDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      const dayOfWeekIndex = now.getDay() // 0 = Sunday, 6 = Saturday
+      const todayArabicDay = arabicDays[dayOfWeekIndex]
+      const todayEnglishDay = englishDays[dayOfWeekIndex]
+      const todayDateISO = now.toISOString().split('T')[0]
+      const todayDateArabic = now.toLocaleDateString('ar-SA')
+      const currentTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+
       const tasks = useDataStore.getState().tasks.filter((t: any) => !t.completed)
       const events = useDataStore.getState().events.filter((e: any) => new Date(e.startDate || 0) >= new Date(Date.now() - 86400000))
       const subjects = useDataStore.getState().subjects
@@ -364,24 +373,60 @@ export default function AIScreen() {
 
       const profileInfo = `Name: ${s.userName || "Not specified"}\nMajor: ${s.userMajor || "Not specified"}\nSemester: ${s.currentSemester || "Not specified"}`
 
-      const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      // Today's specific classes:
+      const todayClasses: string[] = []
+      subjects.forEach((sub: any) => {
+        if (sub.lectures && Array.isArray(sub.lectures)) {
+          sub.lectures.forEach((lec: any) => {
+            if (Number(lec.dayOfWeek) === dayOfWeekIndex) {
+              todayClasses.push(`- ${sub.name} (${sub.code || ''}): من ${lec.startTime} إلى ${lec.endTime} في القاعة ${lec.location || 'غير محدد'} مع ${sub.instructor || 'المحاضر'}`)
+            }
+          })
+        }
+      })
+
+      // Tasks due TODAY vs upcoming:
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+      const endOfToday = startOfToday + 86400000
+      const tasksDueToday: string[] = []
+      const upcomingTasksList: string[] = []
+
+      tasks.forEach((t: any) => {
+        const linkedSub = subjects.find((sub: any) => sub.id === t.subjectId)
+        const subName = linkedSub ? `${linkedSub.name} (${linkedSub.code || ''})` : 'عام'
+        if (t.dueDate) {
+          const dueTs = new Date(t.dueDate).getTime()
+          const dueStr = new Date(t.dueDate).toLocaleDateString('ar-SA')
+          if (dueTs >= startOfToday && dueTs <= endOfToday) {
+            tasksDueToday.push(`- 🔴 [مستحق اليوم (${todayArabicDay})] ${t.title} لمادة ${subName} ${t.description ? '(' + t.description + ')' : ''}`)
+          } else {
+            upcomingTasksList.push(`- [تاريخ ${dueStr}] ${t.title} لمادة ${subName} ${t.description ? '(' + t.description + ')' : ''}`)
+          }
+        } else {
+          upcomingTasksList.push(`- ${t.title} لمادة ${subName}`)
+        }
+      })
+
+      // Events happening today:
+      const eventsToday: string[] = []
+      events.forEach((e: any) => {
+        const start = new Date(e.startDate || 0).getTime()
+        const end = new Date(e.endDate || 0).getTime()
+        if ((start >= startOfToday && start <= endOfToday) || (start <= startOfToday && end >= startOfToday)) {
+          eventsToday.push(`- 🔴 [حدث/موعد مجدول اليوم] ${e.title} ${e.description ? '(' + e.description + ')' : ''}`)
+        }
+      })
+
       const userSubjects = subjects.map((sub: any) => {
          let subInfo = `- ${sub.name} (Code: ${sub.code || 'N/A'}, Credits: ${sub.creditHours || 'N/A'}, Instructor: ${sub.instructor || 'N/A'})`
          if (sub.lectures && sub.lectures.length > 0) {
-            const scheduleText = sub.lectures.map((l: any) => `${daysMap[l.dayOfWeek] || l.dayOfWeek} ${l.startTime}-${l.endTime} @ ${l.location || 'Unknown'}`).join(', ')
+            const scheduleText = sub.lectures.map((l: any) => `${arabicDays[l.dayOfWeek] || l.dayOfWeek} ${l.startTime}-${l.endTime} @ ${l.location || 'Unknown'}`).join(', ')
             subInfo += `\n  Schedule: ${scheduleText}`
          }
          return subInfo
       }).join('\n')
 
-      const userTasks = tasks.map((t: any) => {
-         const linkedSub = subjects.find((sub: any) => sub.id === t.subjectId)
-         const subName = linkedSub ? linkedSub.name : 'General'
-         return `- [${subName}] ${t.title}${t.description ? ' (' + t.description + ')' : ''}${t.dueDate ? ' -> Due: ' + new Date(t.dueDate).toLocaleDateString() : ''} [Priority: ${t.priority || 'medium'}]`
-      }).join('\n')
-
       const userEvents = events.map((e: any) => `- ${e.title}${e.description ? ' (' + e.description + ')' : ''} [${new Date(e.startDate).toLocaleString()} to ${new Date(e.endDate).toLocaleString()}]`).join('\n')
-
       const userFiles = files.map((f: any) => {
          const sub = subjects.find((sub: any) => sub.id === f.subjectId)
          return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`
@@ -405,48 +450,104 @@ export default function AIScreen() {
         })
       }
       
-      // Active File / PDF Text Extraction Logic
+      // Smart Active File & PDF Text Extraction Logic
       let appendedFileText = ''
       const lowerInput = userMsgText.toLowerCase()
-      
-      let referencedFiles = files.filter((f: any) => {
-         const simpleName = f.name.replace(/\.[^/.]+$/, "").toLowerCase()
-         return simpleName.length > 3 && lowerInput.includes(simpleName)
-      })
+      let targetDocToRead: any = null
 
-      let targetDocToRead = referencedFiles.length > 0 ? referencedFiles[0] : null
-
-      if (!targetDocToRead && activeStudyFile) {
-        const isStudyQuery = 
-          lowerInput.includes('ملف') || 
-          lowerInput.includes('سلايد') || 
-          lowerInput.includes('شرح') || 
-          lowerInput.includes('لخص') || 
-          lowerInput.includes('اختبر') || 
-          lowerInput.includes('واجب') || 
-          lowerInput.includes('محتوى') || 
-          lowerInput.includes('file') || 
-          lowerInput.includes('summary') || 
-          lowerInput.includes('explain') ||
-          userMsgText.includes(activeStudyFile.name)
-        if (isStudyQuery) {
+      // 1. If study room has activeStudyFile open and user mentions file/study queries:
+      if (activeStudyFile) {
+        const mentionsStudyContext = 
+          lowerInput.includes('ملف') || lowerInput.includes('سلايد') || lowerInput.includes('شرح') ||
+          lowerInput.includes('لخص') || lowerInput.includes('اختبر') || lowerInput.includes('كويز') ||
+          lowerInput.includes('هذا') || lowerInput.includes('الحالي') || lowerInput.includes(activeStudyFile.name.toLowerCase().replace(/\.[^/.]+$/, ''))
+        if (mentionsStudyContext) {
           targetDocToRead = activeStudyFile
         }
       }
 
+      // 2. Direct filename match in driveFiles
+      if (!targetDocToRead) {
+        for (const f of files) {
+          const rawName = f.name.replace(/\.[^/.]+$/, '').toLowerCase()
+          if (rawName.length >= 3 && lowerInput.includes(rawName)) {
+            targetDocToRead = f
+            break
+          }
+        }
+      }
+
+      // 3. Subject-based matching: match user query with subjects and their files
+      if (!targetDocToRead) {
+        for (const sub of subjects) {
+          const subName = (sub.name || '').toLowerCase()
+          const subCode = (sub.code || '').toLowerCase().replace(/\s+/g, '')
+          
+          const subjectMatches = 
+            (subCode.length > 2 && lowerInput.includes(subCode)) ||
+            (subName.length > 3 && lowerInput.includes(subName)) ||
+            (subName.includes('differential') && (lowerInput.includes('تفاضل') || lowerInput.includes('معادلات'))) ||
+            (subName.includes('operations') && (lowerInput.includes('عمليات') || lowerInput.includes('بحوث'))) ||
+            (subName.includes('statistics') && lowerInput.includes('إحصاء')) ||
+            (subName.includes('planning') && lowerInput.includes('تخطيط')) ||
+            (subName.includes('leadership') && (lowerInput.includes('قيادة') || lowerInput.includes('تغيير')))
+
+          if (subjectMatches) {
+            const subjectFiles = files.filter((f: any) => f.subjectId === sub.id)
+            if (subjectFiles.length > 0) {
+              if (lowerInput.includes('واجب') || lowerInput.includes('homework') || lowerInput.includes('hw') || lowerInput.includes('assign')) {
+                const hw = subjectFiles.find((f: any) => /hw|homework|assign|واجب/i.test(f.name))
+                if (hw) { targetDocToRead = hw; break }
+              }
+              targetDocToRead = subjectFiles[0]
+              break
+            }
+          }
+        }
+      }
+
+      // 4. Keyword match across all files
+      if (!targetDocToRead) {
+        const keywords = lowerInput.split(/\s+/).filter(w => w.length > 3 && !['اليوم', 'عندي', 'كيف', 'ماذا', 'اريد', 'تكلم'].includes(w))
+        for (const kw of keywords) {
+          const match = files.find((f: any) => f.name.toLowerCase().includes(kw))
+          if (match) {
+            targetDocToRead = match
+            break
+          }
+        }
+      }
+
       if (targetDocToRead) {
-         setStreamingMessage(`جاري قراءة محتوى الملف: ${targetDocToRead.name}...`)
+         setStreamingMessage(`جاري قراءة محتوى ملف: ${targetDocToRead.name}...`)
          const token = useSettingsStore.getState().googleAccessToken
          if (token) {
             const extracted = await extractTextFromDriveFile(targetDocToRead, token)
             if (extracted) {
-               appendedFileText = `\n\n[FILE CONTEXT: ${targetDocToRead.name}]\n${extracted}\n[/FILE CONTEXT]\n`
+               appendedFileText = `\n\n[FILE CONTEXT FOR: ${targetDocToRead.name}]\n${extracted}\n[/FILE CONTEXT]\n`
             }
          }
       }
       
       const activeFileNotice = activeStudyFile ? `\n[CURRENTLY OPEN IN STUDY ROOM: ${activeStudyFile.name}]` : ''
-      const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ACADEMIC RECORDS & GPA]\n${academicInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}${activeFileNotice}\n\n===================`
+
+      const dateAndScheduleBlock = `
+=== معلومات اليوم والوقت الحالي (حاسمة ودقيقة 100%) ===
+* تاريخ اليوم: ${todayDateISO} (${todayArabicDay} / ${todayEnglishDay})
+* الوقت الحالي: ${currentTimeStr}
+* اليوم في الأسبوع: ${todayArabicDay} (${todayEnglishDay})
+
+[جدول محاضرات الطالب لليوم (${todayArabicDay})]:
+${todayClasses.length > 0 ? todayClasses.join('\n') : `لا توجد محاضرات في الجامعة اليوم (${todayArabicDay} يوم راحة / إجازة / أوف).`}
+
+[مهام وواجبات وعروض تقديمية مستحقة اليوم (${todayArabicDay})]:
+${tasksDueToday.length > 0 ? tasksDueToday.join('\n') : 'لا توجد مهام أو واجبات مستحقة التسليم اليوم.'}
+
+[أحداث ومواعيد التقويم لليوم (${todayArabicDay})]:
+${eventsToday.length > 0 ? eventsToday.join('\n') : 'لا توجد مواعيد خاصة بالتقويم اليوم.'}
+===================================================`
+
+      const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n${dateAndScheduleBlock}\n\n[USER PROFILE]\n${profileInfo}\n\n[ACADEMIC RECORDS & GPA]\n${academicInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[TODAY'S DUE TASKS & UPCOMING TASKS]\n${[...tasksDueToday, ...upcomingTasksList].join('\n') || 'No tasks listed.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}${activeFileNotice}\n\nتعليمات هامة جداً:\n1. عندما يسأل الطالب 'وش عندي اليوم؟' أو عن جدوله اليومي، اعتمد فوراً وبدقة تامة على قسم [معلومات اليوم والوقت الحالي] واذكر له اليوم الفعلي (${todayArabicDay}) وما إذا كان لديه دوام أو إجازة، واذكر أي مهام أو عروض تقديمية مستحقة اليوم (${todayArabicDay}).\n2. لا تخمن أبداً أياماً أخرى من عندك.\n===================`
 
       const generateAttempt = async (modelId: string, imgData?: AttachedImage | null) => {
         const promptText = appendedFileText ? (userMsgText + appendedFileText) : userMsgText
@@ -499,10 +600,9 @@ export default function AIScreen() {
       
       let candidateModel = selectedModel
       if (verifiedList.length > 0 && !verifiedList.includes(candidateModel)) {
-        const found = verifiedList.find(m => m.includes('3.8-flash'))
-          || verifiedList.find(m => m.includes('3.6-flash'))
+        const found = verifiedList.find(m => m.includes('3.5-flash') && !m.includes('lite'))
           || verifiedList.find(m => m.includes('3.5-flash-lite'))
-          || verifiedList.find(m => m.includes('3.5-flash'))
+          || verifiedList.find(m => m.includes('3.8-flash'))
           || verifiedList.find(m => m.includes('flash') && !m.includes('tts') && !m.includes('image'))
           || verifiedList[0]
         if (found) {
@@ -517,14 +617,13 @@ export default function AIScreen() {
       } catch (err: any) {
         console.warn(`Attempt with ${candidateModel} failed, checking fallbacks:`, err)
         
-        // Try other verified flash models if candidateModel fails
-        const fallbackCandidates = (verifiedList.length > 0 ? verifiedList : ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'])
+        // Try other verified flash models silently if candidateModel fails
+        const fallbackCandidates = (verifiedList.length > 0 ? verifiedList : ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash'])
           .filter(m => m !== candidateModel && m.includes('flash') && !m.includes('tts') && !m.includes('image'))
         
         let recovered = false
         for (const fbModel of fallbackCandidates.slice(0, 3)) {
           try {
-            setStreamingMessage(`جاري التبديل التلقائي إلى نموذج ${fbModel}...`)
             fullText = await generateAttempt(fbModel, imageToSend)
             setSelectedModel(fbModel)
             recovered = true
@@ -680,7 +779,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </button>
 
             {showModelPicker && (
-              <div className="absolute top-full mt-2 w-64 max-w-[calc(100vw-2rem)] bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top z-50 animate-in fade-in zoom-in-95 duration-200 right-0 sm:right-2">
+              <div className="absolute top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 right-0 sm:right-2">
                 {MODELS.map((m) => (
                   <button
                     key={m.id}
@@ -689,19 +788,19 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                       setShowModelPicker(false)
                     }}
                     className={`w-full flex items-start gap-3 p-3 transition-colors ${
-                      selectedModel === m.id ? 'bg-surface-hover' : 'hover:bg-surface-hover/50'
+                      selectedModel === m.id ? 'bg-white/10' : 'hover:bg-white/5'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${m.bg}`}>
                       <m.icon size={15} className={m.color} />
                     </div>
-                    <div className="text-start flex-1">
+                    <div className="text-start flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
                           {m.label}
                         </p>
                         {m.badge && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface border border-surface-border text-text-muted font-normal">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted font-normal">
                             {m.badge}
                           </span>
                         )}
@@ -735,30 +834,30 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
 
       {/* Active Study File Banner */}
       {activeStudyFile && (
-        <div className="mx-4 mt-2 px-3 py-2 bg-accent-blue/10 border border-accent-blue/20 rounded-xl flex items-center justify-between text-xs animate-in fade-in flex-shrink-0">
+        <div className="mx-3 mt-2 px-2.5 py-1.5 bg-accent-blue/10 border border-accent-blue/20 rounded-xl flex items-center justify-between text-xs animate-in fade-in flex-shrink-0">
           <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-            <div className="w-6 h-6 rounded-lg bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-              <BookOpen size={13} className="text-accent-blue" />
+            <div className="w-5 h-5 rounded-md bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
+              <BookOpen size={12} className="text-accent-blue" />
             </div>
             <div className="truncate">
-              <p className="text-[10px] text-text-muted leading-tight">الملف المفتوح في غرفة المذاكرة</p>
-              <p className="text-xs font-semibold text-text-primary truncate">{activeStudyFile.name}</p>
+              <p className="text-[9px] text-text-muted leading-tight truncate">ملف المذاكرة النشط</p>
+              <p className="text-[11px] font-semibold text-text-primary truncate">{activeStudyFile.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 ms-2">
+          <div className="flex items-center gap-1 flex-shrink-0 ms-1.5">
             <button
               onClick={() => sendMessage(`لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم والأسئلة الهامة.`)}
               disabled={loading}
-              className="px-2.5 py-1 rounded-lg bg-accent-blue text-white hover:bg-blue-500 text-[11px] font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              className="px-2 py-1 rounded-md bg-accent-blue text-white hover:bg-blue-500 text-[10px] font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-1"
             >
               💡 تلخيص
             </button>
             <button
               onClick={() => sendMessage(`اختبرني في محتوى ملف "${activeStudyFile.name}" بـ 3 أسئلة اختيار من متعدد مع شرح الحل.`)}
               disabled={loading}
-              className="px-2.5 py-1 rounded-lg bg-surface-elevated hover:bg-surface-hover border border-surface-border text-text-primary text-[11px] font-medium transition-all active:scale-95 disabled:opacity-50"
+              className="px-2 py-1 rounded-md bg-surface-elevated hover:bg-surface-hover border border-surface-border text-text-primary text-[10px] font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1"
             >
-              ❓ اختبرني
+              ❓ كويز
             </button>
           </div>
         </div>
