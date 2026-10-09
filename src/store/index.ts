@@ -25,6 +25,10 @@ interface UIStore {
   authLoading: boolean
   quickReviewFile: import('../store/dataStore').DriveFile | null
   showGpaModal: boolean
+  showAdminModal: boolean
+  systemConfig: any
+  isUserBanned: boolean
+  bannedReason: string | null
 
   setActiveTab: (tab: Tab) => void
   setCalendarView: (view: CalendarView) => void
@@ -33,12 +37,18 @@ interface UIStore {
   setShowAddEvent: (v: boolean) => void
   setShowAddSubject: (v: boolean) => void
   setShowGpaModal: (v: boolean) => void
+  setShowAdminModal: (v: boolean) => void
+  setSystemConfig: (c: any) => void
+  setIsUserBanned: (v: boolean) => void
+  setBannedReason: (r: string | null) => void
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
   clearToast: () => void
   setCurrentUser: (user: AppUser | null) => void
   setAuthLoading: (v: boolean) => void
   setQuickReviewFile: (file: any | null) => void
 }
+
+export const SUPER_ADMIN_EMAIL = 'kromsa2006@gmail.com'
 
 export const useUIStore = create<UIStore>()((set) => ({
   activeTab: 'home',
@@ -48,6 +58,10 @@ export const useUIStore = create<UIStore>()((set) => ({
   showAddEvent: false,
   showAddSubject: false,
   showGpaModal: false,
+  showAdminModal: false,
+  systemConfig: null,
+  isUserBanned: false,
+  bannedReason: null,
   toastMessage: null,
   toastType: 'success',
   currentUser: null,
@@ -61,6 +75,10 @@ export const useUIStore = create<UIStore>()((set) => ({
   setShowAddEvent: (v) => set({ showAddEvent: v }),
   setShowAddSubject: (v) => set({ showAddSubject: v }),
   setShowGpaModal: (v) => set({ showGpaModal: v }),
+  setShowAdminModal: (v) => set({ showAdminModal: v }),
+  setSystemConfig: (c) => set({ systemConfig: c }),
+  setIsUserBanned: (v) => set({ isUserBanned: v }),
+  setBannedReason: (r) => set({ bannedReason: r }),
   showToast: (msg, type = 'success') => {
     set({ toastMessage: msg, toastType: type })
     setTimeout(() => set({ toastMessage: null }), 3000)

@@ -4,7 +4,11 @@ import { usePullToRefresh } from './hooks/usePullToRefresh'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, getAppMessaging } from './lib/firebase'
 import { onMessage } from 'firebase/messaging'
-import { getUserPinHash, getUserSettings, subscribeToUserData } from './lib/firestore'
+import {
+  getUserPinHash, getUserSettings, subscribeToUserData,
+  recordUserHeartbeat, setUserOffline, subscribeToCurrentUserDoc,
+  subscribeToSystemConfig, SUPER_ADMIN_EMAIL
+} from './lib/firestore'
 import { useDataStore } from './store/dataStore'
 import { useUIStore, useSettingsStore } from './store'
 import { useTimerStore } from './store/timerStore'
@@ -21,7 +25,10 @@ import UpdatePrompt from './components/ui/UpdatePrompt'
 import AuthScreen from './components/auth/AuthScreen'
 import PinSetup from './components/auth/PinSetup'
 import GPAModal from './components/gpa/GPAModal'
-import { Sparkles, Loader2 } from 'lucide-react'
+import { BannedScreen } from './components/admin/BannedScreen'
+import { MaintenanceScreen } from './components/admin/MaintenanceScreen'
+import { AdminModal } from './components/admin/AdminModal'
+import { Sparkles, Loader2, AlertTriangle } from 'lucide-react'
 
 
 export default function App() {
@@ -37,8 +44,17 @@ export default function App() {
     }
   }, []);
 
-  const { activeTab, toastMessage, toastType, clearToast, setCurrentUser, setAuthLoading, authLoading, currentUser, showToast, showGpaModal } = useUIStore()
-  const { dir, theme, setGoogleTokens, setGeminiApiKey } = useSettingsStore()
+  const sessionStartedAt = useRef(Date.now());
+  const {
+    activeTab, toastMessage, toastType, clearToast, setCurrentUser,
+    setAuthLoading, authLoading, currentUser, showToast, showGpaModal,
+    showAdminModal, systemConfig, setSystemConfig, isUserBanned,
+    setIsUserBanned, bannedReason, setBannedReason
+  } = useUIStore()
+  const {
+    dir, theme, setGoogleTokens, setGeminiApiKey,
+    userMajor, currentSemester, language
+  } = useSettingsStore()
   const { isActive, timeLeft, setTimeLeft, setIsActive } = useTimerStore()
   const [pinStatus, setPinStatus] = useState<'loading' | 'needSetup' | 'done'>('loading')
 
@@ -190,6 +206,59 @@ export default function App() {
     document.documentElement.setAttribute('lang', dir === 'rtl' ? 'ar' : 'en')
   }, [dir])
 
+  // ── Realtime System Config Subscription ────────────────────────────────────
+  useEffect(() => {
+    const unsubSys = subscribeToSystemConfig((cfg) => {
+      setSystemConfig(cfg);
+    });
+    return () => {
+      if (unsubSys) unsubSys();
+    };
+  }, [setSystemConfig]);
+
+  // ── Presence & Ban/Kick Listener ──────────────────────────────────────────
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    // 1. Initial Heartbeat
+    recordUserHeartbeat(currentUser, { major: userMajor, semester: currentSemester });
+
+    // 2. Periodic Heartbeat every 2 minutes
+    const hbInterval = setInterval(() => {
+      recordUserHeartbeat(currentUser, { major: userMajor, semester: currentSemester });
+    }, 2 * 60 * 1000);
+
+    // 3. Mark offline on unload
+    const handleUnload = () => {
+      setUserOffline(currentUser.uid);
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
+    // 4. Realtime subscription to current user's document for Ban & Kick
+    const unsubUserDoc = subscribeToCurrentUserDoc(currentUser.uid, (docData) => {
+      if (!docData) return;
+
+      if (docData.isBanned) {
+        setIsUserBanned(true);
+        setBannedReason(docData.bannedReason || null);
+      } else {
+        setIsUserBanned(false);
+        setBannedReason(null);
+      }
+
+      if (docData.kickedAt && docData.kickedAt > sessionStartedAt.current) {
+        auth.signOut();
+        showToast(language === 'ar' ? 'تم إنهاء جلستك من قبل الإدارة' : 'Session ended by administrator', 'info');
+      }
+    });
+
+    return () => {
+      clearInterval(hbInterval);
+      window.removeEventListener('beforeunload', handleUnload);
+      if (unsubUserDoc) unsubUserDoc();
+    };
+  }, [currentUser?.uid, userMajor, currentSemester, setIsUserBanned, setBannedReason, showToast, language]);
+
   // ── Loading screen ────────────────────────────────────────────────────────
   if (authLoading) {
     return (
@@ -207,6 +276,20 @@ export default function App() {
   // ── Auth gate ─────────────────────────────────────────────────────────────
   if (!currentUser) {
     return <AuthScreen />
+  }
+
+  // ── Ban gate (Instant Lockout) ───────────────────────────────────────────
+  if (isUserBanned) {
+    return <BannedScreen reason={bannedReason} />
+  }
+
+  // ── Maintenance gate (Applies to everyone EXCEPT Super Admin) ─────────────
+  if (systemConfig?.maintenanceMode && currentUser.email !== SUPER_ADMIN_EMAIL) {
+    return (
+      <MaintenanceScreen
+        message={language === 'ar' ? systemConfig.maintenanceMessageAr : systemConfig.maintenanceMessageEn}
+      />
+    )
   }
 
   // PIN gate - show setup screen if user hasn't set a PIN yet
@@ -229,6 +312,18 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-surface" dir={dir}>
+      {/* Super Admin Maintenance Warning Bar */}
+      {systemConfig?.maintenanceMode && currentUser.email === SUPER_ADMIN_EMAIL && (
+        <div className="bg-amber-500/20 border-b border-amber-500/30 text-amber-300 px-4 py-1.5 text-xs text-center font-medium flex items-center justify-center gap-2 z-40">
+          <AlertTriangle size={14} className="text-amber-400 animate-pulse flex-shrink-0" />
+          <span>
+            {language === 'ar'
+              ? '⚠️ وضع الصيانة مفعّل حالياً: التطبيق محجوب عن جميع المستخدمين باستثنائك كمسؤول'
+              : '⚠️ Maintenance Mode is ON: App locked for everyone except you as Super Admin'}
+          </span>
+        </div>
+      )}
+
       {/* Main Content */}
       <main
           ref={mainRef}
@@ -267,6 +362,7 @@ export default function App() {
 
       <UpdatePrompt />
       {showGpaModal && <GPAModal />}
+      {showAdminModal && currentUser.email === SUPER_ADMIN_EMAIL && <AdminModal />}
       {/* Bottom Navigation */}
       <BottomNav />
 

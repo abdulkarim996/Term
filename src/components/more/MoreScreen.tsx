@@ -1,5 +1,5 @@
 import { useDataStore } from '../../store/dataStore';
-import { cloudClearAllData } from '../../lib/firestore';
+import { cloudClearAllData, SUPER_ADMIN_EMAIL } from '../../lib/firestore';
 import React, { useState, useEffect } from 'react';
 // @ts-nocheck
 import {
@@ -68,7 +68,7 @@ function UrlInput({ label, value, onChange, placeholder }: {
 export default function MoreScreen() {
   const { t, language } = useTranslation()
   const settings = useSettingsStore()
-  const { showToast, currentUser, setShowGpaModal } = useUIStore()
+  const { showToast, currentUser, setShowGpaModal, setShowAdminModal } = useUIStore()
   const [showGeminiKey, setShowGeminiKey] = useState(false)
   const isNotificationSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
   const [pushEnabled, setPushEnabled] = useState(isNotificationSupported && Notification.permission === 'granted')
@@ -176,6 +176,40 @@ export default function MoreScreen() {
     <>
     <div className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-4">
       <h1 className="text-xl font-bold text-text-primary mb-4">{t('more')}</h1>
+
+      {/* ── Super Admin Panel Entry (kromsa2006@gmail.com Only) ──────────────── */}
+      {currentUser?.email === SUPER_ADMIN_EMAIL && (
+        <div className="glass-card overflow-hidden border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-purple-500/5 to-transparent relative group shadow-lg shadow-amber-500/5 animate-fade-in">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0 pr-2">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25 flex-shrink-0">
+                <span className="text-xl">👑</span>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-text-primary text-sm tracking-wide">
+                    {t('adminPanel')}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-400 text-[9px] font-bold border border-amber-400/30">
+                    Admin
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5 truncate">
+                  {t('adminSubtitle')}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowAdminModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 flex-shrink-0"
+            >
+              <span>{language === 'ar' ? 'فتح اللوحة' : 'Open'}</span>
+              <ChevronRight size={14} className="rtl-flip" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Profile ──────────────────────────────────────────────── */}
       <div className="glass-card overflow-hidden">

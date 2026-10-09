@@ -158,3 +158,92 @@ export async function saveUserSettings(uid: string, settings: any) {
 export async function cloudUpdateDriveFile(id: string, changes: any) {
   await updateDoc(userDoc(getUid(), 'driveFiles', id), clean(changes))
 }
+
+// === SUPER ADMIN & PRESENCE ===
+export const SUPER_ADMIN_EMAIL = 'kromsa2006@gmail.com';
+
+export async function recordUserHeartbeat(user: { uid: string; email?: string | null; displayName?: string | null; photoURL?: string | null }, extra?: { major?: string; semester?: string }) {
+  if (!user || !user.uid) return;
+  try {
+    const userRef = doc(db_cloud, 'users', user.uid);
+    const payload: any = {
+      uid: user.uid,
+      lastActiveAt: Date.now(),
+      isOnline: true,
+    };
+    if (user.email) payload.email = user.email;
+    if (user.displayName) payload.displayName = user.displayName;
+    if (user.photoURL) payload.photoURL = user.photoURL;
+    if (extra?.major) payload.major = extra.major;
+    if (extra?.semester) payload.semester = extra.semester;
+
+    await setDoc(userRef, payload, { merge: true });
+  } catch (err) {
+    console.error('Failed to record heartbeat:', err);
+  }
+}
+
+export async function setUserOffline(uid: string) {
+  if (!uid) return;
+  try {
+    const userRef = doc(db_cloud, 'users', uid);
+    await setDoc(userRef, { isOnline: false, lastActiveAt: Date.now() }, { merge: true });
+  } catch (err) {
+    console.error('Failed to set user offline:', err);
+  }
+}
+
+export async function adminGetUsers(): Promise<any[]> {
+  try {
+    const snap = await getDocs(collection(db_cloud, 'users'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error('adminGetUsers failed:', err);
+    return [];
+  }
+}
+
+export async function adminSetUserBan(targetUid: string, isBanned: boolean, reason?: string) {
+  const userRef = doc(db_cloud, 'users', targetUid);
+  await setDoc(userRef, {
+    isBanned,
+    bannedReason: reason || null,
+    bannedAt: isBanned ? Date.now() : null,
+    isOnline: isBanned ? false : true
+  }, { merge: true });
+}
+
+export async function adminKickUser(targetUid: string) {
+  const userRef = doc(db_cloud, 'users', targetUid);
+  await setDoc(userRef, {
+    kickedAt: Date.now(),
+    isOnline: false
+  }, { merge: true });
+}
+
+export function subscribeToCurrentUserDoc(uid: string, callback: (docData: any) => void) {
+  const userRef = doc(db_cloud, 'users', uid);
+  return onSnapshot(userRef, (snap) => {
+    callback(snap.exists() ? snap.data() : null);
+  }, (err) => {
+    console.error('subscribeToCurrentUserDoc error:', err);
+  });
+}
+
+export function subscribeToSystemConfig(callback: (config: any) => void) {
+  const sysRef = doc(db_cloud, 'system', 'config');
+  return onSnapshot(sysRef, (snap) => {
+    callback(snap.exists() ? snap.data() : null);
+  }, (err) => {
+    console.error('subscribeToSystemConfig error:', err);
+  });
+}
+
+export async function adminSaveSystemConfig(config: any) {
+  const sysRef = doc(db_cloud, 'system', 'config');
+  await setDoc(sysRef, {
+    ...config,
+    updatedAt: Date.now()
+  }, { merge: true });
+}
+

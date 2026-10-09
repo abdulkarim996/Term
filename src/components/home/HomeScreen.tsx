@@ -12,6 +12,7 @@ import { isToday, isSameDay, formatDateEn } from '../../lib/utils'
 import { useUIStore, useSettingsStore } from '../../store'
 import { cloudUpdateTask } from '../../lib/firestore'
 import AddTaskModal from '../tasks/AddTaskModal'
+import { AnnouncementBanner } from './AnnouncementBanner'
 
 export default function HomeScreen() {
   const { t, language } = useTranslation();
@@ -155,6 +156,9 @@ export default function HomeScreen() {
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto space-y-8">
+      {/* Global Broadcast Announcement */}
+      <AnnouncementBanner />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
