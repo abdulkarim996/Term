@@ -37,7 +37,7 @@ export default function App() {
     }
   }, []);
 
-  const { activeTab, toastMessage, toastType, clearToast, setCurrentUser, setAuthLoading, authLoading, currentUser, showToast } = useUIStore()
+  const { activeTab, toastMessage, toastType, clearToast, setCurrentUser, setAuthLoading, authLoading, currentUser, showToast, showGpaModal } = useUIStore()
   const { dir, theme, setGoogleTokens, setGeminiApiKey } = useSettingsStore()
   const { isActive, timeLeft, setTimeLeft, setIsActive } = useTimerStore()
   const [pinStatus, setPinStatus] = useState<'loading' | 'needSetup' | 'done'>('loading')
@@ -266,7 +266,7 @@ export default function App() {
       </main>
 
       <UpdatePrompt />
-      <GPAModal />
+      {showGpaModal && <GPAModal />}
       {/* Bottom Navigation */}
       <BottomNav />
 

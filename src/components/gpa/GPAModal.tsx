@@ -54,7 +54,33 @@ export default function GPAModal() {
     return calculateAcademicSummary(semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours)
   }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours])
 
-  if (!showGpaModal) return null
+  // Calculate simulated numbers
+  const simStats = useMemo(() => {
+    let termH = 0
+    let termP = 0
+    simulatedCourses.forEach(c => {
+      const h = Number(c.creditHours) || 0
+      const pts = getGradePoint(c.grade, gpaScale)
+      termH += h
+      termP += h * pts
+    })
+    const simTermGpa = termH > 0 ? Number((termP / termH).toFixed(2)) : 0
+
+    // New projected cumulative GPA
+    const prevHours = summary.totalCompletedHours
+    const prevPoints = summary.totalPoints
+    const newTotalHours = prevHours + termH
+    const newTotalPoints = prevPoints + termP
+    const projectedCumGpa = newTotalHours > 0 ? Number((newTotalPoints / newTotalHours).toFixed(2)) : simTermGpa
+    const diff = Number((projectedCumGpa - summary.cumulativeGpa).toFixed(2))
+
+    return {
+      termHours: termH,
+      termGpa: simTermGpa,
+      projectedCumGpa,
+      diff
+    }
+  }, [simulatedCourses, gpaScale, summary])
 
   // --- Handlers for Semesters ---
   const handleCreateSemester = async () => {
@@ -162,34 +188,6 @@ export default function GPAModal() {
   const handleUpdateSimCourse = (id: string, field: 'name' | 'creditHours' | 'grade', value: any) => {
     setSimulatedCourses(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
-
-  // Calculate simulated numbers
-  const simStats = useMemo(() => {
-    let termH = 0
-    let termP = 0
-    simulatedCourses.forEach(c => {
-      const h = Number(c.creditHours) || 0
-      const pts = getGradePoint(c.grade, gpaScale)
-      termH += h
-      termP += h * pts
-    })
-    const simTermGpa = termH > 0 ? Number((termP / termH).toFixed(2)) : 0
-
-    // New projected cumulative GPA
-    const prevHours = summary.totalCompletedHours
-    const prevPoints = summary.totalPoints
-    const newTotalHours = prevHours + termH
-    const newTotalPoints = prevPoints + termP
-    const projectedCumGpa = newTotalHours > 0 ? Number((newTotalPoints / newTotalHours).toFixed(2)) : simTermGpa
-    const diff = Number((projectedCumGpa - summary.cumulativeGpa).toFixed(2))
-
-    return {
-      termHours: termH,
-      termGpa: simTermGpa,
-      projectedCumGpa,
-      diff
-    }
-  }, [simulatedCourses, gpaScale, summary])
 
   // Save simulated courses as a semester
   const handleSaveSimulationAsSemester = async () => {
