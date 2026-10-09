@@ -31,7 +31,7 @@ type ImageObj = BaseObj & { type: 'image', x: number, y: number, width: number, 
 type PageObject = StrokeObj | TextObj | ShapeObj | ImageObj
 
 export default function FileAnnotator({ file, onClose }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { googleAccessToken } = useSettingsStore()
   const { showToast } = useUIStore()
 
@@ -1149,7 +1149,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
                 }}
                 disabled={(parseInt(activePageInput) || 1) <= 1}
                 className="p-1 text-text-muted hover:bg-surface-hover rounded disabled:opacity-30" 
-                title="السلايد السابق"
+                title={language === 'ar' ? 'السلايد السابق' : 'Previous Slide'}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -1166,7 +1166,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
                   }}
                   onBlur={() => jumpToPage(parseInt(activePageInput) || 1)}
                   className="w-10 text-center font-medium bg-surface-elevated border border-surface-border rounded px-1 py-0.5 text-text-primary focus:outline-none focus:border-accent-blue"
-                  title="اكتب رقم السلايد واضغط Enter"
+                  title={language === 'ar' ? 'اكتب رقم السلايد واضغط Enter' : 'Type slide number and press Enter'}
                 />
                 <span className="text-text-muted text-[11px]">/ {numPages}</span>
               </div>
@@ -1178,7 +1178,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
                 }}
                 disabled={(parseInt(activePageInput) || 1) >= numPages}
                 className="p-1 text-text-muted hover:bg-surface-hover rounded disabled:opacity-30" 
-                title="السلايد التالي"
+                title={language === 'ar' ? 'السلايد التالي' : 'Next Slide'}
               >
                 <ChevronRight size={16} />
               </button>

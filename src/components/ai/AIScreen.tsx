@@ -113,7 +113,7 @@ async function fetchSupportedModels(apiKey: string): Promise<string[]> {
 }
 
 export default function AIScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string>('default')
@@ -281,29 +281,29 @@ export default function AIScreen() {
     { 
       id: 'gemini-3.5-flash', 
       label: 'Flash 3.5', 
-      badge: 'موصى به · سريع ومستقر', 
+      badge: t('modelDefaultBadge'), 
       icon: Zap, 
       color: 'text-accent-blue', 
       bg: 'bg-accent-blue/10', 
-      desc: 'النموذج المعتمد، استجابة سريعة جداً بدون أي تأخير ومثالي لجميع المهام والمحادثات اليومية' 
+      desc: t('modelDefaultDesc') 
     },
     { 
       id: 'gemini-3.5-flash-lite', 
       label: 'Flash Lite', 
-      badge: 'فوري وخفيف', 
+      badge: t('modelLiteBadge'), 
       icon: Sparkles, 
       color: 'text-accent-green', 
       bg: 'bg-accent-green/10', 
-      desc: 'فائق السرعة والخفة للمحادثات القصيرة والردود اللحظية بحصص مجانية ضخمة' 
+      desc: t('modelLiteDesc') 
     },
     { 
       id: 'gemini-3.8-flash', 
       label: 'Flash 3.8', 
-      badge: 'تفكير متقدم', 
+      badge: t('modelProBadge'), 
       icon: Brain, 
       color: 'text-accent-purple', 
       bg: 'bg-accent-purple/10', 
-      desc: 'ذكاء عميق واستيعاب للمسائل المعقدة والتحليل العميق (قد يستغرق وقتاً إضافياً للتفكير)' 
+      desc: t('modelProDesc') 
     }
   ]
 
@@ -312,11 +312,11 @@ export default function AIScreen() {
   const currentModel = MODELS.find((m) => m.id === selectedModel) || {
     id: selectedModel,
     label: selectedModel.replace('gemini-', '').replace('-preview', ''),
-    badge: 'نشط',
+    badge: t('modelActiveBadge'),
     icon: Zap,
     color: 'text-accent-yellow',
     bg: 'bg-accent-yellow/10',
-    desc: 'نموذج نشط ومعتمد من Google AI Studio'
+    desc: t('modelActiveDesc')
   }
 
   
@@ -718,8 +718,13 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </button>
             
             {showSessionsMenu && (
-              <div className="absolute top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200 z-50" style={{ insetInlineStart: 0 }}>
-                <div className="p-2 border-b border-surface-border/50">
+              <>
+                <div 
+                  className="fixed inset-0 z-[40]" 
+                  onClick={() => setShowSessionsMenu(false)} 
+                />
+                <div className="absolute top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200 z-50 start-0">
+                  <div className="p-2 border-b border-surface-border/50">
                   <button
                     onClick={createNewSession}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-accent-blue hover:bg-accent-blue/10 transition-colors rounded-lg"
@@ -779,7 +784,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                           </button>
                         </div>
                       </div>
-                    ))} </div></div> )}
+                    ))} </div></div> </> )}
           </div>
           <div>
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowSessionsMenu(!showSessionsMenu)}>
@@ -812,37 +817,43 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             </button>
 
             {showModelPicker && (
-              <div className="absolute top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 right-0 sm:right-2">
-                {MODELS.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      setSelectedModel(m.id)
-                      setShowModelPicker(false)
-                    }}
-                    className={`w-full flex items-start gap-3 p-3 transition-colors ${
-                      selectedModel === m.id ? 'bg-white/10' : 'hover:bg-white/5'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${m.bg}`}>
-                      <m.icon size={15} className={m.color} />
-                    </div>
-                    <div className="text-start flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
-                          {m.label}
-                        </p>
-                        {m.badge && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted font-normal">
-                            {m.badge}
-                          </span>
-                        )}
+              <>
+                <div 
+                  className="fixed inset-0 z-[80]" 
+                  onClick={() => setShowModelPicker(false)} 
+                />
+                <div className={`absolute top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 ${language === 'ar' ? 'left-0 sm:left-2' : 'right-0 sm:right-2'}`}>
+                  {MODELS.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelectedModel(m.id)
+                        setShowModelPicker(false)
+                      }}
+                      className={`w-full flex items-start gap-3 p-3 transition-colors ${language === 'ar' ? 'text-right' : 'text-left'} ${
+                        selectedModel === m.id ? 'bg-white/10' : 'hover:bg-white/5'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${m.bg}`}>
+                        <m.icon size={15} className={m.color} />
                       </div>
-                      <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed whitespace-normal break-words">{m.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      <div className="text-start flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
+                            {m.label}
+                          </p>
+                          {m.badge && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted font-normal">
+                              {m.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed whitespace-normal break-words">{m.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
           {hasMessages && (
@@ -873,34 +884,49 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
               <BookOpen size={12} className="text-accent-blue" />
             </div>
             <div className="truncate">
-              <p className="text-[9px] text-text-muted leading-tight truncate">ملف المذاكرة النشط</p>
+              <p className="text-[9px] text-text-muted leading-tight truncate">{t('activeStudyFileLabel')}</p>
               <p className="text-[11px] font-semibold text-text-primary truncate">{activeStudyFile.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 ms-1.5">
             <button
-              onClick={() => sendMessage(`لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم الأساسية والأسئلة الهامة.`)}
+              onClick={() => {
+                const prompt = language === 'en'
+                  ? `Summarize the content of "${activeStudyFile.name}", focusing on main ideas, core concepts, formulas, and important takeaways.`
+                  : `لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم الأساسية والقوانين وأهم الأسئلة.`
+                sendMessage(prompt)
+              }}
               disabled={loading}
               className="px-2 py-1 rounded-md bg-accent-blue text-white hover:bg-blue-500 text-[10px] font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-1"
-              title="تلخيص شامل للملف"
+              title={t('summarizeFileTooltip')}
             >
-              💡 تلخيص
+              💡 {t('summarizeFileBtn')}
             </button>
             <button
-              onClick={() => sendMessage(`اعطني خريطة وفهرس محاور لسلايدات "${activeStudyFile.name}" مقسمة حسب المواضيع والفصول مع أرقام السلايدات/الصفحات لتسهيل مذاكرتها بالتدرج.`)}
+              onClick={() => {
+                const prompt = language === 'en'
+                  ? `Provide a structured outline and topic breakdown for "${activeStudyFile.name}" with slide/page numbers for each section to guide my study session step-by-step.`
+                  : `اعطني فهرساً ومواضيع رئيسية لسلايدات "${activeStudyFile.name}" مقسمة حسب الفصول مع أرقام السلايدات/الصفحات لتسهيل مذاكرتها بالتدرج.`
+                sendMessage(prompt)
+              }}
               disabled={loading}
               className="px-2 py-1 rounded-md bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border border-purple-500/30 text-[10px] font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1"
-              title="فهرس ومحاور السلايدات بأرقام الصفحات"
+              title={t('topicsFileTooltip')}
             >
-              📑 محاور
+              📑 {t('topicsFileBtn')}
             </button>
             <button
-              onClick={() => sendMessage(`اختبرني في محتوى ملف "${activeStudyFile.name}" بـ 3 أسئلة اختيار من متعدد مع شرح الحل.`)}
+              onClick={() => {
+                const prompt = language === 'en'
+                  ? `Quiz me on the content of "${activeStudyFile.name}" with 3 multiple-choice questions, along with answers and detailed explanations.`
+                  : `اختبرني في محتوى ملف "${activeStudyFile.name}" بـ 3 أسئلة اختيار من متعدد مع شرح الحل بالتفصيل.`
+                sendMessage(prompt)
+              }}
               disabled={loading}
               className="px-2 py-1 rounded-md bg-surface-elevated hover:bg-surface-hover border border-surface-border text-text-primary text-[10px] font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1"
-              title="اختبار وكويز من الملف"
+              title={t('quizFileTooltip')}
             >
-              ❓ كويز
+              ❓ {t('quizFileBtn')}
             </button>
           </div>
         </div>
@@ -1058,7 +1084,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
           {activeStudyFile && <span className="text-accent-blue font-medium">✓ {activeStudyFile.name}</span>}
         </div>
         <div className="text-text-muted text-[9px] opacity-70">
-          يدعم إرفاق ولصق الصور (Ctrl+V) 📷
+          {t('pasteImageSupport')}
         </div>
       </div>
 
@@ -1075,13 +1101,13 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
               />
               <div className="truncate">
                 <p className="text-xs font-medium text-text-primary truncate">{attachedImage.name}</p>
-                <p className="text-[10px] text-accent-green">صورة جاهزة للتحليل والشرح 📷</p>
+                <p className="text-[10px] text-accent-green">{t('imageReadyForAnalysis')}</p>
               </div>
             </div>
             <button
               onClick={() => setAttachedImage(null)}
               className="p-1 hover:bg-surface-hover text-text-muted hover:text-accent-red rounded-lg transition-colors flex-shrink-0"
-              title="إزالة الصورة"
+              title={t('removeImage')}
             >
               <X size={15} />
             </button>
@@ -1101,7 +1127,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="w-10 h-10 rounded-xl bg-surface-elevated border border-surface-border flex items-center justify-center text-text-muted hover:text-accent-blue hover:border-accent-blue/40 transition-all flex-shrink-0 active:scale-95"
-            title="إرفاق صورة مسألة أو ملف (أو الصق مباشرة بالضغط على Ctrl+V)"
+            title={t('attachImageTooltip')}
           >
             <ImageIcon size={18} />
           </button>
