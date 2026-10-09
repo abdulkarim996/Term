@@ -9,7 +9,8 @@ import {
   adminGetUsers,
   adminSetUserBan,
   adminKickUser,
-  adminSaveSystemConfig
+  adminSaveSystemConfig,
+  recordUserHeartbeat
 } from '../../lib/firestore';
 import { useUIStore, useSettingsStore } from '../../store';
 import { translations } from '../../locales';
@@ -73,6 +74,12 @@ export const AdminModal: React.FC = () => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
+      if (currentUser?.uid) {
+        await recordUserHeartbeat(currentUser, {
+          major: useSettingsStore.getState().userMajor,
+          semester: useSettingsStore.getState().currentSemester,
+        });
+      }
       const data = await adminGetUsers();
       // Sort users: online first, then by lastActiveAt descending
       data.sort((a: any, b: any) => {
@@ -81,9 +88,9 @@ export const AdminModal: React.FC = () => {
         return bActive - aActive;
       });
       setUsers(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch users:', err);
-      showToast(t('errorOccurred'), 'error');
+      showToast(err?.message || t('errorOccurred'), 'error');
     } finally {
       setLoadingUsers(false);
     }
@@ -180,9 +187,9 @@ export const AdminModal: React.FC = () => {
       await adminSaveSystemConfig({ announcement: updatedAnnouncement });
       setSystemConfig({ ...systemConfig, announcement: updatedAnnouncement });
       showToast(t('announcementPublished'), 'success');
-    } catch (err) {
-      console.error(err);
-      showToast(t('errorOccurred'), 'error');
+    } catch (err: any) {
+      console.error('Save announcement failed:', err);
+      showToast(err?.message || t('errorOccurred'), 'error');
     } finally {
       setSavingAnnouncement(false);
     }
@@ -209,9 +216,9 @@ export const AdminModal: React.FC = () => {
       await adminSaveSystemConfig(payload);
       setSystemConfig({ ...systemConfig, ...payload });
       showToast(t('changesSaved'), 'success');
-    } catch (err) {
-      console.error(err);
-      showToast(t('errorOccurred'), 'error');
+    } catch (err: any) {
+      console.error('Save maintenance failed:', err);
+      showToast(err?.message || t('errorOccurred'), 'error');
     } finally {
       setSavingMaintenance(false);
     }
@@ -384,7 +391,7 @@ export const AdminModal: React.FC = () => {
                   </div>
                 ) : filteredUsers.length === 0 ? (
                   <div className="py-12 text-center text-text-muted text-xs sm:text-sm">
-                    {t('noFilesFound') || 'لم يتم العثور على مستخدمين مطابقين.'}
+                    {language === 'ar' ? 'لم يتم العثور على مستخدمين أو طلاب.' : 'No users or students found.'}
                   </div>
                 ) : (
                   filteredUsers.map((user) => {
