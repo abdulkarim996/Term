@@ -35,9 +35,10 @@ export default function HomeScreen() {
       gpaScale,
       targetGraduationHours,
       baselineGpa,
-      baselineHours
+      baselineHours,
+      language
     )
-  }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours])
+  }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours, language])
   
   const todayEvents = (() => {
     const todayDayOfWeek = today.getDay();
@@ -252,7 +253,7 @@ export default function HomeScreen() {
 
           <div className="flex items-center justify-between mt-2 text-[10px] text-text-muted">
             <span>
-              {language === 'ar' ? 'الساعات المكتسبة:' : 'Earned Hours:'} {gpaSummary.totalCompletedHours} / {targetGraduationHours} س
+              {language === 'ar' ? 'الساعات المكتسبة:' : 'Earned Hours:'} {gpaSummary.totalCompletedHours} / {targetGraduationHours} {language === 'ar' ? 'س' : 'cr'}
             </span>
             <span className="text-accent-blue font-semibold">
               {gpaSummary.progressPercentage}% {language === 'ar' ? 'من الخطة' : 'of plan'}

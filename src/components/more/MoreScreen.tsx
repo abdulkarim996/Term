@@ -85,9 +85,10 @@ export default function MoreScreen() {
       settings.gpaScale,
       settings.targetGraduationHours,
       settings.baselineGpa,
-      settings.baselineHours
+      settings.baselineHours,
+      language
     )
-  }, [semesters, settings.gpaScale, settings.targetGraduationHours, settings.baselineGpa, settings.baselineHours])
+  }, [semesters, settings.gpaScale, settings.targetGraduationHours, settings.baselineGpa, settings.baselineHours, language])
 
   const handlePushToggle = async () => {
     if (!confirm(t('confirmPushToggle') || 'هل أنت متأكد من تغيير حالة الإشعارات؟')) return;
@@ -295,7 +296,7 @@ export default function MoreScreen() {
                     {language === 'ar' ? 'الساعات المكتسبة' : 'Earned Hours'}
                   </span>
                   <span className="text-sm font-bold text-text-primary font-mono">
-                    {gpaSummary.totalCompletedHours} / {settings.targetGraduationHours} س
+                    {gpaSummary.totalCompletedHours} / {settings.targetGraduationHours} {language === 'ar' ? 'س' : 'cr'}
                   </span>
                   <span className="text-[10px] text-accent-blue block font-semibold mt-0.5">
                     {gpaSummary.progressPercentage}% {language === 'ar' ? 'من الخطة' : 'of plan'}

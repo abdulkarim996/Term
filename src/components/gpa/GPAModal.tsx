@@ -26,6 +26,8 @@ export default function GPAModal() {
   } = useSettingsStore()
 
   const { t, language } = useTranslation()
+  const isAr = language === 'ar'
+
   const semesters = useDataStore(state => state.semesters)
   const subjects = useDataStore(state => state.subjects)
 
@@ -44,15 +46,15 @@ export default function GPAModal() {
 
   // Calculator (Simulation) state
   const [simulatedCourses, setSimulatedCourses] = useState<CourseGrade[]>([
-    { id: 'sim_1', name: 'مادة 1', creditHours: 3, grade: 'A+' },
-    { id: 'sim_2', name: 'مادة 2', creditHours: 3, grade: 'A' },
+    { id: 'sim_1', name: isAr ? 'مادة 1' : 'Course 1', creditHours: 3, grade: 'A+' },
+    { id: 'sim_2', name: isAr ? 'مادة 2' : 'Course 2', creditHours: 3, grade: 'A' },
   ])
   const [targetGpaInput, setTargetGpaInput] = useState('')
 
   // Overall Academic Summary
   const summary = useMemo(() => {
-    return calculateAcademicSummary(semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours)
-  }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours])
+    return calculateAcademicSummary(semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours, language)
+  }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours, language])
 
   // Calculate simulated numbers
   const simStats = useMemo(() => {
@@ -85,7 +87,7 @@ export default function GPAModal() {
   // --- Handlers for Semesters ---
   const handleCreateSemester = async () => {
     if (!newSemesterName.trim()) {
-      showToast('يرجى كتابة اسم الفصل الدراسي', 'error')
+      showToast(isAr ? 'يرجى كتابة اسم الفصل الدراسي' : 'Please enter a semester name', 'error')
       return
     }
     const newSem: Omit<SemesterRecord, 'id'> = {
@@ -98,25 +100,25 @@ export default function GPAModal() {
       setNewSemesterName('')
       setShowAddSemesterForm(false)
       setExpandedSemesterId(id)
-      showToast('تمت إضافة الفصل بنجاح ✨', 'success')
+      showToast(isAr ? 'تمت إضافة الفصل بنجاح ✨' : 'Semester added successfully ✨', 'success')
     } catch (err: any) {
-      showToast('حدث خطأ أثناء الحفظ', 'error')
+      showToast(isAr ? 'حدث خطأ أثناء الحفظ' : 'Error saving semester', 'error')
     }
   }
 
   const handleDeleteSemester = async (semId: string | number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الفصل الدراسي وجميع مواده؟')) return
+    if (!confirm(isAr ? 'هل أنت متأكد من حذف هذا الفصل الدراسي وجميع مواده؟' : 'Are you sure you want to delete this semester and all its courses?')) return
     try {
       await cloudDeleteSemester(String(semId))
-      showToast('تم حذف الفصل بنجاح', 'info')
+      showToast(isAr ? 'تم حذف الفصل بنجاح' : 'Semester deleted successfully', 'info')
     } catch (err) {
-      showToast('تعذر الحذف', 'error')
+      showToast(isAr ? 'تعذر الحذف' : 'Failed to delete', 'error')
     }
   }
 
   const handleAddCourseToSemester = async (sem: SemesterRecord) => {
     if (!newCourseName.trim()) {
-      showToast('يرجى كتابة اسم المادة', 'error')
+      showToast(isAr ? 'يرجى كتابة اسم المادة' : 'Please enter course name', 'error')
       return
     }
     const newCourse: CourseGrade = {
@@ -132,9 +134,9 @@ export default function GPAModal() {
       setNewCourseHours(3)
       setNewCourseGrade('A+')
       setAddingCourseForSemId(null)
-      showToast('تمت إضافة المادة بنجاح', 'success')
+      showToast(isAr ? 'تمت إضافة المادة بنجاح' : 'Course added successfully', 'success')
     } catch (err) {
-      showToast('تعذر حفظ المادة', 'error')
+      showToast(isAr ? 'تعذر حفظ المادة' : 'Failed to save course', 'error')
     }
   }
 
@@ -142,9 +144,9 @@ export default function GPAModal() {
     const updatedCourses = (sem.courses || []).filter(c => c.id !== courseId)
     try {
       await cloudUpdateSemester(String(sem.id), { courses: updatedCourses })
-      showToast('تم حذف المادة', 'info')
+      showToast(isAr ? 'تم حذف المادة' : 'Course deleted', 'info')
     } catch (err) {
-      showToast('تعذر حذف المادة', 'error')
+      showToast(isAr ? 'تعذر حذف المادة' : 'Failed to delete course', 'error')
     }
   }
 
@@ -153,14 +155,14 @@ export default function GPAModal() {
     try {
       await cloudUpdateSemester(String(sem.id), { courses: updatedCourses })
     } catch (err) {
-      showToast('تعذر تعديل الدرجة', 'error')
+      showToast(isAr ? 'تعذر تعديل الدرجة' : 'Failed to update grade', 'error')
     }
   }
 
   // --- Calculator Simulator Helpers ---
   const handleImportCurrentSubjects = () => {
     if (!subjects || subjects.length === 0) {
-      showToast('لا توجد مواد مسجلة حالياً في جدولك لاستيرادها', 'info')
+      showToast(isAr ? 'لا توجد مواد مسجلة حالياً في جدولك لاستيرادها' : 'No courses currently registered in your schedule to import', 'info')
       return
     }
     const imported: CourseGrade[] = subjects.map((sub, idx) => ({
@@ -171,13 +173,13 @@ export default function GPAModal() {
       grade: 'A+'
     }))
     setSimulatedCourses(imported)
-    showToast(`تم استيراد ${imported.length} مواد من جدولك الحالي! 🚀`, 'success')
+    showToast(isAr ? `تم استيراد ${imported.length} مواد من جدولك الحالي! 🚀` : `Imported ${imported.length} courses from your schedule! 🚀`, 'success')
   }
 
   const handleAddSimulatedCourse = () => {
     setSimulatedCourses(prev => [
       ...prev,
-      { id: 'sim_' + Date.now(), name: `مادة ${prev.length + 1}`, creditHours: 3, grade: 'A+' }
+      { id: 'sim_' + Date.now(), name: isAr ? `مادة ${prev.length + 1}` : `Course ${prev.length + 1}`, creditHours: 3, grade: 'A+' }
     ])
   }
 
@@ -192,7 +194,7 @@ export default function GPAModal() {
   // Save simulated courses as a semester
   const handleSaveSimulationAsSemester = async () => {
     if (simulatedCourses.length === 0) return
-    const semName = prompt('أدخل اسم الفصل الدراسي لحفظ هذه المواد:', 'الفصل الحالي')
+    const semName = prompt(isAr ? 'أدخل اسم الفصل الدراسي لحفظ هذه المواد:' : 'Enter semester name to save these courses:', isAr ? 'الفصل الحالي' : 'Current Semester')
     if (!semName) return
 
     const newSem: Omit<SemesterRecord, 'id'> = {
@@ -207,10 +209,10 @@ export default function GPAModal() {
     }
     try {
       await cloudAddSemester(newSem)
-      showToast('تم اعتماد وحفظ الفصل في سجلك الأكاديمي! 🎓', 'success')
+      showToast(isAr ? 'تم اعتماد وحفظ الفصل في سجلك الأكاديمي! 🎓' : 'Semester saved to your academic records! 🎓', 'success')
       setActiveTab('tracker')
     } catch (err) {
-      showToast('تعذر الحفظ', 'error')
+      showToast(isAr ? 'تعذر الحفظ' : 'Failed to save', 'error')
     }
   }
 
@@ -221,8 +223,10 @@ export default function GPAModal() {
       return (
         <div className="py-8 text-center text-text-muted text-xs bg-surface-elevated/40 rounded-2xl border border-surface-border/50">
           <TrendingUp size={28} className="mx-auto mb-2 text-text-muted/40" />
-          <p>لا توجد فصول دراسية كافية لرسم المنحنى البياني بعد.</p>
-          <p className="text-[11px] text-text-muted/60 mt-1">أضف فصولك وموادك في الأسفل وسيظهر مسار تطور معدلك تلقائياً 📈</p>
+          <p>{isAr ? 'لا توجد فصول دراسية كافية لرسم المنحنى البياني بعد.' : 'No semesters added to render trend chart yet.'}</p>
+          <p className="text-[11px] text-text-muted/60 mt-1">
+            {isAr ? 'أضف فصولك وموادك في الأسفل وسيظهر مسار تطور معدلك تلقائياً 📈' : 'Add your semesters and courses below to see your progress 📈'}
+          </p>
         </div>
       )
     }
@@ -260,9 +264,13 @@ export default function GPAModal() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp size={15} className="text-accent-blue" />
-            <span className="text-xs font-semibold text-text-primary tracking-wide">مسار تطور المعدل الفصلي</span>
+            <span className="text-xs font-semibold text-text-primary tracking-wide">
+              {isAr ? 'مسار تطور المعدل الفصلي' : 'Term GPA Trend'}
+            </span>
           </div>
-          <span className="text-[10px] text-text-muted font-mono">الحد الأقصى: {maxGpa.toFixed(2)}</span>
+          <span className="text-[10px] text-text-muted font-mono">
+            {isAr ? 'الحد الأقصى:' : 'Max:'} {maxGpa.toFixed(2)}
+          </span>
         </div>
 
         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-36 overflow-visible">
@@ -360,12 +368,14 @@ export default function GPAModal() {
             </div>
             <div>
               <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
-                السجل الأكاديمي والمعدل (GPA)
+                {isAr ? 'السجل الأكاديمي والمعدل (GPA)' : 'Academic Records & GPA'}
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 font-mono">
-                  نظام {gpaScale}.0
+                  {isAr ? `نظام ${gpaScale}.0` : `Scale ${gpaScale}.0`}
                 </span>
               </h2>
-              <p className="text-xs text-text-muted mt-0.5">تتبع مسيرتك الأكاديمية ومحاكاة المعدل المستهدف</p>
+              <p className="text-xs text-text-muted mt-0.5">
+                {isAr ? 'تتبع مسيرتك الأكاديمية ومحاكاة المعدل المستهدف' : 'Track your academic progress and simulate your target GPA'}
+              </p>
             </div>
           </div>
           <button
@@ -387,7 +397,7 @@ export default function GPAModal() {
             }`}
           >
             <BarChart2 size={15} />
-            السجل والتتبع الأكاديمي
+            {isAr ? 'السجل والتتبع الأكاديمي' : 'Academic Tracker'}
           </button>
           <button
             onClick={() => setActiveTab('calculator')}
@@ -398,7 +408,7 @@ export default function GPAModal() {
             }`}
           >
             <Calculator size={15} />
-            الحاسبة والمحاكي
+            {isAr ? 'الحاسبة والمحاكي' : 'Simulator & Calculator'}
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -409,7 +419,7 @@ export default function GPAModal() {
             }`}
           >
             <Settings size={15} />
-            الإعدادات
+            {isAr ? 'الإعدادات' : 'Settings'}
           </button>
         </div>
 
@@ -425,7 +435,7 @@ export default function GPAModal() {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider block mb-1">
-                      المعدل التراكمي العام (Cumulative GPA)
+                      {isAr ? 'المعدل التراكمي العام (Cumulative GPA)' : 'Cumulative GPA'}
                     </span>
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl md:text-5xl font-black text-text-primary font-mono tracking-tight">
@@ -472,12 +482,12 @@ export default function GPAModal() {
                     </div>
 
                     <div className="min-w-[100px]">
-                      <p className="text-[10px] text-text-muted font-medium">ساعات التخرج</p>
+                      <p className="text-[10px] text-text-muted font-medium">{isAr ? 'ساعات التخرج' : 'Degree Hours'}</p>
                       <p className="text-sm font-bold text-text-primary font-mono">
-                        {summary.totalCompletedHours} <span className="text-xs text-text-muted font-normal">/ {targetGraduationHours} س</span>
+                        {summary.totalCompletedHours} <span className="text-xs text-text-muted font-normal">/ {targetGraduationHours} {isAr ? 'س' : 'cr'}</span>
                       </p>
                       <p className="text-[10px] text-text-muted/70 mt-0.5">
-                        المتبقي: {Math.max(0, targetGraduationHours - summary.totalCompletedHours)} ساعة
+                        {isAr ? `المتبقي: ${Math.max(0, targetGraduationHours - summary.totalCompletedHours)} ساعة` : `Remaining: ${Math.max(0, targetGraduationHours - summary.totalCompletedHours)} credits`}
                       </p>
                     </div>
                   </div>
@@ -492,25 +502,25 @@ export default function GPAModal() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
                     <BookOpen size={16} className="text-accent-purple" />
-                    سجل الفصول الدراسية ({semesters.length})
+                    {isAr ? `سجل الفصول الدراسية (${semesters.length})` : `Semesters History (${semesters.length})`}
                   </h3>
                   <button
                     onClick={() => setShowAddSemesterForm(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue/25 transition-colors border border-accent-blue/20"
                   >
                     <Plus size={14} />
-                    إضافة فصل دراسي
+                    {isAr ? 'إضافة فصل دراسي' : 'Add Semester'}
                   </button>
                 </div>
 
                 {/* Add Semester Form Popup */}
                 {showAddSemesterForm && (
                   <div className="p-4 rounded-2xl bg-surface-elevated border border-accent-blue/30 space-y-3 animate-in fade-in">
-                    <h4 className="text-xs font-bold text-text-primary">إضافة فصل دراسي جديد</h4>
+                    <h4 className="text-xs font-bold text-text-primary">{isAr ? 'إضافة فصل دراسي جديد' : 'Add New Semester'}</h4>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="مثلاً: الفصل الأول 1445هـ أو ترم خريف 2024"
+                        placeholder={isAr ? 'مثلاً: الفصل الأول 1445هـ أو ترم خريف 2024' : 'e.g. Fall 2024 or Semester 1'}
                         value={newSemesterName}
                         onChange={e => setNewSemesterName(e.target.value)}
                         className="flex-1 bg-surface border border-surface-border rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue"
@@ -519,13 +529,13 @@ export default function GPAModal() {
                         onClick={handleCreateSemester}
                         className="px-4 py-2 bg-accent-blue text-white rounded-xl text-xs font-semibold hover:bg-blue-600 transition-colors"
                       >
-                        إضافة
+                        {isAr ? 'إضافة' : 'Add'}
                       </button>
                       <button
                         onClick={() => setShowAddSemesterForm(false)}
                         className="px-3 py-2 bg-surface-border text-text-muted rounded-xl text-xs hover:text-text-primary"
                       >
-                        إلغاء
+                        {isAr ? 'إلغاء' : 'Cancel'}
                       </button>
                     </div>
                   </div>
@@ -534,9 +544,19 @@ export default function GPAModal() {
                 {/* Semesters List */}
                 {semesters.length === 0 ? (
                   <div className="p-8 text-center bg-surface-elevated/30 rounded-2xl border border-surface-border/50 text-text-muted text-xs">
-                    لم تقم بإضافة أي فصول دراسية سابقة بعد.
-                    <br />
-                    اضغط على زر <strong>إضافة فصل دراسي</strong> للبدء بتسجيل موادك ودرجاتك.
+                    {isAr ? (
+                      <>
+                        لم تقم بإضافة أي فصول دراسية سابقة بعد.
+                        <br />
+                        اضغط على زر <strong>إضافة فصل دراسي</strong> للبدء بتسجيل موادك ودرجاتك.
+                      </>
+                    ) : (
+                      <>
+                        No past semesters added yet.
+                        <br />
+                        Click <strong>Add Semester</strong> to start recording your courses and grades.
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -564,14 +584,14 @@ export default function GPAModal() {
                               <div>
                                 <h4 className="text-sm font-bold text-text-primary">{sem.name}</h4>
                                 <span className="text-[11px] text-text-muted font-mono">
-                                  {semCourses.length} مواد • {semHours} ساعات معتمدة
+                                  {isAr ? `${semCourses.length} مواد • ${semHours} ساعات معتمدة` : `${semCourses.length} courses • ${semHours} credits`}
                                 </span>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-3">
                               <div className="text-left rtl:text-right">
-                                <span className="text-[10px] text-text-muted block">معدل الفصل</span>
+                                <span className="text-[10px] text-text-muted block">{isAr ? 'معدل الفصل' : 'Term GPA'}</span>
                                 <span className="text-sm font-black text-accent-blue font-mono">
                                   {semGpa}
                                 </span>
@@ -582,7 +602,7 @@ export default function GPAModal() {
                                   handleDeleteSemester(sem.id)
                                 }}
                                 className="w-8 h-8 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 flex items-center justify-center transition-colors"
-                                title="حذف الفصل"
+                                title={isAr ? 'حذف الفصل' : 'Delete Semester'}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -594,14 +614,18 @@ export default function GPAModal() {
                             <div className="p-3.5 pt-0 border-t border-surface-border/50 bg-surface/30 space-y-3">
                               {/* Courses list */}
                               {semCourses.length === 0 ? (
-                                <p className="text-center py-4 text-xs text-text-muted">لا توجد مواد مضافة في هذا الفصل بعد.</p>
+                                <p className="text-center py-4 text-xs text-text-muted">
+                                  {isAr ? 'لا توجد مواد مضافة في هذا الفصل بعد.' : 'No courses added in this semester yet.'}
+                                </p>
                               ) : (
                                 <div className="divide-y divide-surface-border/40">
                                   {semCourses.map(course => (
                                     <div key={course.id} className="py-2.5 flex items-center justify-between gap-3">
                                       <div className="flex-1 min-w-0">
                                         <p className="text-xs font-semibold text-text-primary truncate">{course.name}</p>
-                                        <p className="text-[10px] text-text-muted font-mono">{course.creditHours} ساعات معتمدة</p>
+                                        <p className="text-[10px] text-text-muted font-mono">
+                                          {course.creditHours} {isAr ? 'ساعات معتمدة' : 'credits'}
+                                        </p>
                                       </div>
 
                                       {/* Grade Selector */}
@@ -619,7 +643,7 @@ export default function GPAModal() {
                                         <button
                                           onClick={() => handleDeleteCourseFromSemester(sem, course.id)}
                                           className="text-text-muted hover:text-red-400 p-1"
-                                          title="حذف المادة"
+                                          title={isAr ? 'حذف المادة' : 'Delete Course'}
                                         >
                                           <Trash2 size={13} />
                                         </button>
@@ -635,7 +659,7 @@ export default function GPAModal() {
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                     <input
                                       type="text"
-                                      placeholder="اسم المادة (مثلاً: MATH 241)"
+                                      placeholder={isAr ? 'اسم المادة (مثلاً: MATH 241)' : 'Course name (e.g. MATH 241)'}
                                       value={newCourseName}
                                       onChange={e => setNewCourseName(e.target.value)}
                                       className="bg-surface border border-surface-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-accent-blue"
@@ -644,7 +668,7 @@ export default function GPAModal() {
                                       type="number"
                                       min="1"
                                       max="8"
-                                      placeholder="الساعات (3)"
+                                      placeholder={isAr ? 'الساعات (3)' : 'Credits (3)'}
                                       value={newCourseHours}
                                       onChange={e => setNewCourseHours(Number(e.target.value))}
                                       className="bg-surface border border-surface-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-accent-blue"
@@ -664,13 +688,13 @@ export default function GPAModal() {
                                       onClick={() => setAddingCourseForSemId(null)}
                                       className="px-2.5 py-1 text-xs text-text-muted hover:text-text-primary"
                                     >
-                                      إلغاء
+                                      {isAr ? 'إلغاء' : 'Cancel'}
                                     </button>
                                     <button
                                       onClick={() => handleAddCourseToSemester(sem)}
                                       className="px-3 py-1 bg-accent-blue text-white rounded-lg text-xs font-semibold hover:bg-blue-600"
                                     >
-                                      حفظ المادة
+                                      {isAr ? 'حفظ المادة' : 'Save Course'}
                                     </button>
                                   </div>
                                 </div>
@@ -680,7 +704,7 @@ export default function GPAModal() {
                                   className="w-full py-2 text-xs font-semibold text-accent-blue hover:bg-accent-blue/5 rounded-xl border border-dashed border-accent-blue/30 flex items-center justify-center gap-1.5 transition-colors"
                                 >
                                   <Plus size={14} />
-                                  إضافة مادة لهذا الفصل
+                                  {isAr ? 'إضافة مادة لهذا الفصل' : 'Add Course to Semester'}
                                 </button>
                               )}
                             </div>
@@ -703,10 +727,10 @@ export default function GPAModal() {
                 <div>
                   <h3 className="text-sm font-bold text-text-primary flex items-center gap-1.5">
                     <Sparkles size={16} className="text-accent-blue" />
-                    محاكي درجات الفصل وتوقع المعدل
+                    {isAr ? 'محاكي درجات الفصل وتوقع المعدل' : 'Term Grade Simulator & Projected GPA'}
                   </h3>
                   <p className="text-xs text-text-muted mt-0.5">
-                    جرب التقديرات المتوقعة لموادك لمعرفة تأثيرها اللحظي على معدلك التراكمي
+                    {isAr ? 'جرب التقديرات المتوقعة لموادك لمعرفة تأثيرها اللحظي على معدلك التراكمي' : 'Test projected grades to see their immediate impact on your cumulative GPA'}
                   </p>
                 </div>
 
@@ -716,14 +740,14 @@ export default function GPAModal() {
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent-blue text-white text-xs font-semibold hover:bg-blue-600 transition-colors shadow-sm"
                   >
                     <RefreshCw size={13} />
-                    استيراد مواد جدولي الحالي ⚡
+                    {isAr ? 'استيراد مواد جدولي الحالي ⚡' : 'Import Current Schedule ⚡'}
                   </button>
                   <button
                     onClick={handleAddSimulatedCourse}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-elevated border border-surface-border text-text-primary text-xs font-semibold hover:bg-surface-hover transition-colors"
                   >
                     <Plus size={13} />
-                    مادة إضافية
+                    {isAr ? 'مادة إضافية' : 'Add Course'}
                   </button>
                 </div>
               </div>
@@ -731,29 +755,39 @@ export default function GPAModal() {
               {/* Live Calculation Banner */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="p-4 rounded-2xl bg-surface-elevated border border-surface-border">
-                  <span className="text-[11px] text-text-muted block">معدل الفصل المتوقع</span>
+                  <span className="text-[11px] text-text-muted block">
+                    {isAr ? 'معدل الفصل المتوقع' : 'Projected Term GPA'}
+                  </span>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-2xl font-black text-text-primary font-mono">
                       {simStats.termGpa.toFixed(2)}
                     </span>
                     <span className="text-xs text-text-muted font-mono">/ {gpaScale}.00</span>
                   </div>
-                  <span className="text-[10px] text-text-muted mt-1 block">إجمالي: {simStats.termHours} ساعة</span>
+                  <span className="text-[10px] text-text-muted mt-1 block">
+                    {isAr ? `إجمالي: ${simStats.termHours} ساعة` : `Total: ${simStats.termHours} credits`}
+                  </span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-surface-elevated border border-surface-border">
-                  <span className="text-[11px] text-text-muted block">المعدل التراكمي الجديد</span>
+                  <span className="text-[11px] text-text-muted block">
+                    {isAr ? 'المعدل التراكمي الجديد' : 'New Cumulative GPA'}
+                  </span>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-2xl font-black text-accent-blue font-mono">
                       {simStats.projectedCumGpa.toFixed(2)}
                     </span>
                     <span className="text-xs text-text-muted font-mono">/ {gpaScale}.00</span>
                   </div>
-                  <span className="text-[10px] text-text-muted mt-1 block">الحالي: {summary.cumulativeGpa.toFixed(2)}</span>
+                  <span className="text-[10px] text-text-muted mt-1 block">
+                    {isAr ? `الحالي: ${summary.cumulativeGpa.toFixed(2)}` : `Current: ${summary.cumulativeGpa.toFixed(2)}`}
+                  </span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-surface-elevated border border-surface-border flex flex-col justify-between">
-                  <span className="text-[11px] text-text-muted block">فارق التغيير بالمعدل</span>
+                  <span className="text-[11px] text-text-muted block">
+                    {isAr ? 'فارق التغيير بالمعدل' : 'GPA Difference'}
+                  </span>
                   <div className="flex items-center gap-1.5 mt-1">
                     {simStats.diff >= 0 ? (
                       <ArrowUpRight size={20} className="text-emerald-400" />
@@ -765,7 +799,11 @@ export default function GPAModal() {
                     </span>
                   </div>
                   <span className="text-[10px] text-text-muted block">
-                    {simStats.diff > 0 ? 'معدلك سيرتفع بإذن الله 📈' : simStats.diff < 0 ? 'انتبه! سينخفض معدلك 📉' : 'معدلك سيبقى ثابتاً'}
+                    {simStats.diff > 0
+                      ? (isAr ? 'معدلك سيرتفع بإذن الله 📈' : 'Your GPA will increase 📈')
+                      : simStats.diff < 0
+                      ? (isAr ? 'انتبه! سينخفض معدلك 📉' : 'Warning: GPA will decrease 📉')
+                      : (isAr ? 'معدلك سيبقى ثابتاً' : 'Your GPA will remain unchanged')}
                   </span>
                 </div>
               </div>
@@ -773,10 +811,10 @@ export default function GPAModal() {
               {/* Simulated Courses Table */}
               <div className="bg-surface-elevated rounded-2xl border border-surface-border overflow-hidden">
                 <div className="p-3 bg-surface border-b border-surface-border flex items-center justify-between text-xs font-bold text-text-muted">
-                  <span>المادة الدراسية</span>
+                  <span>{isAr ? 'المادة الدراسية' : 'Course'}</span>
                   <div className="flex items-center gap-8">
-                    <span>الساعات</span>
-                    <span>الدرجة المتوقعة</span>
+                    <span>{isAr ? 'الساعات' : 'Credits'}</span>
+                    <span>{isAr ? 'الدرجة المتوقعة' : 'Expected Grade'}</span>
                     <span className="w-5"></span>
                   </div>
                 </div>
@@ -784,7 +822,9 @@ export default function GPAModal() {
                 <div className="divide-y divide-surface-border/50 p-2 space-y-1">
                   {simulatedCourses.length === 0 ? (
                     <div className="p-6 text-center text-xs text-text-muted">
-                      لم تتم إضافة مواد للمحاكاة بعد. اضغط على "استيراد مواد جدولي الحالي" أو "مادة إضافية".
+                      {isAr
+                        ? 'لم تتم إضافة مواد للمحاكاة بعد. اضغط على "استيراد مواد جدولي الحالي" أو "مادة إضافية".'
+                        : 'No courses simulated yet. Click "Import Current Schedule" or "Add Course".'}
                     </div>
                   ) : (
                     simulatedCourses.map((c) => (
@@ -794,7 +834,7 @@ export default function GPAModal() {
                           value={c.name}
                           onChange={e => handleUpdateSimCourse(c.id, 'name', e.target.value)}
                           className="flex-1 bg-surface border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent-blue"
-                          placeholder="اسم المادة"
+                          placeholder={isAr ? 'اسم المادة' : 'Course Name'}
                         />
 
                         <div className="flex items-center gap-3">
@@ -838,7 +878,7 @@ export default function GPAModal() {
                     className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-accent-blue to-accent-purple text-white text-xs font-bold hover:opacity-90 shadow-lg shadow-accent-blue/20 transition-all"
                   >
                     <CheckCircle2 size={15} />
-                    اعتماد ونقل إلى السجل الأكاديمي 📥
+                    {isAr ? 'اعتماد ونقل إلى السجل الأكاديمي 📥' : 'Save to Academic Records 📥'}
                   </button>
                 </div>
               )}
@@ -849,11 +889,15 @@ export default function GPAModal() {
           {activeTab === 'settings' && (
             <div className="space-y-5 animate-in fade-in duration-200">
               <div className="p-4 rounded-2xl bg-surface-elevated border border-surface-border space-y-4">
-                <h3 className="text-sm font-bold text-text-primary">إعدادات المعدل والسلّم الأكاديمي</h3>
+                <h3 className="text-sm font-bold text-text-primary">
+                  {isAr ? 'إعدادات المعدل والسلّم الأكاديمي' : 'GPA Settings & Grading Scale'}
+                </h3>
 
                 {/* Scale selection */}
                 <div>
-                  <label className="text-xs font-medium text-text-muted block mb-1.5">نظام حساب المعدل</label>
+                  <label className="text-xs font-medium text-text-muted block mb-1.5">
+                    {isAr ? 'نظام حساب المعدل' : 'Grading Scale System'}
+                  </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setGpaScale(5)}
@@ -863,8 +907,10 @@ export default function GPAModal() {
                           : 'border-surface-border bg-surface text-text-muted hover:text-text-primary'
                       }`}
                     >
-                      نظام 5.00
-                      <span className="block text-[10px] font-normal text-text-muted mt-0.5">المعتمد في معظم الجامعات السعودية</span>
+                      {isAr ? 'نظام 5.00' : '5.00 Scale'}
+                      <span className="block text-[10px] font-normal text-text-muted mt-0.5">
+                        {isAr ? 'المعتمد في معظم الجامعات السعودية' : 'Standard in most Saudi universities'}
+                      </span>
                     </button>
                     <button
                       onClick={() => setGpaScale(4)}
@@ -874,8 +920,10 @@ export default function GPAModal() {
                           : 'border-surface-border bg-surface text-text-muted hover:text-text-primary'
                       }`}
                     >
-                      نظام 4.00
-                      <span className="block text-[10px] font-normal text-text-muted mt-0.5">النظام الأمريكي والعالمي</span>
+                      {isAr ? 'نظام 4.00' : '4.00 Scale'}
+                      <span className="block text-[10px] font-normal text-text-muted mt-0.5">
+                        {isAr ? 'النظام الأمريكي والعالمي' : 'US & International standard'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -883,7 +931,7 @@ export default function GPAModal() {
                 {/* Target Hours */}
                 <div>
                   <label className="text-xs font-medium text-text-muted block mb-1">
-                    إجمالي ساعات الخطة الدراسية للتخرج (Target Hours)
+                    {isAr ? 'إجمالي ساعات الخطة الدراسية للتخرج (Target Hours)' : 'Total Degree Plan Hours (Target Hours)'}
                   </label>
                   <input
                     type="number"
@@ -891,22 +939,32 @@ export default function GPAModal() {
                     onChange={e => setTargetGraduationHours(Number(e.target.value) || 134)}
                     className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue font-mono"
                   />
-                  <span className="text-[10px] text-text-muted mt-1 block">تستخدم لحساب نسبة إنجازك المتبقية نحو التخرج (مثلاً: 134 ساعة للهندسة الصناعية).</span>
+                  <span className="text-[10px] text-text-muted mt-1 block">
+                    {isAr
+                      ? 'تستخدم لحساب نسبة إنجازك المتبقية نحو التخرج (مثلاً: 134 ساعة للهندسة الصناعية).'
+                      : 'Used to calculate your remaining progress towards graduation (e.g. 134 hours).'}
+                  </span>
                 </div>
               </div>
 
               {/* Baseline Setup */}
               <div className="p-4 rounded-2xl bg-surface-elevated border border-surface-border space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold text-text-primary">أساس المعدل السابق (Baseline)</h3>
+                  <h3 className="text-sm font-bold text-text-primary">
+                    {isAr ? 'أساس المعدل السابق (Baseline)' : 'Prior Baseline GPA & Credits'}
+                  </h3>
                   <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-                    إذا درست فصولاً سابقة قبل استخدامك للتطبيق ولا ترغب في كتابة كل مادة بالتفصيل، يمكنك إدخال معدلك السابق التراكمي وعدد ساعاتك السابقة هنا، وسيقوم النظام باحتسابها تلقائياً مع فصولك الجديدة!
+                    {isAr
+                      ? 'إذا درست فصولاً سابقة قبل استخدامك للتطبيق ولا ترغب في كتابة كل مادة بالتفصيل، يمكنك إدخال معدلك السابق التراكمي وعدد ساعاتك السابقة هنا، وسيقوم النظام باحتسابها تلقائياً مع فصولك الجديدة!'
+                      : 'If you completed semesters prior to using the app and do not wish to input every course, enter your prior cumulative GPA and hours here. The app will factor them into all calculations!'}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-text-muted block mb-1">المعدل السابق (GPA)</label>
+                    <label className="text-xs font-medium text-text-muted block mb-1">
+                      {isAr ? 'المعدل السابق (GPA)' : 'Prior Cumulative GPA'}
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -914,19 +972,21 @@ export default function GPAModal() {
                       max={gpaScale}
                       value={baselineGpa || ''}
                       onChange={e => setBaselineGpa(Number(e.target.value) || 0)}
-                      placeholder="مثال: 4.65"
+                      placeholder={isAr ? 'مثال: 4.65' : 'e.g. 4.65'}
                       className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-text-muted block mb-1">الساعات السابقة المنجزة</label>
+                    <label className="text-xs font-medium text-text-muted block mb-1">
+                      {isAr ? 'الساعات السابقة المنجزة' : 'Prior Completed Credits'}
+                    </label>
                     <input
                       type="number"
                       min="0"
                       value={baselineHours || ''}
                       onChange={e => setBaselineHours(Number(e.target.value) || 0)}
-                      placeholder="مثال: 45"
+                      placeholder={isAr ? 'مثال: 45' : 'e.g. 45'}
                       className="w-full bg-surface border border-surface-border rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue font-mono"
                     />
                   </div>

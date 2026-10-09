@@ -40,7 +40,8 @@ export function calculateAcademicSummary(
   scale: 5 | 4 = 5,
   targetHours: number = 134,
   baselineGpa: number = 0,
-  baselineHours: number = 0
+  baselineHours: number = 0,
+  lang: 'ar' | 'en' = 'ar'
 ): AcademicSummary {
   let totalHours = Number(baselineHours) || 0
   let totalPoints = (Number(baselineGpa) || 0) * (Number(baselineHours) || 0)
@@ -79,38 +80,40 @@ export function calculateAcademicSummary(
   let honorsTitle: string | null = null
   let honorsBadgeColor = 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'
 
+  const isAr = lang === 'ar'
+
   if (scale === 5) {
     if (cumulativeGpa >= 4.75) {
-      honorsTitle = 'مرتبة الشرف الأولى 🥇'
+      honorsTitle = isAr ? 'مرتبة الشرف الأولى 🥇' : 'First Class Honors 🥇'
       honorsBadgeColor = 'text-amber-400 bg-amber-400/10 border-amber-400/30'
     } else if (cumulativeGpa >= 4.25) {
-      honorsTitle = 'مرتبة الشرف الثانية 🥈'
+      honorsTitle = isAr ? 'مرتبة الشرف الثانية 🥈' : 'Second Class Honors 🥈'
       honorsBadgeColor = 'text-slate-300 bg-slate-400/10 border-slate-400/30'
     } else if (cumulativeGpa >= 3.75) {
-      honorsTitle = 'تقدير ممتاز ✨'
+      honorsTitle = isAr ? 'تقدير ممتاز ✨' : 'Excellent Standing ✨'
       honorsBadgeColor = 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30'
     } else if (cumulativeGpa >= 2.75) {
-      honorsTitle = 'تقدير جيد جداً'
+      honorsTitle = isAr ? 'تقدير جيد جداً' : 'Very Good Standing'
       honorsBadgeColor = 'text-blue-400 bg-blue-400/10 border-blue-400/30'
     } else if (cumulativeGpa >= 2.00) {
-      honorsTitle = 'تقدير جيد'
+      honorsTitle = isAr ? 'تقدير جيد' : 'Good Standing'
       honorsBadgeColor = 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30'
     }
   } else {
     if (cumulativeGpa >= 3.75) {
-      honorsTitle = 'مرتبة الشرف الأولى 🥇'
+      honorsTitle = isAr ? 'مرتبة الشرف الأولى 🥇' : 'First Class Honors 🥇'
       honorsBadgeColor = 'text-amber-400 bg-amber-400/10 border-amber-400/30'
     } else if (cumulativeGpa >= 3.25) {
-      honorsTitle = 'مرتبة الشرف الثانية 🥈'
+      honorsTitle = isAr ? 'مرتبة الشرف الثانية 🥈' : 'Second Class Honors 🥈'
       honorsBadgeColor = 'text-slate-300 bg-slate-400/10 border-slate-400/30'
     } else if (cumulativeGpa >= 3.00) {
-      honorsTitle = 'تقدير ممتاز ✨'
+      honorsTitle = isAr ? 'تقدير ممتاز ✨' : 'Excellent Standing ✨'
       honorsBadgeColor = 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30'
     } else if (cumulativeGpa >= 2.50) {
-      honorsTitle = 'تقدير جيد جداً'
+      honorsTitle = isAr ? 'تقدير جيد جداً' : 'Very Good Standing'
       honorsBadgeColor = 'text-blue-400 bg-blue-400/10 border-blue-400/30'
     } else if (cumulativeGpa >= 2.00) {
-      honorsTitle = 'تقدير جيد'
+      honorsTitle = isAr ? 'تقدير جيد' : 'Good Standing'
       honorsBadgeColor = 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30'
     }
   }
