@@ -1,4 +1,4 @@
-﻿import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Client } from '@upstash/qstash';
 
@@ -22,7 +22,10 @@ export default async function handler(req: any, res: any) {
   try {
     initFirebase();
     const db = getFirestore();
-    const qstash = new Client({ token: process.env.QSTASH_TOKEN || '' });
+    const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH_TOKEN }) : null;
+    if (!qstash) {
+      return res.status(200).json({ success: true, scheduled: 0, reason: 'QSTASH_TOKEN not configured' });
+    }
 
     const bodyObj = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { uid, subjectId, subjectName, lectures, location } = bodyObj;
@@ -46,7 +49,12 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ success: true, scheduled: 0, reason: 'No FCM token' });
     }
 
-    const executeUrl = `https://${req.headers.host}/api/tasks/execute`;
+    const publicHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      || process.env.VERCEL_URL
+      || (req.headers.host && !req.headers.host.includes('localhost') ? req.headers.host : null)
+      || req.headers['x-forwarded-host']
+      || req.headers.host;
+    const executeUrl = `https://${publicHost}/api/tasks/execute`;
     let scheduledCount = 0;
 
     for (const lec of lectures) {
@@ -59,37 +67,34 @@ export default async function handler(req: any, res: any) {
       const lecMin = parseInt(minStr, 10);
       if (isNaN(lecHour) || isNaN(lecMin)) continue;
 
-      // Build Saudi lecture start time as UTC ms
-      // todayDateStr is "YYYY-MM-DD" in Saudi local time; midnight UTC of that date needs +3h offset applied in reverse
-      // The cron uses: new Date(`${todayDateStr}T00:00:00Z`).getTime() + lecMins * 60000
-      // That is Saudi-midnight in UTC. This is correct because todayDateStr was derived from nowSaudiMs.
       const saudiMidnightUTC = new Date(`${todayDateStr}T00:00:00Z`).getTime();
       const lecStartSaudiMs = saudiMidnightUTC + (lecHour * 60 + lecMin) * 60 * 1000;
       const notifyAtSaudiMs = lecStartSaudiMs - 10 * 60 * 1000;
-      // Convert notify time to true UTC (subtract +3h offset)
       const notifyAtUTCMs = notifyAtSaudiMs - 3 * 60 * 60 * 1000;
       const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
 
       // Must still be at least 60s in the future
       if (notifyAtUnixSec <= nowUnixSec + 60) continue;
 
-      // --- Deduplication: unique per subject + day + calendar date ---
-      const deduplicationId = `${subjectId}-dow${todayDayOfWeek}-${todayDateStr}`;
+      const deduplicationId = `${subjectId}-dow${todayDayOfWeek}-${todayDateStr}-${lec.startTime}`;
 
-      await qstash.publishJSON({
-        url: executeUrl,
-        body: {
-          fcmToken,
-          title: '\u23f0 \u0645\u062d\u0627\u0636\u0631\u0629 \u0642\u0631\u064a\u0628\u0629!',
-          body: `\uD83D\uDCDA ${subjectName} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${lec.location ? ' \uD83D\uDCCD ' + lec.location : (location ? ' \uD83D\uDCCD ' + location : '')} \u2022 \u0627\u0633\u062a\u0639\u062f \u0627\u0644\u0622\u0646!`,
-        },
-        notBefore: notifyAtUnixSec,
-        headers: {
-          'Upstash-Deduplication-Id': deduplicationId,
-        },
-      });
-
-      scheduledCount++;
+      try {
+        await qstash.publishJSON({
+          url: executeUrl,
+          body: {
+            fcmToken,
+            title: '⏰ محاضرة قريبة!',
+            body: `📚 ${subjectName} بعد 10 دقائق${lec.location ? ' 📍 ' + lec.location : (location ? ' 📍 ' + location : '')} • استعد الآن!`,
+          },
+          notBefore: notifyAtUnixSec,
+          headers: {
+            'Upstash-Deduplication-Id': deduplicationId,
+          },
+        });
+        scheduledCount++;
+      } catch (err) {
+        console.warn('[schedule-today-lecture] QStash publish warning:', err);
+      }
     }
 
     return res.status(200).json({ success: true, scheduled: scheduledCount, date: todayDateStr });

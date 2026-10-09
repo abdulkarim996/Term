@@ -1,4 +1,4 @@
-﻿import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { Client } from '@upstash/qstash';
 
@@ -22,7 +22,10 @@ export default async function handler(req: any, res: any) {
   try {
     initFirebase();
     const db = getFirestore();
-    const qstash = new Client({ token: process.env.QSTASH_TOKEN || '' });
+    const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH_TOKEN }) : null;
+    if (!qstash) {
+      return res.status(200).json({ success: true, scheduled: 0, reason: 'QSTASH_TOKEN not configured' });
+    }
 
     const bodyObj = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { uid, eventId, eventTitle, startDate, location } = bodyObj;
@@ -62,25 +65,34 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ success: true, scheduled: 0, reason: 'No FCM token' });
     }
 
-    const executeUrl = `https://${req.headers.host}/api/tasks/execute`;
+    const publicHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      || process.env.VERCEL_URL
+      || (req.headers.host && !req.headers.host.includes('localhost') ? req.headers.host : null)
+      || req.headers['x-forwarded-host']
+      || req.headers.host;
+    const executeUrl = `https://${publicHost}/api/tasks/execute`;
 
     // --- Deduplication: unique per event + calendar date ---
     const deduplicationId = `event-${eventId}-${todayDateStr}`;
 
-    await qstash.publishJSON({
-      url: executeUrl,
-      body: {
-        fcmToken,
-        title: '\uD83D\uDCC5 \u062d\u062f\u062b \u0642\u0631\u064a\u0628!',
-        body: `\u23f0 ${eventTitle} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${location ? ' \uD83D\uDCCD ' + location : ''} \u2022 \u0644\u0627 \u062a\u0641\u0648\u062a\u0643!`,
-      },
-      notBefore: notifyAtUnixSec,
-      headers: {
-        'Upstash-Deduplication-Id': deduplicationId,
-      },
-    });
-
-    return res.status(200).json({ success: true, scheduled: 1, date: todayDateStr });
+    try {
+      await qstash.publishJSON({
+        url: executeUrl,
+        body: {
+          fcmToken,
+          title: '📅 حدث قريب!',
+          body: `⏰ ${eventTitle} بعد 10 دقائق${location ? ' 📍 ' + location : ''} • لا تفوتك!`,
+        },
+        notBefore: notifyAtUnixSec,
+        headers: {
+          'Upstash-Deduplication-Id': deduplicationId,
+        },
+      });
+      return res.status(200).json({ success: true, scheduled: 1, date: todayDateStr });
+    } catch (err) {
+      console.warn('[schedule-today-event] QStash publish warning:', err);
+      return res.status(200).json({ success: false, reason: 'QStash publish warning' });
+    }
 
   } catch (error: any) {
     console.error('schedule-today-event error:', error);

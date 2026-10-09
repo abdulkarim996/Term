@@ -60,7 +60,12 @@ export default async function handler(req, res) {
       return res.status(200).json({ error: 'No fcmToken found for user, skipped scheduling.' });
     }
 
-    const destination = `https://${req.headers.host}/api/tasks/execute`;
+    const publicHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      || process.env.VERCEL_URL
+      || (req.headers.host && !req.headers.host.includes('localhost') ? req.headers.host : null)
+      || req.headers['x-forwarded-host']
+      || req.headers.host;
+    const destination = `https://${publicHost}/api/tasks/execute`;
     const payload = { title: sTitle, body: sBody, fcmToken };
     console.log('QStash Destination:', destination);
 

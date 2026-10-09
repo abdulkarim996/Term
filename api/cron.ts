@@ -1,16 +1,17 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 import { Client } from '@upstash/qstash';
 
 // Day index: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
 const DAY_NAMES = [
-  '\u0627\u0644\u0623\u062d\u062f',
-  '\u0627\u0644\u0625\u062b\u0646\u064a\u0646',
-  '\u0627\u0644\u062b\u0644\u0627\u062b\u0627\u0621',
-  '\u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621',
-  '\u0627\u0644\u062e\u0645\u064a\u0633',
-  '\u0627\u0644\u062c\u0645\u0639\u0629',
-  '\u0627\u0644\u0633\u0628\u062a'
+  'الأحد',
+  'الإثنين',
+  'الثلاثاء',
+  'الأربعاء',
+  'الخميس',
+  'الجمعة',
+  'السبت'
 ];
 
 function initFirebase() {
@@ -37,7 +38,8 @@ export default async function handler(req: any, res: any) {
 
     initFirebase();
     const db = getFirestore();
-    const qstash = new Client({ token: process.env.QSTASH_TOKEN || '' });
+    const messaging = getMessaging();
+    const qstash = process.env.QSTASH_TOKEN ? new Client({ token: process.env.QSTASH_TOKEN }) : null;
 
     // Get current day in Saudi timezone (UTC+3)
     const nowUTC = new Date();
@@ -49,12 +51,18 @@ export default async function handler(req: any, res: any) {
     const todayStartUTC = saudiMidnightUTC - 3 * 60 * 60 * 1000; // Saudi midnight → UTC
     const todayEndUTC = todayStartUTC + 24 * 60 * 60 * 1000;
 
-    const executeUrl = `https://${req.headers.host}/api/tasks/execute`;
+    const publicHost = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      || process.env.VERCEL_URL
+      || (req.headers.host && !req.headers.host.includes('localhost') ? req.headers.host : null)
+      || req.headers['x-forwarded-host']
+      || req.headers.host;
+    const executeUrl = `https://${publicHost}/api/tasks/execute`;
     const nowUnixSec = Math.floor(Date.now() / 1000);
 
     // Get all users with FCM tokens
     const usersSnap = await db.collection('users').where('fcmToken', '!=', null).get();
 
+    let totalDirectLecturesSent = 0;
     let totalScheduled = 0;
     let totalUsers = 0;
 
@@ -66,10 +74,12 @@ export default async function handler(req: any, res: any) {
       totalUsers++;
       const uid = userDoc.id;
 
-      // ── 1. LECTURES ──────────────────────────────────────────────────────────
+      // ── 1. LECTURES FOR TODAY ────────────────────────────────────────────────
       const subjectsSnap = await db
         .collection('users').doc(uid)
         .collection('subjects').get();
+
+      const todayLectures: Array<{ name: string; startTime: string; location?: string }> = [];
 
       for (const subDoc of subjectsSnap.docs) {
         const subject = subDoc.data();
@@ -79,36 +89,87 @@ export default async function handler(req: any, res: any) {
           if (lec.dayOfWeek !== todayDayOfWeek) continue;
           if (!lec.startTime) continue;
 
-          const [hourStr, minStr] = lec.startTime.split(':');
-          const lecHour = parseInt(hourStr, 10);
-          const lecMin = parseInt(minStr, 10);
-          if (isNaN(lecHour) || isNaN(lecMin)) continue;
-
-          // Build Saudi datetime for lecture start, then subtract 10 min, convert to UTC
-          const lecSaudiMs =
-            new Date(`${todayDateStr}T00:00:00Z`).getTime() +
-            (lecHour * 60 + lecMin) * 60 * 1000;
-          const notifyAtSaudiMs = lecSaudiMs - 10 * 60 * 1000;
-          const notifyAtUTCMs = notifyAtSaudiMs - 3 * 60 * 60 * 1000;
-          const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
-
-          if (notifyAtUnixSec <= nowUnixSec + 60) continue;
-
-          await qstash.publishJSON({
-            url: executeUrl,
-            body: {
-              fcmToken,
-              title: '\u23f0 \u0645\u062d\u0627\u0636\u0631\u0629 \u0642\u0631\u064a\u0628\u0629!',
-              body: `\uD83D\uDCDA ${subject.name} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${lec.location ? ' \uD83D\uDCCD ' + lec.location : ''} \u2022 \u0627\u0633\u062a\u0639\u062f \u0627\u0644\u0622\u0646!`,
-            },
-            notBefore: notifyAtUnixSec,
+          todayLectures.push({
+            name: subject.name || 'محاضرة',
+            startTime: lec.startTime,
+            location: lec.location,
           });
 
-          totalScheduled++;
+          // Schedule individual 10-minute warning via QStash
+          if (qstash) {
+            const [hourStr, minStr] = lec.startTime.split(':');
+            const lecHour = parseInt(hourStr, 10);
+            const lecMin = parseInt(minStr, 10);
+            if (isNaN(lecHour) || isNaN(lecMin)) continue;
+
+            const lecSaudiMs =
+              new Date(`${todayDateStr}T00:00:00Z`).getTime() +
+              (lecHour * 60 + lecMin) * 60 * 1000;
+            const notifyAtSaudiMs = lecSaudiMs - 10 * 60 * 1000;
+            const notifyAtUTCMs = notifyAtSaudiMs - 3 * 60 * 60 * 1000;
+            const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
+
+            if (notifyAtUnixSec > nowUnixSec + 60) {
+              const deduplicationId = `lec-${subDoc.id}-${todayDayOfWeek}-${todayDateStr}-${lec.startTime}`;
+              try {
+                await qstash.publishJSON({
+                  url: executeUrl,
+                  body: {
+                    fcmToken,
+                    title: '⏰ محاضرة قريبة!',
+                    body: `📚 ${subject.name} بعد 10 دقائق${lec.location ? ' 📍 ' + lec.location : ''} • استعد الآن!`,
+                  },
+                  notBefore: notifyAtUnixSec,
+                  headers: {
+                    'Upstash-Deduplication-Id': deduplicationId,
+                  },
+                });
+                totalScheduled++;
+              } catch (qErr) {
+                console.warn('[cron.ts] QStash schedule warning for lecture:', qErr);
+              }
+            }
+          }
         }
       }
 
-      // ── 2. CALENDAR EVENTS ───────────────────────────────────────────────────
+      // ── DIRECT MORNING LECTURES NOTIFICATION (Guaranteed Delivery like tasks) ──
+      // Send a direct morning notification summarizing all today's lectures
+      if (todayLectures.length > 0) {
+        todayLectures.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        const count = todayLectures.length;
+        const summary = todayLectures.map(l => `${l.name} (${l.startTime})`).join(' • ');
+        const dayName = DAY_NAMES[todayDayOfWeek];
+
+        try {
+          await messaging.send({
+            token: fcmToken,
+            notification: {
+              title: `📚 جدول محاضرات اليوم (${dayName}) 🎓`,
+              body: `لديك ${count} ${count === 1 ? 'محاضرة' : 'محاضرات'} اليوم: ${summary} ⏰`,
+            },
+            data: {
+              title: `📚 جدول محاضرات اليوم (${dayName}) 🎓`,
+              body: `لديك ${count} ${count === 1 ? 'محاضرة' : 'محاضرات'} اليوم: ${summary} ⏰`,
+            },
+            webpush: {
+              headers: { Urgency: 'high' },
+              notification: {
+                title: `📚 جدول محاضرات اليوم (${dayName}) 🎓`,
+                body: `لديك ${count} ${count === 1 ? 'محاضرة' : 'محاضرات'} اليوم: ${summary} ⏰`,
+                icon: '/icon-v2-192.png',
+                badge: '/icon-v2-192.png',
+              },
+            },
+          });
+          totalDirectLecturesSent++;
+          console.log(`[cron.ts] Sent direct morning lecture overview to user ${uid}`);
+        } catch (fcmErr) {
+          console.error(`[cron.ts] Failed to send direct morning lectures notification to user ${uid}:`, fcmErr);
+        }
+      }
+
+      // ── 2. CALENDAR EVENTS FOR TODAY ─────────────────────────────────────────
       const eventsSnap = await db
         .collection('users').doc(uid)
         .collection('events')
@@ -125,28 +186,33 @@ export default async function handler(req: any, res: any) {
 
         if (notifyAtUnixSec <= nowUnixSec + 60) continue;
 
-        const deduplicationId = `event-${evDoc.id}-${todayDateStr}`;
-
-        await qstash.publishJSON({
-          url: executeUrl,
-          body: {
-            fcmToken,
-            title: '\uD83D\uDCC5 \u062d\u062f\u062b \u0642\u0631\u064a\u0628!',
-            body: `\u23f0 ${ev.title} \u0628\u0639\u062f 10 \u062f\u0642\u0627\u0626\u0642${ev.location ? ' \uD83D\uDCCD ' + ev.location : ''} \u2022 \u0644\u0627 \u062a\u0641\u0648\u062a\u0643!`,
-          },
-          notBefore: notifyAtUnixSec,
-          headers: {
-            'Upstash-Deduplication-Id': deduplicationId,
-          },
-        });
-
-        totalScheduled++;
+        if (qstash) {
+          const deduplicationId = `event-${evDoc.id}-${todayDateStr}`;
+          try {
+            await qstash.publishJSON({
+              url: executeUrl,
+              body: {
+                fcmToken,
+                title: '📅 حدث قريب!',
+                body: `⏰ ${ev.title} بعد 10 دقائق${ev.location ? ' 📍 ' + ev.location : ''} • لا تفوتك!`,
+              },
+              notBefore: notifyAtUnixSec,
+              headers: {
+                'Upstash-Deduplication-Id': deduplicationId,
+              },
+            });
+            totalScheduled++;
+          } catch (qErr) {
+            console.warn('[cron.ts] QStash schedule warning for event:', qErr);
+          }
+        }
       }
     }
 
     return res.status(200).json({
       success: true,
       usersProcessed: totalUsers,
+      directMorningLecturesSent: totalDirectLecturesSent,
       totalNotificationsScheduled: totalScheduled,
       day: DAY_NAMES[todayDayOfWeek],
     });
