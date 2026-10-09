@@ -3,7 +3,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useDataStore } from '../../store/dataStore'
 import React, { useState } from 'react'
 import {
-  BookOpen, Calendar, CheckSquare, AlertCircle,
+  BookOpen, Calendar, CheckSquare, Check, AlertCircle,
   Clock, MapPin, ChevronRight, Plus, Sparkles,
   TrendingUp, Target, Coffee
 } from 'lucide-react'
@@ -334,10 +334,14 @@ export default function HomeScreen() {
                         })
                       } catch {}
                     }}
-                    className="w-5 h-5 rounded-md border-2 border-surface-border hover:border-accent-green hover:bg-accent-green/10 flex items-center justify-center transition-colors flex-shrink-0"
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 shadow-sm ${
+                      task.completed
+                        ? 'bg-accent-green border-accent-green text-white'
+                        : 'border-text-muted/60 bg-surface-elevated hover:border-accent-green hover:bg-accent-green/15'
+                    }`}
                     title={t('completed') || 'إكمال المهمة'}
                   >
-                    {task.completed && <CheckSquare size={13} className="text-accent-green" />}
+                    {task.completed && <Check size={12} strokeWidth={3} />}
                   </button>
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
