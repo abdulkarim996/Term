@@ -62,6 +62,23 @@ async function extractTextFromDriveFile(file: any, token: string) {
   }
 }
 
+async function fetchSupportedModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.models && Array.isArray(data.models)) {
+        return data.models
+          .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+          .map((m: any) => m.name.replace(/^models\//, ''));
+      }
+    }
+  } catch (err) {
+    console.warn("Error fetching supported models from Google:", err);
+  }
+  return [];
+}
+
 export default function AIScreen() {
   const { t } = useTranslation();
   const [input, setInput] = useState('')
@@ -71,7 +88,8 @@ export default function AIScreen() {
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editingSessionTitle, setEditingSessionTitle] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
+  const [selectedModel, setSelectedModel] = useState('gemini-3.8-flash')
+  const [availableModelIds, setAvailableModelIds] = useState<string[]>([])
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [copiedId, setCopiedId] = useState<string | number | null>(null)
   
@@ -79,6 +97,25 @@ export default function AIScreen() {
 
   const { geminiApiKey } = useSettingsStore()
   const activeStudyFile = useUIStore(state => state.activeStudyFile)
+
+  useEffect(() => {
+    if (!geminiApiKey) return
+    fetchSupportedModels(geminiApiKey).then((models) => {
+      if (models && models.length > 0) {
+        setAvailableModelIds(models)
+        setSelectedModel((prev) => {
+          if (models.includes(prev)) return prev
+          const best = models.find(m => m.includes('3.8-flash')) 
+            || models.find(m => m.includes('3.6-flash')) 
+            || models.find(m => m.includes('3.5-flash-lite')) 
+            || models.find(m => m.includes('3.5-flash')) 
+            || models.find(m => m.includes('flash') && !m.includes('tts') && !m.includes('image'))
+            || models[0]
+          return best || prev
+        })
+      }
+    })
+  }, [geminiApiKey])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -208,37 +245,47 @@ export default function AIScreen() {
     { label: t('organizeTime'), icon: Sparkles },
   ]
 
-  const MODELS = [
+  const DEFAULT_MODELS = [
     { 
-      id: 'gemini-2.5-flash', 
-      label: 'Flash 2.5', 
-      badge: 'مجاني · موصى به', 
+      id: 'gemini-3.8-flash', 
+      label: 'Flash 3.8', 
+      badge: 'الأحدث · مجاني', 
       icon: Zap, 
       color: 'text-accent-yellow', 
       bg: 'bg-accent-yellow/10', 
-      desc: 'النموذج الرسمي الأسرع والمجاني بالكامل: سياق 1M توكن، يدعم الصور والملفات والمقررات' 
+      desc: 'النموذج الرسمي الأحدث والأقوى من فئة Flash، ذكاء متقدم وسياق 1M توكن مجاناً 100%' 
     },
     { 
-      id: 'gemini-2.5-flash-lite', 
+      id: 'gemini-3.5-flash-lite', 
       label: 'Flash Lite', 
       badge: 'فوري وخفيف', 
       icon: Sparkles, 
       color: 'text-accent-green', 
       bg: 'bg-accent-green/10', 
-      desc: 'فائق السرعة للمحادثات الخفيفة والردود اللحظية بحصص مجانية عالية' 
+      desc: 'فائق السرعة والخفة للمحادثات السريعة والردود اللحظية بحصص مجانية عالية' 
     },
     { 
-      id: 'gemini-1.5-pro', 
-      label: 'Pro 1.5', 
-      badge: 'يتطلب بطاقة', 
+      id: 'gemini-3.5-flash', 
+      label: 'Flash 3.5', 
+      badge: 'مستقر ومتزن', 
       icon: Brain, 
-      color: 'text-accent-purple', 
-      bg: 'bg-accent-purple/10', 
-      desc: 'للتحليلات والحلول العميقة المعقدة (يتطلب تفعيل الفوترة في Google AI Studio)' 
+      color: 'text-accent-blue', 
+      bg: 'bg-accent-blue/10', 
+      desc: 'نموذج مستقر ومتكامل لكافة مهام المذاكرة والمقررات اليومية' 
     }
   ]
 
-  const currentModel = MODELS.find((m) => m.id === selectedModel) || MODELS[0]
+  const MODELS = DEFAULT_MODELS
+
+  const currentModel = MODELS.find((m) => m.id === selectedModel) || {
+    id: selectedModel,
+    label: selectedModel.replace('gemini-', '').replace('-preview', ''),
+    badge: 'نشط',
+    icon: Zap,
+    color: 'text-accent-yellow',
+    bg: 'bg-accent-yellow/10',
+    desc: 'نموذج نشط ومعتمد من Google AI Studio'
+  }
 
   
   const clearChat = async () => {
@@ -446,40 +493,48 @@ export default function AIScreen() {
         return generated
       }
     
+      let verifiedList = availableModelIds.length > 0 
+        ? availableModelIds 
+        : await fetchSupportedModels(geminiApiKey)
+      
+      let candidateModel = selectedModel
+      if (verifiedList.length > 0 && !verifiedList.includes(candidateModel)) {
+        const found = verifiedList.find(m => m.includes('3.8-flash'))
+          || verifiedList.find(m => m.includes('3.6-flash'))
+          || verifiedList.find(m => m.includes('3.5-flash-lite'))
+          || verifiedList.find(m => m.includes('3.5-flash'))
+          || verifiedList.find(m => m.includes('flash') && !m.includes('tts') && !m.includes('image'))
+          || verifiedList[0]
+        if (found) {
+          candidateModel = found
+          setSelectedModel(found)
+        }
+      }
+
       let fullText = ''
       try {
-        fullText = await generateAttempt(currentModelId, imageToSend)
+        fullText = await generateAttempt(candidateModel, imageToSend)
       } catch (err: any) {
-        const errMsg = err?.message || String(err)
-        console.warn("AI generation attempt error:", errMsg)
-
-        const isQuotaOrUnavail = 
-          errMsg.includes('429') || 
-          errMsg.includes('Resource has been exhausted') ||
-          errMsg.includes('limit: 0') ||
-          errMsg.includes('404') ||
-          errMsg.includes('not found') ||
-          errMsg.includes('Quota exceeded')
-
-        if (isQuotaOrUnavail && currentModelId !== 'gemini-2.5-flash') {
-          setStreamingMessage('⚠️ النموذج المحدد غير متاح في الخطة المجانية لمفتاحك. جاري التبديل التلقائي إلى Flash 2.5 المجاني...')
+        console.warn(`Attempt with ${candidateModel} failed, checking fallbacks:`, err)
+        
+        // Try other verified flash models if candidateModel fails
+        const fallbackCandidates = (verifiedList.length > 0 ? verifiedList : ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'])
+          .filter(m => m !== candidateModel && m.includes('flash') && !m.includes('tts') && !m.includes('image'))
+        
+        let recovered = false
+        for (const fbModel of fallbackCandidates.slice(0, 3)) {
           try {
-            fullText = await generateAttempt('gemini-2.5-flash', imageToSend)
-          } catch (fbErr: any) {
-            console.warn("Fallback to gemini-2.0-flash / gemini-1.5-flash:", fbErr)
-            try {
-              fullText = await generateAttempt('gemini-2.0-flash', imageToSend)
-            } catch {
-              fullText = await generateAttempt('gemini-1.5-flash', imageToSend)
-            }
+            setStreamingMessage(`جاري التبديل التلقائي إلى نموذج ${fbModel}...`)
+            fullText = await generateAttempt(fbModel, imageToSend)
+            setSelectedModel(fbModel)
+            recovered = true
+            break
+          } catch (fbErr) {
+            console.warn(`Fallback ${fbModel} failed:`, fbErr)
           }
-        } else if (isQuotaOrUnavail) {
-          try {
-            fullText = await generateAttempt('gemini-2.0-flash', imageToSend)
-          } catch {
-            fullText = await generateAttempt('gemini-1.5-flash', imageToSend)
-          }
-        } else {
+        }
+
+        if (!recovered) {
           throw err
         }
       }
@@ -492,9 +547,20 @@ export default function AIScreen() {
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
+      let notice = ''
+      if (msg.includes('429') || msg.includes('Quota exceeded') || msg.includes('Resource has been exhausted')) {
+        notice = '⚠️ تم تجاوز حد الطلبات المؤقت لهذا النموذج في Google AI Studio. يرجى الانتظار دقيقة واحدة أو اختيار نموذج آخر.'
+      } else if (msg.includes('404') || msg.includes('not found')) {
+        notice = '⚠️ النموذج المحدد غير مدعوم على هذا المفتاح حالياً. تم فحص وتحديث قائمة النماذج في حسابك، يرجى إعادة المحاولة الآن.'
+      } else if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+        notice = '⚠️ مفتاح API غير صالح. يرجى التأكد من نسخه بشكل صحيح من موقع Google AI Studio في صفحة الإعدادات.'
+      } else {
+        notice = `⚠️ حدث خطأ أثناء الاتصال بمساعد الذكاء الاصطناعي: ${msg}`
+      }
+
       await cloudAddChatMessage({
         role: 'assistant',
-        content: 'Error: ' + msg,
+        content: notice,
         timestamp: Date.now(),
         sessionId: currentSessionId
       })
