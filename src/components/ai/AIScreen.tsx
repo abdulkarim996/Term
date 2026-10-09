@@ -822,7 +822,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                   className="fixed inset-0 z-[80]" 
                   onClick={() => setShowModelPicker(false)} 
                 />
-                <div className={`absolute top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 ${language === 'ar' ? 'left-0 sm:left-2' : 'right-0 sm:right-2'}`}>
+                <div className={`absolute top-full mt-2 w-[270px] max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 ${language === 'ar' ? 'right-0 sm:right-1' : 'left-0 sm:left-1'}`}>
                   {MODELS.map((m) => (
                     <button
                       key={m.id}
@@ -1075,19 +1075,6 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Context indicator bar */}
-      <div className="px-4 py-1.5 border-t border-surface-border/50 flex items-center justify-between text-[10px] text-text-muted flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <span>{t('context')}:</span>
-          <span className="text-accent-green">✓ {t('upcomingTasks')}</span>
-          <span className="text-accent-yellow">✓ {t('eventsAndExams')}</span>
-          {activeStudyFile && <span className="text-accent-blue font-medium">✓ {activeStudyFile.name}</span>}
-        </div>
-        <div className="text-text-muted text-[9px] opacity-70">
-          {t('pasteImageSupport')}
-        </div>
-      </div>
-
       {/* Input */}
       <div className="px-4 pb-3 pt-2 border-t border-surface-border flex-shrink-0">
         {/* Attached Image Preview */}
@@ -1148,7 +1135,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                   sendMessage()
                 }
               }}
-              placeholder={attachedImage ? 'اكتب سؤالك أو اطلب شرح الصورة...' : (t('askAi') + '...')}
+              placeholder={attachedImage ? (language === 'ar' ? 'اكتب سؤالك أو اطلب شرح الصورة...' : 'Ask question or explain image...') : (language === 'ar' ? 'اسأل المساعد الذكي... (يدعم لصق الصور Ctrl+V)' : 'Ask AI Assistant... (supports Ctrl+V images)')}
               className="w-full bg-surface-elevated border border-surface-border rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:border-accent-blue/50 transition-all"
               style={{ minHeight: '44px', maxHeight: '120px' }}
               disabled={loading}
