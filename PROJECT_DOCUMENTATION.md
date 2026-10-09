@@ -1,9 +1,11 @@
 # Term (Student Dashboard) — Comprehensive System Documentation
-**Version:** 2.0.1  
+**Version:** 2.1.0  
 **Author / Engineering Lead:** Abdulkarim Alfallaj  
-**Last Updated:** September 2026  
+**Last Updated:** October 2026  
 **Repository:** `abdulkarim996/Term`  
-**Production URL:** [term-ecru.vercel.app](https://term-ecru.vercel.app)
+**Production URLs:** 
+- [term-app.web.app](https://term-app.web.app) (Firebase Production Hosting)
+- [term-ecru.vercel.app](https://term-ecru.vercel.app) (Vercel Serverless Backend & Hosting)
 
 ---
 
@@ -15,18 +17,21 @@
 5. [Architecture & Directory Structure](#5-architecture--directory-structure)
 6. [Granular Features & Modules Breakdown](#6-granular-features--modules-breakdown)
    - 6.1 [Authentication & PIN Gate](#61-authentication--pin-gate)
-   - 6.2 [Home Screen](#62-home-screen)
+   - 6.2 [Home Screen & Daily Progress](#62-home-screen--daily-progress)
    - 6.3 [Academic Calendar & TimeGrid](#63-academic-calendar--timegrid)
    - 6.4 [Tasks & Academic Deliverables](#64-tasks--academic-deliverables)
    - 6.5 [Cloud Storage & Google Drive Integration](#65-cloud-storage--google-drive-integration)
-   - 6.6 [Study Room (Whiteboard, File Annotator & Pomodoro)](#66-study-room-whiteboard-file-annotator--pomodoro)
-   - 6.7 [Context-Aware AI Assistant (Gemini)](#67-context-aware-ai-assistant-gemini)
-   - 6.8 [More & Preferences (v2.0.1 Refinement)](#68-more--preferences-v201-refinement)
+   - 6.6 [Study Room (Whiteboard, File Annotator & Scalable Calculator)](#66-study-room-whiteboard-file-annotator--scalable-calculator)
+   - 6.7 [Context-Aware AI Assistant (Dynamic Models & Vision)](#67-context-aware-ai-assistant-dynamic-models--vision)
+   - 6.8 [More & Preferences](#68-more--preferences)
+   - 6.9 [Luxury GPA Hub & Academic Analytics](#69-luxury-gpa-hub--academic-analytics)
+   - 6.10 [Super Admin Command Center](#610-super-admin-command-center)
 7. [Backend Logic & Infrastructure](#7-backend-logic--infrastructure)
    - 7.1 [Notification Engine Architecture](#71-notification-engine-architecture)
    - 7.2 [Vercel Cron Automation](#72-vercel-cron-automation)
    - 7.3 [On-Demand Same-Day Scheduling Pipeline](#73-on-demand-same-day-scheduling-pipeline)
    - 7.4 [Deduplication & Timezone Safeguards](#74-deduplication--timezone-safeguards)
+   - 7.5 [Smart Lecture Validity Check & Webhook Verification](#75-smart-lecture-validity-check--webhook-verification)
 8. [Data Models & State Management](#8-data-models--state-management)
    - 8.1 [Firestore Database Schema](#81-firestore-database-schema)
    - 8.2 [Global Client State (Zustand Stores)](#82-global-client-state-zustand-stores)
@@ -42,13 +47,21 @@ University students face extreme fragmentation across their daily academic tools
 2. **Class Timetables:** Memorizing rotating weekly lectures, finding lecture room numbers, and navigating schedule gaps.
 3. **Deadlines & Deliverables:** Tracking assignments, project milestones, and upcoming midterm/final exams across diverse courses.
 4. **Course Materials & Notes:** Viewing syllabus documents, annotating lecture slides (PDFs), and sketching technical diagrams.
-5. **Study Focus:** Managing study sessions without phone distractions using Pomodoro intervals.
-6. **Academic Inquiries:** Searching through files and deadlines to determine what to study next.
+5. **Study Focus & Math Tools:** Managing study sessions without phone distractions, needing scientific calculators for engineering and science problem sets.
+6. **Academic Inquiries & Academic Standing:** Wondering what to study, asking AI questions about slides, and calculating how semester grades impact graduation GPA and Honours standing.
 
-Traditional apps provide point solutions (a generic calendar app, a todo list app, a separate PDF reader, a standalone Pomodoro timer). This fragmentation causes missed deadlines, forgotten lecture halls, and lost academic productivity.
+Traditional apps provide point solutions (a generic calendar app, a todo list app, a separate PDF reader, a standalone Pomodoro timer, a physical calculator). This fragmentation causes missed deadlines, forgotten lecture halls, and lost academic productivity.
 
-### 1.2 The Solution: "Term"
-**Term** is an integrated, progressive web operating system built specifically for university students. It combines timetable automation, task and exam tracking, native cloud document annotation, an Excalidraw whiteboarding canvas, audio-synthesized Pomodoro timers, and an AI copilot that possesses full contextual awareness of the student's enrolled subjects, pending assignments, and uploaded files.
+### 1.2 The Solution: "Term" (v2.1.0)
+**Term** is an integrated, progressive web operating system built specifically for university students. It combines:
+- Timetable automation with smart lecture push notifications.
+- Task, exam, and deliverable tracking with real-time completion progress.
+- Native cloud document annotation and an Excalidraw whiteboarding canvas.
+- An interactive, resizable study workspace with an integrated, freely scalable scientific calculator.
+- A high-capacity slide deck reader capable of processing 180+ slide PDFs with targeted page extraction.
+- A multimodal Google Gemini AI assistant with dynamic model discovery, vision support, and study file awareness.
+- A luxury GPA Hub with historical trend graphs, what-if simulators, and target GPA goal solvers.
+- An executive Super Admin Command Center with live presence tracking, broadcast announcements, emergency moderation, and iOS push dispatching.
 
 ### 1.3 Target Audience
 - University and college students (tailored specifically for Saudi universities such as Northern Border University - NBU, while being fully adaptable globally).
@@ -86,23 +99,30 @@ Term is engineered around an immersive, low-strain dark palette designed for lat
 2. **Physics-Driven Pull-to-Refresh:** Custom touch hook (`usePullToRefresh`) monitoring `touchstart`, `touchmove`, and `touchend`. Includes dynamic rotation based on pull distance, a spinning loader at peak resistance, and automatic page reload followed by a success toast.
 3. **Adaptive Bottom Navigation Bar:** Pinned to the screen bottom with viewport safe-area padding (`env(safe-area-inset-bottom)`), active glowing pill markers, and backdrop blur (`backdrop-blur-xl`).
 4. **Native Input Pickers:** Clean native browser pickers (`<input type="time">` and `<input type="datetime-local">`) with forced `[color-scheme:dark]` for fluid OS-native picker sheets on iOS and Android.
+5. **Interactive Drag Handles & Resizers:** 60fps divider handles with touch and mouse tracking, smart RTL/LTR directional delta inversion, and `localStorage` persistence.
 
 ---
 
 ## 3. Project Overview & Evolution (Git History Analysis)
 
-The project evolved through 38 distinct engineering milestones, transitioning from an initial prototype to a hardened, event-driven academic system:
+The project evolved from an initial prototype into a hardened, production-grade academic operating system:
 
 | Commit | Date | Milestone Description |
 |---|---|---|
 | `386ded3` – `1f3be1b` | 2026-08-30 | Initial project initialization, Vercel serverless configuration, and secure environment setup. |
 | `e99aa75` – `8cb55dd` | 2026-08-30 | Integration of university dynamic shortcuts (Banner/Blackboard), custom touch pull-to-refresh UX with feedback toast. |
-| `eeb4630` – `7a0d3fe` | 2026-08-30 | Architectural overhaul: migration of push notifications to Upstash QStash event-driven architecture; debugging Firebase Private Key line-break parsing and Arabic UTF-8 payload encoding. |
-| `5e0a554` – `bcfc4ae` | 2026-09-01 | Desktop & mobile modal layout refactor: resolving viewport clipping, sticking action buttons, and implementing non-scrolling overlay backdrops. |
-| `8e223ed` – `1e6f4a5` | 2026-09-02 | Elimination of standing QStash schedule limits; implementation of the dual Vercel Cron pipeline (7:30 AM lectures & 6:00 PM task summaries). |
-| `66573d2` – `33e8982` | 2026-09-02 | Resolution of 7 major UI/UX bugs (RTL AI drawer, break label midpoint calculations, text truncation, lecturer fields, native pickers) and resolution of a JavaScript Temporal Dead Zone (TDZ) hoisting error. |
-| `a430a1d` – `bc8fd69` | 2026-09-03 | Implementation of real-time on-demand notification scheduling with QStash deduplication headers for lectures and calendar events added after morning cron execution. |
-| `fdac305` – `e1da832` | 2026-09-03 | **Version 2.0.1 Release:** Removal of deprecated Smart Scheduling, consolidation of API keys inside Preferences, standalone destructive Logout button, iOS-style Segmented Controls, and clean URL inputs. |
+| `eeb4630` – `7a0d3fe` | 2026-08-30 | Migration of push notifications to Upstash QStash; resolved Firebase Private Key newline formatting and Arabic UTF-8 encoding. |
+| `5e0a554` – `bcfc4ae` | 2026-09-01 | Desktop & mobile modal layout refactor: resolved viewport clipping, sticky action buttons, non-scrolling backdrops. |
+| `8e223ed` – `1e6f4a5` | 2026-09-02 | Dual Vercel Cron pipeline (7:30 AM lectures & 6:00 PM task summaries) eliminating standing QStash schedule limits. |
+| `66573d2` – `33e8982` | 2026-09-02 | Resolution of UI/UX bugs (RTL AI drawer, break label midpoint calculations, text truncation) and JavaScript TDZ hoisting error. |
+| `a430a1d` – `bc8fd69` | 2026-09-03 | Real-time on-demand notification scheduling with QStash deduplication headers for same-day schedule updates. |
+| `fdac305` – `e1da832` | 2026-09-03 | **v2.0.1 Release:** Preferences consolidation, API keys inside Settings, destructive Logout, iOS Segmented Controls. |
+| `8d454c3` – `89c3a57` | 2026-10-07 | Direct morning lecture push notifications via Firebase Admin, robust QStash webhook URL verification, desktop mouse wheel slide scrolling with callback ref and transformRef. |
+| `891d31b` – `23798a3` | 2026-10-08 | Daily task progress bar calculation fixes, circular tactile checkboxes with instant completion, smart lecture validity check (auto-suppressing stale/rescheduled notifications). |
+| `9f261d6` – `1b7aed2` | 2026-10-08 | **v2.0.5 — Luxury GPA Hub:** Interactive GPA trend chart, real-time GPA Simulator, Target GPA Goal Solver, Honours Class estimation, Home widget, and bilingual localization. |
+| `1832a33` – `eb20557` | 2026-10-09 | **v2.0.8 — Super Admin Command Center:** Online presence tracker, kick/ban enforcer, Emergency Kick All, Maintenance mode, 20s auto-dismiss announcement banner, iOS push dispatcher. |
+| `24af2c9` – `adae65a` | 2026-10-09 | **AI Assistant Revolution:** Dynamic Google API model discovery (Gemini 2.5 / 1.5 Flash), multimodal vision image upload & Ctrl+V clipboard paste, active study doc awareness, 180-page slide deck extractor, smart outline generator, stop streaming controls. |
+| `16eeca4` | 2026-10-10 | **v2.1.0 Release — Interactive Resizable Workspace:** Drag-to-resize AI sidebar with Compact/Standard/Wide presets, freely scalable scientific calculator widget (65%-135%) with corner resize and localStorage persistence. |
 
 ---
 
@@ -110,7 +130,7 @@ The project evolved through 38 distinct engineering milestones, transitioning fr
 
 ### 4.1 Core Frameworks & Build Tools
 - **React 19 (`^19.1.0`):** Modern component architecture utilizing hooks, concurrent features, and performance optimizations.
-- **Vite 6 (`^6.3.5`):** Ultra-fast Hot Module Replacement (HMR) and optimized rollup production bundles.
+- **Vite 6 (`^6.4.3`):** Ultra-fast Hot Module Replacement (HMR) and optimized rollup production bundles.
 - **TypeScript (`~5.8.3`):** Strict static typing across models, API contracts, and components.
 - **Tailwind CSS (`^3.4.17`):** Utility-first styling with custom CSS variables, keyframe animations, and dark mode class strategy.
 
@@ -119,15 +139,18 @@ The project evolved through 38 distinct engineering milestones, transitioning fr
   - `firebase/auth`: Google OAuth2 authentication with persistent local browser session storage (`browserLocalPersistence`).
   - `firebase/firestore`: Multi-tab persistent caching (`persistentLocalCache` with `persistentMultipleTabManager`) enabling instant local reads and offline resilience.
   - `firebase/messaging`: Push notification registration and FCM token generation.
-- **Firebase Admin SDK (`^14.3.0`):** Executed inside Vercel Serverless Functions to securely query Firestore and dispatch FCM push messages.
-- **Upstash QStash (`^2.11.3`):** Serverless, HTTP-based message broker used for delay scheduling (`notBefore`) and deduplication (`Upstash-Deduplication-Id`).
+- **Firebase Hosting:** Fast edge hosting served at `https://term-app.web.app`.
+- **Firebase Admin SDK (`^14.3.0`):** Executed inside Vercel Serverless Functions to query Firestore and dispatch Web Push messages.
+- **Upstash QStash (`^2.11.3`):** Serverless, HTTP-based message broker used for delay scheduling (`notBefore`), deduplication (`Upstash-Deduplication-Id`), and signed webhooks.
 - **Vercel Serverless & Cron:** Cloud hosting executing automatic cron triggers at `04:30 UTC` (7:30 AM KSA) and `15:00 UTC` (6:00 PM KSA).
 
 ### 4.3 Specialty Academic & Media Libraries
 - **`@excalidraw/excalidraw` (`^0.18.1`):** Vector whiteboard embedded inside the Study Room supporting hand-drawn diagrams, shapes, text, and local persistence.
 - **`react-pdf` (`^10.5.0`) & `pdfjs-dist` (`^5.4.296`):** Client-side PDF rendering powered by a dedicated web worker (`/pdf.worker.min.mjs`).
 - **`pdf-lib` (`^1.17.1`):** Programmatic PDF mutation engine used to bake freehand strokes, highlights, geometric shapes, and text directly into PDF bytes for re-saving to Google Drive.
-- **`@google/generative-ai` (`^0.24.1`):** Google Gemini SDK providing streaming natural language responses based on injected student context.
+- **`@google/generative-ai` (`^0.24.1`):** Google Gemini SDK providing streaming natural language responses and multimodal vision evaluation.
+- **`react-rnd` (`^10.5.3`):** Resizable, draggable floating window container for the floating scientific calculator.
+- **`nerdamer` (`^1.1.13`):** Symbolic algebra and mathematical equation evaluator.
 - **`xlsx` (`^0.18.5`):** Parses student timetable spreadsheets (.xlsx) into structured lecture schedules.
 - **`zustand` (`^5.0.5`):** Ultra-lightweight reactive client-side store with JSON storage persistence.
 - **`lucide-react` (`^0.511.0`):** Consistent vector iconography.
@@ -143,8 +166,9 @@ StudentDashBoard/
 │   ├── cron-tasks.ts                   # Daily 6:00 PM Cron: Dispatches tomorrow's task reminders
 │   ├── schedule-today-lecture.ts       # On-Demand: Schedules same-day lecture additions/edits
 │   ├── schedule-today-event.ts         # On-Demand: Schedules same-day event additions/edits
+│   ├── send-push.ts                    # Push Dispatcher: Manual / Admin push notification sender
 │   └── tasks/
-│       ├── execute.ts                  # QStash Webhook: Sends FCM push notifications
+│       ├── execute.ts                  # QStash Webhook: Sends FCM push notifications with validity check
 │       ├── schedule.ts                 # QStash Publisher: Schedules delayed messages
 │       └── cancel.ts                   # QStash Deleter: Cancels scheduled messages
 ├── public/                             # Static Web Assets & Workers
@@ -154,23 +178,27 @@ StudentDashBoard/
 │   └── apple-touch-icon-v2.png         # iOS Home Screen App Icons
 ├── src/                                # Client Application Source Code
 │   ├── components/
-│   │   ├── ai/                         # Gemini AI Assistant Screen & Model Selectors
+│   │   ├── admin/                      # Super Admin Command Center (kromsa2006@gmail.com)
+│   │   ├── ai/                         # Gemini AI Assistant (Multimodal, Dynamic Models, Outlines)
 │   │   ├── auth/                       # Google Sign-in & Security PIN Gate
 │   │   ├── calendar/                   # TimeGrid, Add/Edit Event Modals, Excel Importer
-│   │   ├── home/                       # Dashboard Overview, Progress Bar, Quick Links
+│   │   ├── gpa/                        # Luxury GPA Hub, Simulator, Goal Solver, Trend Chart
+│   │   ├── home/                       # Dashboard Overview, Progress Bar, GPA Widget, Quick Links
 │   │   ├── layout/                     # Bottom Navigation Bar
 │   │   ├── more/                       # Settings, Subjects Management, Segmented Controls
-│   │   ├── storage/                    # Google Drive File Explorer & Sync
-│   │   ├── study/                      # Study Room: Excalidraw, FileAnnotator, MiniTimer
+│   │   ├── storage/                    # Google Drive File Explorer & Quick Review Action
+│   │   ├── study/                      # Study Room: Resizable Workspace, Scalable Calculator, FileAnnotator
 │   │   ├── tasks/                      # Deliverables, Priority Filters, Add Task/Subject
-│   │   └── ui/                         # Modal, CustomPickers, Toast, UpdatePrompt
+│   │   └── ui/                         # Modal, CustomPickers, Toast, UpdatePrompt, BroadcastBanner
 │   ├── hooks/                          # Custom React Hooks (useTranslation, usePullToRefresh)
 │   ├── lib/                            # Infrastructure Utilities (Firebase, Firestore, QStash, Utils)
 │   ├── locales/                        # Internationalization Dictionaries (Arabic & English)
 │   ├── store/                          # Zustand State Stores (UIStore, SettingsStore, DataStore, TimerStore)
-│   ├── App.tsx                         # Root Application Controller & Realtime Sync Listeners
+│   ├── App.tsx                         # Root Application Controller, Realtime Sync, Online Presence
 │   ├── index.css                       # Global Tailwind Directives & CSS Variable Design Tokens
 │   └── main.tsx                        # React DOM Entrypoint
+├── firebase.json                       # Firebase Hosting Configuration (term-app.web.app)
+├── firestore.rules                     # Cloud Firestore Security Rules (Super Admin & User Isolation)
 ├── vercel.json                         # Vercel Cron Scheduling Specifications
 ├── tailwind.config.js                  # Tailwind Theme Configuration
 └── package.json                        # Project Metadata & Dependencies
@@ -182,21 +210,22 @@ StudentDashBoard/
 
 ### 6.1 Authentication & PIN Gate (`src/components/auth/`)
 - **Google OAuth2 Flow:** Handled via `signInWithPopup(auth, googleProvider)`. Persists authenticated credentials in browser local storage.
-- **PIN Security Verification:** Upon initial login, `PinSetup.tsx` prompts the student to create a 4-digit numeric PIN. The PIN is hashed using a SHA-256 equivalent and stored in Firestore under `users/{uid}/settings/security`. On subsequent launches or sensitive actions, the user is locked out until the correct PIN is provided.
+- **PIN Security Verification:** Upon initial login, `PinSetup.tsx` prompts the student to create a 4-digit numeric PIN. The PIN is hashed using SHA-256 and stored in Firestore under `users/{uid}/settings/security`. On subsequent launches or sensitive actions, the user is locked out until the correct PIN is provided.
+- **Super Admin Privilege Escalation:** When authenticated as `kromsa2006@gmail.com`, the user is automatically granted Super Admin credentials, rendering the Admin Control Center icon and bypassing standard user restrictions.
 
-### 6.2 Home Screen (`src/components/home/HomeScreen.tsx`)
-1. **Dynamic Academic Greeting:** Context-aware time greeting ("Good Morning" / "Good Evening" / "Good Night") paired with user name and waving animation.
+### 6.2 Home Screen & Daily Progress (`src/components/home/HomeScreen.tsx`)
+1. **Dynamic Academic Greeting:** Context-aware time greeting ("Good Morning" / "Good Evening") paired with user name and waving animation.
 2. **Current Date Display:** Gregorian date localized into Arabic (`ar-SA`) or English (`en-US`).
-3. **Academic Summary Counter:** Real-time badges indicating how many lectures occur today and how many tasks are due.
-4. **Quick Portal Shortcuts:** Customizable university links (defaulting to Northern Border University Banner and Blackboard) opening in external secure tabs.
-5. **Daily Progress Tracker:** Visual percentage bar showing `(Completed Tasks / Total Tasks) * 100` alongside counters for completed items, remaining tasks, and today's lectures.
-6. **Today's Lecture Stream:**
+3. **Daily Task Progress Bar:** Real-time percentage indicator computed accurately via:
+   $$\text{Progress} = \frac{\text{Completed Tasks Today}}{\text{Total Tasks Today}} \times 100$$
+4. **Tactile Task Checkboxes:** Round, high-visibility checkboxes with hover states allowing instant one-tap completion of tasks directly from the home feed.
+5. **Today's Lecture Stream:**
    - Filters subjects to dynamically extract lectures scheduled for the current day of the week.
    - Calculates lecture start/end times and highlights the currently active lecture with a pulsating green `Now` badge.
    - Displays hall/room location, subject code, and assigned course color.
-7. **Urgent Deliverables Card:** Lists the top 4 pending tasks sorted by closest due date with relative timing ("Today", "Tomorrow", "After X days").
+6. **Luxury GPA Summary Card:** Shows the student's cumulative GPA (e.g. `4.82 / 5.00`), honours tier badge, and a direct button to open the full GPA Hub modal.
+7. **Urgent Deliverables Card:** Lists top 4 pending tasks sorted by closest due date with relative timing ("Today", "Tomorrow").
 8. **Upcoming Exams Banner:** Countdown timer highlighting the next 2 major exams with days-remaining calculation.
-9. **Quick AI Prompt:** One-tap navigation card directing straight into the AI Assistant.
 
 ### 6.3 Academic Calendar & TimeGrid (`src/components/calendar/`)
 1. **View Modes:** Toggle between **Day**, **Week**, and **Month** view.
@@ -204,8 +233,8 @@ StudentDashBoard/
 3. **Interactive TimeGrid Component (`TimeGrid.tsx`):**
    - Renders a 6:00 AM to 12:00 AM (midnight) continuous time axis (60px per hour).
    - **Real-time Red Line:** An absolute indicator showing the exact current minute of the day with an animated pulse marker.
-   - **Collision Detection & Multi-column Layout:** Detects concurrent lectures/events and dynamically allocates percentage widths (`width = 100% / concurrentCount`) and offset positions (`left = colIdx * width`).
-   - **Gap & Break Duration Computation:** Analyzes empty intervals between consecutive lectures. If a gap exists, it computes the exact duration (e.g., "Break 1h 30m") and positions the label precisely at the **vertical midpoint of the gap** at `z-[5]`, completely avoiding event card overlap.
+   - **Collision Detection & Multi-column Layout:** Detects concurrent lectures/events and dynamically allocates percentage widths and offset positions.
+   - **Gap & Break Duration Computation:** Analyzes empty intervals between consecutive lectures, computing the exact duration (e.g., "Break 1h 30m") and positioning the label at the vertical midpoint.
 4. **Add/Edit Event Modals:** Full support for single-instance events, recurring days, exam classification, locations, and descriptions.
 
 ### 6.4 Tasks & Academic Deliverables (`src/components/tasks/`)
@@ -216,74 +245,116 @@ StudentDashBoard/
 5. **Add/Edit Subject Management:** Add courses with credit hours, course code, instructor name, custom color picker, and multiple weekly lecture timeslots.
 
 ### 6.5 Cloud Storage & Google Drive Integration (`src/components/storage/`)
-1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`). 
-   - *Note on Auth Configuration & Vercel Routing:* The app utilizes a frontend-only OAuth flow via a dedicated `/oauth-callback` route. This requires two critical infrastructure rules: 1) Google Cloud Console must strictly authorize `https://<DOMAIN>/oauth-callback` in its OAuth Client "Authorized redirect URIs". 2) Vercel must be configured with a `vercel.json` rewrite rule (`"source": "/(.*)", "destination": "/index.html"`) to prevent 404 NOT FOUND errors when Google redirects back to the SPA.
+1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`).
 2. **File Explorer:** Categorizes synced academic documents into **Lectures**, **Assignments**, **Exams**, **Projects**, and **Other**.
-3. **MIME Type Detection:** Automatically displays tailored icons for PDFs, PowerPoint presentations, Word documents, images, and videos.
-4. **Metadata Viewer:** Shows file size formatted in B/KB/MB and last-modified dates.
+3. **Quick Review Action (`BookOpen`):** Added directly to each document card; clicking it immediately pushes the file into `quickReviewFile` state and transitions the active view straight to the Study Room without manual folder navigation.
+4. **MIME Type Detection & Metadata:** Formatted file size in B/KB/MB and last-modified dates.
 
 ### 6.6 Study Room (`src/components/study/`)
 
-#### A. Interactive Whiteboard (`WhiteBoard.tsx`)
-- Powered by `@excalidraw/excalidraw`.
-- Infinite drawing canvas supporting shapes, lines, arrows, freehand drawings, sticky notes, and text.
-- Fully synchronized with browser local storage (`excalidraw_data`) on every change.
-- Includes integrated `MiniTimer` for focused problem-solving.
+#### A. Interactive Resizable Workspace & AI Sidebar (`StudyScreen.tsx`)
+- **Drag-to-Resize Divider Handle:** Positioned between the workspace (slides/whiteboard) and the AI sidebar.
+  - Supports both **mouse drag** and **touch drag** (iPad/tablet gestures).
+  - Automatically compensates for document direction (inverted delta for RTL Arabic vs LTR English).
+  - Smooth 60fps tracking (`transition: isDragging ? 'none' : 'width 0.3s ease'`).
+  - Limits width safely between `260px` and `70%` of viewport width.
+  - Remembers chosen width persistently in `localStorage('study_ai_sidebar_width')`.
+- **Quick Width Presets:** Toolbar buttons next to the AI toggle:
+  - **Compact / صغير:** `280px`
+  - **Standard / متوسط:** `360px`
+  - **Wide / عريض:** `520px`
 
-#### B. Native PDF File Annotator (`FileAnnotator.tsx`)
-- High-performance PDF renderer utilizing `react-pdf` with a specialized web worker.
-- **Canvas Annotation Overlay:** Allows direct drawing on top of PDF slides.
-- **Annotation Toolset:**
-  - Pen (custom color and stroke thickness)
-  - Highlighter (semi-transparent alpha blending)
-  - Eraser (object-level erasure)
-  - Geometric Shapes (Rectangles, Circles, Arrows)
-  - Text insertion with draggable placement
-  - Image insertion directly into document pages
-  - **Selection & Manipulation Engine:** Move, drag, and resize placed elements with 4 corner anchors (`nw`, `ne`, `sw`, `se`).
-  - **Full Undo/Redo Stack:** History tracking per page.
-  - **Baking & Cloud Save:** Uses `pdf-lib` to embed vector paths and text directly into the binary PDF structure, saving the annotated file back to cloud storage.
-  - **In-Context Math Capabilities:** The Advanced Scientific Calculator (`CalculatorWidget`) is directly embedded within the full-screen annotator toolbar, allowing students to seamlessly toggle the calculator and perform complex calculations without closing their lecture slides.
+#### B. Scalable Scientific Calculator Widget (`CalculatorWidget.tsx`)
+- **Interactive Scaling (65% to 135%):**
+  - **Zoom In / Zoom Out Controls:** Top-right overlay buttons to step-zoom (+15% / -15%) or tap `[100%]` to instantly reset.
+  - **Free Corner & Border Resizing (`react-rnd`):** Drag any corner (`topRight`, `bottomRight`, `bottomLeft`, `topLeft`) or horizontal edge.
+  - **Proportional Box Model:** Uses an outer scaled wrapper (`Math.round(360 * scale) × Math.round(contentHeight * scale)`) so hit-testing, mouse clicks, and drag bounds align without empty dead space.
+- **Math Engine:**
+  - Visual formula input powered by dynamic MathLive `<math-field>`.
+  - Symbolic evaluation powered by `nerdamer`.
+  - Radians / Degrees (`RAD` / `DEG`) toggle.
+  - Remembers scale persistently in `localStorage('study_calc_scale')`.
 
-#### C. Synthesized Pomodoro Timer (`MiniTimer.tsx` & `src/store/timerStore.ts`)
-- Modes: **Pomodoro** (25 min), **Short Break** (5 min), **Long Break** (15 min), and **Custom Duration**.
-- Audio Synthesizer: When the timer expires, it uses the **Web Audio API** (`AudioContext`) to generate a clean, musical chime pattern (C5 ➔ E5 ➔ G5 ➔ C6) without requiring external audio files.
+#### C. High-Capacity Slide Deck Engine (`FileViewer.tsx` / `FileAnnotator.tsx`)
+- **180+ Page Slide Support:** Expanded text extraction and rendering pipeline from 40 pages up to **180 pages** for comprehensive university slide decks.
+- **Targeted Page-Range Extraction:** Allows extracting specific slide windows (e.g., slides 40–80) to maximize token efficiency when chatting with AI.
+- **Smooth Desktop Mouse Wheel Navigation:** Replaced event capture with `callback ref` and live `transformRef` for responsive, unblocked wheel navigation between PDF pages.
+- **Direct Canvas Annotations:** Freehand drawing, highlighters, vector shapes, text stamps, selection manipulation, and undo/redo stacks.
 
-#### D. Dynamic Split-Screen Workspace (`StudyScreen.tsx`)
-- **Flexible Layout Engine:** Provides an integrated dual-pane workspace optimizing large screens and tablets. Users can toggle instantly between a focused single view and a 50/50 side-by-side split screen.
-- **Independent Context Controls:** Each pane includes its own contextual header dropdown, allowing the student to independently select and render content (e.g., placing the PDF File Viewer on the left, and the Excalidraw Whiteboard on the right).
-- **iPad & Mobile Responsive Design:** The flex layout strictly adapts to the device's viewport. On portrait iPads (width < 768px), the panes stack vertically (`md:flex-row` threshold) to maintain usability, while rotating to landscape instantly snaps them side-by-side.
-
-#### E. Advanced Scientific Calculator (`CalculatorWidget.tsx`)
-- **Visual Math Typesetting (`mathlive`):** Integrates an advanced mathematical `<math-field>` enabling visual fraction blocks, integral bounds, limits, and exponents utilizing interactive empty square placeholders (□).
-- **Symbolic Evaluation Engine (`@cortex-js/compute-engine`):** Evaluates complex arithmetic, trigonometric, and calculus inputs in real time based on active angle modes (DEG/RAD).
-- **Vercel OOM & Memory Protection:** Due to the massive AST parsing requirements of MathLive and CortexJS, these libraries cause Node.js 'Out of Memory' (OOM) crashes on Vercel's free tier during Vite builds. This is bypassed entirely via asynchronous client-side CDN dynamic imports (`https://esm.sh/mathlive`) in a `useEffect` hook, completely excluding them from the build bundle.
-- **iPad Touch Compatibility Fixes:** Engineered for flawless tablet interactions:
-  - Drag handles (`react-rnd`) utilize strict non-overlapping boundaries (`touch-action: none` applied strictly to empty header space) to prevent the draggable overlay from stealing touch events from navigational buttons.
-  - The native MathLive virtual keyboard is forcibly disabled across both element attributes (`math-virtual-keyboard-policy="manual"`) and global window policies (`window.mathVirtualKeyboard.policy = 'manual'`) to prevent iPadOS virtual keyboard collision and layout disruption.
-- **Keyboard & Touch Navigation:** Left/Right navigational arrows are explicitly bound to the math-field's internal API (`moveToPreviousChar`, `moveToNextChar`) for precise cursor control inside complex equation trees.
+#### D. Dynamic Split-Screen & Excalidraw Whiteboard
+- Dual-pane layout enabling simultaneous viewing of PDF slides alongside the Excalidraw infinite whiteboard.
+- Audio-synthesized Pomodoro timer with musical chime pattern upon session completion.
 
 ### 6.7 Context-Aware AI Assistant (`src/components/ai/AIScreen.tsx`)
-1. **Model Selection:**
-   - `gemini-3.6-flash`: Optimized for rapid queries, timetable lookups, and task breakdowns.
-   - `gemini-3.1-pro-preview`: Advanced analytical engine for complex reasoning, assignment drafting, and deep document explanation.
-2. **Dynamic Student Context Injection:** Every message sent to Gemini automatically compiles and injects the student's complete academic state:
-   - Enrolled subjects & lecture timetable
-   - Pending deliverables & upcoming exams
-   - Google Drive document titles & metadata
-3. **Streaming Responses:** Employs `ai.models.generateContentStream` for instant, token-by-token visual feedback.
-4. **Session Management:** Create new chat threads, rename discussions, delete sessions, and persist message histories in Firestore.
 
-### 6.8 More & Preferences — v2.0.1 Refinement (`src/components/more/MoreScreen.tsx`)
+1. **Dynamic Google API Model Discovery:**
+   - Auto-queries the Google Gemini API (`https://generativelanguage.googleapis.com/v1beta/models`) with the user's API key.
+   - Filters and selects compatible, high-speed models available on the user's tier.
+   - Automatically falls back to stable defaults: `gemini-2.5-flash` and `gemini-1.5-flash`.
+2. **Multimodal Vision & Clipboard Paste:**
+   - Attach image files directly or paste screenshots directly into the chat prompt via **Ctrl+V**.
+   - Encodes images to base64 inline for instant diagram, graph, and homework analysis.
+3. **Active Study Document Awareness:**
+   - Injects the text and context of the slide deck currently open in the Study Room into the system prompt.
+   - The AI knows which course and chapter you are actively reviewing without requiring manual copy-pasting.
+4. **Smart Slide Outline Generator & Navigation:**
+   - Generates clean chapter outlines and indexes from large slide decks.
+   - Provides direct page references so students can jump straight to relevant slides.
+5. **Interactive Chat Controls:**
+   - **Stop Streaming Button:** Halts token generation immediately.
+   - **One-Click Markdown Copy:** Copies the AI's explanation with LaTeX math and code blocks preserved.
+   - **Clean Context Header:** Removed cluttered context labels; replaced with a compact, responsive model selector that opens neatly to the right without clipping.
+
+### 6.8 More & Preferences (`src/components/more/MoreScreen.tsx`)
 1. **Consolidated Preferences Layout:**
    - **Segmented Control Theme Switcher:** Dual-state iOS-style toggle switching between Dark and Light mode.
    - **Segmented Control Language Switcher:** Dual-state toggle switching between English and Arabic with immediate RTL/LTR document layout updates.
-   - **Push Notifications Card:** One-tap toggle to enable/disable Web Push notifications with proper spacing (`gap-4`) and clear explanatory text.
-   - **Consolidated API Keys:** Placed neatly within an outlined card container, allowing user override of the Gemini API key.
+   - **Push Notifications Card:** One-tap toggle to enable/disable Web Push notifications.
+   - **Consolidated API Keys:** User override card for Google Gemini API keys.
    - **Quick University Links:** Custom input cards allowing students to specify custom URLs for their university's Banner and Blackboard portals.
-2. **Standalone Destructive Logout:** Positioned cleanly at the bottom of the screen above the footer branding, featuring red border styling and double-confirmation safety.
-3. **Data Export & Wipe:** One-tap export of the entire database into a structured JSON backup file, or a complete cloud wipe clearing all collections.
-4. **Branding Footer:** Permanent product credit identifying creator Abdulkarim Alfallaj with v2.0.1 version stamp.
+2. **Standalone Destructive Logout:** Red border styling with double-confirmation safety.
+3. **Data Export & Wipe:** One-tap JSON export of the entire database or complete cloud wipe.
+
+### 6.9 Luxury GPA Hub & Academic Analytics (`src/components/gpa/`)
+
+1. **Academic Analytics Engine:**
+   - Full support for Saudi university 5.00 GPA scales (and 4.00 conversions).
+   - Formula:
+     $$\text{GPA} = \frac{\sum (\text{Course Grade Points} \times \text{Credit Hours})}{\sum \text{Credit Hours}}$$
+2. **Interactive Historical Trend Chart:**
+   - Visual SVG graph plotting semester-by-semester GPA trajectory with hoverable milestones and average baseline.
+3. **Real-Time GPA Simulator ("What-If" Calculator):**
+   - Allows students to simulate different grade scenarios for enrolled courses in the current semester.
+   - Shows projected cumulative GPA before exams take place.
+4. **Target GPA Goal Solver:**
+   - Solves the required semester GPA to achieve a desired graduation target GPA:
+     $$\text{Required Semester GPA} = \frac{\text{Target Cumulative} \times (\text{Prev Hours} + \text{Curr Hours}) - (\text{Prev GPA} \times \text{Prev Hours})}{\text{Curr Hours}}$$
+   - Warns dynamically if the required GPA exceeds the maximum possible 5.00 or indicates guaranteed success.
+5. **Honours Tier Estimation:**
+   - First Class Honours ($\ge 4.75$) & Second Class Honours ($\ge 4.25$) eligibility with minimum credit hour validation.
+
+### 6.10 Super Admin Command Center (`src/components/admin/`)
+
+1. **Executive Access Control:**
+   - Reserved exclusively for `kromsa2006@gmail.com`.
+   - Enforced at both the UI router level and Cloud Firestore database rules level.
+2. **Real-Time Online Presence Tracking:**
+   - Synchronizes active user heartbeats via the `presence` collection.
+   - Displays live active student count, device platform, and last active timestamp.
+3. **Student Account Management:**
+   - Search across all registered student profiles.
+   - Inspect academic stats (enrolled subjects, total tasks, GPA configuration).
+   - **Kick Session:** Forces immediate logout on the target student's active device.
+   - **Ban Enforcer:** Toggles account suspension flags in Firestore.
+   - **Emergency Kick All:** One-click emergency command forcing all active non-admin sessions to terminate.
+4. **System Maintenance Mode:**
+   - Global toggle switching the platform into maintenance mode with a customizable explanation message.
+   - Non-admin users are locked to an informative maintenance screen until disabled.
+5. **Real-Time Global Announcements:**
+   - Send system announcements directly to all active clients.
+   - Displays a floating glassmorphic top banner with an animated 20-second countdown auto-dismiss bar.
+6. **Mobile / iOS Push Notification Dispatcher:**
+   - Send broadcast Web Push notifications to all registered student devices directly from the admin panel.
 
 ---
 
@@ -318,16 +389,18 @@ StudentDashBoard/
                     │      Upstash QStash     │
                     │  (Serverless Scheduler) │
                     └────────────┬────────────┘
-                                 │ Webhook Callback at exact time
+                                 │ Webhook Callback with Signature
                                  ▼
                     ┌─────────────────────────┐
                     │   api/tasks/execute.ts  │
+                    │  (Smart Validity Check) │
                     │   (Firebase Admin FCM)  │
                     └────────────┬────────────┘
-                                 │ Push
+                                 │ Push Notification
                                  ▼
                     ┌─────────────────────────┐
                     │   Student Device / PWA  │
+                    │   (iOS / Android / Mac) │
                     └─────────────────────────┘
 ```
 
@@ -343,29 +416,20 @@ StudentDashBoard/
 1. **Daily Morning Cron (`/api/cron` at 04:30 UTC / 7:30 AM KSA):**
    - Evaluates current day in Saudi Time (`UTC+3`).
    - Scans Firestore `users/{uid}/subjects` for lectures occurring today.
-   - Scans Firestore `users/{uid}/events` for one-off calendar events occurring today.
-   - For each event/lecture, calculates `notifyAt = startTime - 10 minutes`.
-   - Queues delayed messages via QStash `publishJSON` targeted at `/api/tasks/execute`.
+   - Direct push: Sends a morning lecture overview immediately to each student via Firebase Admin.
+   - Queues 10-minute pre-lecture warnings into QStash.
 2. **Evening Deliverables Cron (`/api/cron-tasks` at 15:00 UTC / 6:00 PM KSA):**
-   - Evaluates the entire 24-hour range of "Tomorrow" in Saudi Time.
-   - Scans uncompleted deliverables due tomorrow.
-   - If tasks exist, immediately dispatches an FCM push summary:
-     *Title:* `📋 لديك X مهمة غداً 💪`
-     *Body:* `لا تنسى • [Task 1] • [Task 2]...`
+   - Scans uncompleted deliverables due tomorrow in Saudi Time.
+   - Immediately dispatches an FCM push summary with task bullet points.
 
 ### 7.3 On-Demand Same-Day Scheduling Pipeline
-If a student adds or edits a lecture or calendar event **after** 7:30 AM for the current day, the morning cron has already executed. To solve this, Term incorporates on-demand serverless fallback endpoints:
-- **`api/schedule-today-lecture.ts`:** Invoked client-side upon saving in `AddSubjectModal.tsx` or `ManageSubjectsModal.tsx`.
-- **`api/schedule-today-event.ts`:** Invoked client-side upon saving in `AddEventModal.tsx` or `EditEventModal.tsx`.
-
-Both endpoints:
-1. Parse the payload in a non-blocking `fire-and-forget` pattern.
-2. Verify the lecture/event is scheduled for today (KSA UTC+3).
-3. Ensure the notification time is at least 60 seconds in the future.
-4. Directly publish the delayed message to QStash.
+If a student adds or edits a lecture or calendar event **after** 7:30 AM for the current day:
+- **`api/schedule-today-lecture.ts`** and **`api/schedule-today-event.ts`** are triggered on-demand.
+- Checks that the scheduled start time is in the future.
+- Directly publishes the delayed push task to QStash with unique deduplication IDs.
 
 ### 7.4 Deduplication & Timezone Safeguards
-- **Deduplication IDs:** To prevent multiple duplicate push notifications if a user edits a subject multiple times, requests pass an `Upstash-Deduplication-Id` header:
+- **Deduplication IDs:**
   - For Lectures: `${subjectId}-dow${todayDayOfWeek}-${todayDateStr}`
   - For Events: `event-${eventId}-${todayDateStr}`
 - **Saudi Arabia Timezone Formula (Strict UTC+3):**
@@ -376,7 +440,6 @@ Both endpoints:
   const todayDayOfWeek = nowSaudiDate.getUTCDay(); // 0=Sun..6=Sat
   const todayDateStr = nowSaudiDate.toISOString().slice(0, 10); // YYYY-MM-DD
   
-  // Calculate exact lecture start timestamp
   const saudiMidnightUTC = new Date(`${todayDateStr}T00:00:00Z`).getTime();
   const lecStartSaudiMs = saudiMidnightUTC + (lecHour * 60 + lecMin) * 60 * 1000;
   const notifyAtSaudiMs = lecStartSaudiMs - 10 * 60 * 1000;
@@ -384,88 +447,129 @@ Both endpoints:
   const notifyAtUnixSec = Math.floor(notifyAtUTCMs / 1000);
   ```
 
+### 7.5 Smart Lecture Validity Check & Webhook Verification
+- **Dynamic Endpoint URL Resolution:**
+  In `api/tasks/execute.ts`, QStash webhook signature verification uses dynamic URL reconstruction:
+  ```typescript
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host || '';
+  const endpointUrl = `${protocol}://${host}/api/tasks/execute`;
+  
+  const isValid = await receiver.verify({
+    signature: signature as string,
+    body: rawBody,
+    url: endpointUrl,
+  });
+  ```
+- **Smart Validity Check:**
+  Before dispatching the push notification to the student's device, `execute.ts` performs a live check against Firestore:
+  1. Verifies that the course still exists.
+  2. Verifies that the lecture time has not been modified or rescheduled to a different timeslot.
+  3. If the lecture was rescheduled, the obsolete notification is silently dropped, preventing false alarms.
+
 ---
 
 ## 8. Data Models & State Management
 
 ### 8.1 Firestore Database Schema
-All data is partitioned strictly per authenticated user under root collection `users/{uid}`:
 
 ```
-users/{uid}/
-├── (document root fields)
-│   ├── fcmToken: string              # Device push token
-│   └── fcmUpdatedAt: timestamp       # Token refresh timestamp
+root/
+├── presence/{uid}
+│   ├── email: string
+│   ├── displayName: string
+│   ├── lastSeen: timestamp
+│   ├── isOnline: boolean
+│   └── platform: string
 │
-├── subjects/{subjectId}
-│   ├── name: string                  # e.g., "Operations Research"
-│   ├── code: string                  # e.g., "IE-311"
-│   ├── color: string                 # Hex code e.g., "#4f8ef7"
-│   ├── creditHours: number           # e.g., 3
-│   ├── instructor: string            # e.g., "Dr. Mohammed"
-│   ├── lectures: [                   # Array of weekly timeslots
-│   │     {
-│   │       dayOfWeek: number,        # 0=Sunday .. 6=Saturday
-│   │       startTime: string,        # "08:00"
-│   │       endTime: string,          # "09:50"
-│   │       location: string          # "Building 5, Hall 102"
-│   │     }
-│   │   ]
-│   └── createdAt: number
+├── system_config/
+│   ├── maintenance: { enabled: boolean, message: string }
+│   └── broadcast: { message: string, timestamp: number }
 │
-├── tasks/{taskId}
-│   ├── title: string                 # Task title
-│   ├── description: string           # Optional notes
-│   ├── subjectId: string             # Associated course ID
-│   ├── priority: 'high'|'medium'|'low'
-│   ├── dueDate: number               # Timestamp in ms
-│   ├── completed: boolean            # Completion status
-│   ├── isStudyBlock: boolean         # Auto-generated study block flag
-│   ├── examId: string                # Parent exam event reference
-│   ├── createdAt: number
-│   └── updatedAt: number
+├── announcements/{announcementId}
+│   ├── title: string
+│   ├── content: string
+│   ├── createdAt: timestamp
+│   └── active: boolean
 │
-├── events/{eventId}
-│   ├── title: string                 # Event title
-│   ├── type: 'lecture'|'exam'|'assignment'|'study'|'other'
-│   ├── startDate: number             # Start timestamp in ms
-│   ├── endDate: number               # End timestamp in ms
-│   ├── subjectId: string             # Associated course ID
-│   ├── location: string              # Room / Building
-│   ├── description: string
-│   └── createdAt: number
-│
-├── driveFiles/{fileId}
-│   ├── driveFileId: string           # Google Drive file ID
-│   ├── name: string                  # File name
-│   ├── mimeType: string              # e.g., "application/pdf"
-│   ├── size: number                  # Bytes
-│   ├── subjectId: string             # Associated course
-│   ├── category: string              # "lectures"|"exams"|etc.
-│   └── syncedAt: number
-│
-├── chatSessions/{sessionId}
-│   ├── id: string                    # UUID
-│   ├── title: string                 # Conversation title
-│   ├── createdAt: number
-│   └── updatedAt: number
-│
-├── chatMessages/{messageId}
-│   ├── sessionId: string             # Parent conversation UUID
-│   ├── role: 'user' | 'assistant'
-│   ├── content: string               # Markdown text
-│   └── timestamp: number
-│
-└── settings/
-    ├── security                      # { pinHash: string }
-    └── app                           # { geminiApiKey: string }
+└── users/{uid}/
+    ├── (document root fields)
+    │   ├── fcmToken: string              # Device push token
+    │   ├── fcmUpdatedAt: timestamp       # Token refresh timestamp
+    │   ├── email: string
+    │   ├── role: 'admin' | 'student'
+    │   └── isBanned: boolean
+    │
+    ├── subjects/{subjectId}
+    │   ├── name: string                  # e.g., "Operations Research"
+    │   ├── code: string                  # e.g., "IE-311"
+    │   ├── color: string                 # Hex code e.g., "#4f8ef7"
+    │   ├── creditHours: number           # e.g., 3
+    │   ├── instructor: string            # e.g., "Dr. Mohammed"
+    │   ├── lectures: [                   # Array of weekly timeslots
+    │   │     {
+    │   │       dayOfWeek: number,        # 0=Sunday .. 6=Saturday
+    │   │       startTime: string,        # "08:00"
+    │   │       endTime: string,          # "09:50"
+    │   │       location: string          # "Building 5, Hall 102"
+    │   │     }
+    │   │   ]
+    │   └── createdAt: number
+    │
+    ├── tasks/{taskId}
+    │   ├── title: string                 # Task title
+    │   ├── description: string           # Optional notes
+    │   ├── subjectId: string             # Associated course ID
+    │   ├── priority: 'high'|'medium'|'low'
+    │   ├── dueDate: number               # Timestamp in ms
+    │   ├── completed: boolean            # Completion status
+    │   ├── completedAt: number           # Timestamp when checked
+    │   ├── isStudyBlock: boolean         # Auto-generated study block flag
+    │   ├── examId: string                # Parent exam event reference
+    │   └── createdAt: number
+    │
+    ├── events/{eventId}
+    │   ├── title: string                 # Event title
+    │   ├── type: 'lecture'|'exam'|'assignment'|'study'|'other'
+    │   ├── startDate: number             # Start timestamp in ms
+    │   ├── endDate: number               # End timestamp in ms
+    │   ├── subjectId: string             # Associated course ID
+    │   ├── location: string              # Room / Building
+    │   └── createdAt: number
+    │
+    ├── driveFiles/{fileId}
+    │   ├── driveFileId: string           # Google Drive file ID
+    │   ├── name: string                  # File name
+    │   ├── mimeType: string              # e.g., "application/pdf"
+    │   ├── size: number                  # Bytes
+    │   ├── subjectId: string             # Associated course
+    │   ├── category: string              # "lectures"|"exams"|etc.
+    │   └── syncedAt: number
+    │
+    ├── chatSessions/{sessionId}
+    │   ├── id: string                    # UUID
+    │   ├── title: string                 # Conversation title
+    │   ├── createdAt: number
+    │   └── updatedAt: number
+    │
+    ├── chatMessages/{messageId}
+    │   ├── sessionId: string             # Parent conversation UUID
+    │   ├── role: 'user' | 'assistant'
+    │   ├── content: string               # Markdown text
+    │   ├── imageUris: string[]           # Optional image attachments
+    │   └── timestamp: number
+    │
+    └── settings/
+        ├── security                      # { pinHash: string }
+        ├── app                           # { geminiApiKey: string }
+        └── gpa                           # { currentGpa: number, totalHours: number, targetGpa: number }
 ```
 
 ### 8.2 Global Client State (Zustand Stores)
-1. **`useUIStore` (`src/store/index.ts`):** Controls active navigation tab, calendar view mode, selected date, modal display states (`showAddTask`, `showAddEvent`, `showAddSubject`), toast notifications, and authenticated user credentials.
-2. **`useSettingsStore` (`src/store/index.ts`):** Persisted in `localStorage` under `student-dashboard-settings`. Controls language (`ar` / `en`), text direction (`rtl` / `ltr`), dark/light theme, user name, major, semester, university portal URLs (Banner / Blackboard), and Google Drive OAuth tokens.
+1. **`useUIStore` (`src/store/index.ts`):** Controls active navigation tab, calendar view mode, selected date, modal states (`showAddTask`, `showAddEvent`, `showAddSubject`, `showGpaModal`, `showAdminPanel`), `quickReviewFile` (auto-opening study files), toast notifications, and user session state.
+2. **`useSettingsStore` (`src/store/index.ts`):** Persisted in `localStorage` under `student-dashboard-settings`. Controls language (`ar` / `en`), text direction (`rtl` / `ltr`), dark/light theme, user name, major, semester, university portal URLs, and Google Drive tokens.
 3. **`useDataStore` (`src/store/dataStore.ts`):** In-memory cache holding real-time arrays of `subjects`, `tasks`, `events`, `driveFiles`, `chatSessions`, and `messages`. Synchronized automatically with Firestore via `onSnapshot` listeners in `App.tsx`.
-4. **`useTimerStore` (`src/store/timerStore.ts`):** Tracks Pomodoro intervals, countdown state, active mode (`pomodoro`, `shortBreak`, `longBreak`, `custom`), and custom duration preferences.
+4. **`useTimerStore` (`src/store/timerStore.ts`):** Tracks Pomodoro intervals, countdown state, active mode (`pomodoro`, `shortBreak`, `longBreak`, `custom`), and duration preferences.
 
 ---
 
@@ -478,13 +582,19 @@ Term provides native, full-fidelity support for both Arabic (Right-to-Left) and 
   document.documentElement.setAttribute('dir', dir); // 'rtl' or 'ltr'
   document.documentElement.setAttribute('lang', dir === 'rtl' ? 'ar' : 'en');
   ```
-- **CSS Logical Properties:** Popups, sidebars, and dropdowns employ logical coordinates (such as `insetInlineStart: 0`) rather than physical coordinates (`left: 0` or `right: 0`), preventing off-screen clipping when switching between Arabic and English.
-- **Directional Icon Flipping:** Chevron icons and directional arrows utilize `.rtl-flip` to flip horizontally by 180 degrees in RTL mode.
-- **Punctuation Protection:** Arabic descriptions utilize explicit `dir="rtl"` and `text-right` alignment to prevent punctuation marks (e.g. trailing periods) from incorrectly wrapping to the start of sentences.
+- **CSS Logical Properties & Inverted Resizers:** 
+  - Popups, sidebars, and dropdowns employ logical coordinates (`insetInlineStart: 0`) rather than physical coordinates (`left: 0` or `right: 0`).
+  - The Study Room resizer automatically flips delta calculations in Arabic:
+    ```typescript
+    const isRtl = document.documentElement.dir === 'rtl' || language === 'ar';
+    const delta = isRtl ? (ev.clientX - startX) : (startX - ev.clientX);
+    ```
+- **Directional Icon Flipping:** Directional chevrons and back arrows utilize `.rtl-flip` to flip horizontally by 180 degrees in RTL mode.
+- **Punctuation Protection:** Arabic descriptions utilize explicit `dir="rtl"` and `text-right` alignment to prevent punctuation marks from jumping to line beginnings.
 
 ### 9.2 Translation System (`src/locales/index.ts` & `useTranslation.ts`)
-Translations are managed via a key-value dictionary structure supporting dynamic parameter interpolation (e.g., `{{count}}`, `{{lectures}}`, `{{tasks}}`). All UI strings across modals, toasts, headings, and navigation labels are bound through the `useTranslation()` hook, ensuring zero raw key leaks.
+Translations are managed via a key-value dictionary structure supporting dynamic parameter interpolation (e.g., `{{count}}`, `{{lectures}}`, `{{tasks}}`). All UI strings across the Home screen, Calendar, Study Room, GPA Hub, and Super Admin panel are bound through the `useTranslation()` hook.
 
 ---
 
-*Term (Student Dashboard) — Engineered for Academic Excellence.*
+*Term (Student Dashboard) v2.1.0 — Engineered for Academic Excellence.*
