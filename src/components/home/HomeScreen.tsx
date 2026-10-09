@@ -71,6 +71,7 @@ export default function HomeScreen() {
   const totalTasksCount = allTasks.length
   const completedCount = completedTasks.length
   const pendingCount = pendingTasks.length
+  const totalTasks = pendingCount
 
   const progressPercent = totalTasksCount > 0
     ? Math.round((completedCount / totalTasksCount) * 100)
