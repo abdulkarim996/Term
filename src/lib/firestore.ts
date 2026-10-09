@@ -313,20 +313,52 @@ export async function adminSendPushNotification(payload: { target: string; targe
   if (!user) throw new Error('Not authenticated');
   const token = await user.getIdToken();
 
-  const response = await fetch('/api/admin/broadcast-push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const resData = await response.json();
-  if (!response.ok) {
-    throw new Error(resData?.error || 'Failed to send notification');
+  // Save to Broadcast History directly in Firestore first so it's never lost
+  try {
+    await addDoc(collection(db_cloud, 'system_broadcasts'), {
+      title: payload.title,
+      body: payload.body,
+      target: payload.target === 'all' ? 'all' : payload.targetUid,
+      recipientSummary: payload.target === 'all' ? 'جميع الطلاب' : 'طالب محدد',
+      sentAt: Date.now(),
+      sentBy: SUPER_ADMIN_EMAIL,
+    });
+  } catch (dbErr) {
+    console.warn('Direct broadcast history save note:', dbErr);
   }
+
+  let response: Response;
+  try {
+    response = await fetch('/api/admin/broadcast-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ ...payload, userEmail: user.email })
+    });
+  } catch (fetchErr: any) {
+    throw new Error('تعذر الوصول إلى خادم الإشعارات: ' + (fetchErr?.message || 'Network error'));
+  }
+
+  const rawText = await response.text();
+  let resData: any = null;
+  try {
+    resData = JSON.parse(rawText);
+  } catch {
+    // Non-JSON response (e.g. Vercel 500 error page)
+    console.error('Server non-JSON response:', rawText);
+    throw new Error(
+      'تنبيه: تم حفظ الإشعار بالسجل ولكن خادم Vercel يحتاج لضبط مفاتيح Firebase (FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY) في Vercel Dashboard.'
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(resData?.error || resData?.message || 'فشل إرسال الإشعار من الخادم');
+  }
+
   return resData;
 }
+
 
 

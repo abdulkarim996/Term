@@ -274,11 +274,13 @@ export const AdminModal: React.FC = () => {
         setPushBody('');
         fetchHistory();
       } else {
-        showToast(result.message || t('errorOccurred'), 'info');
+        showToast(result.message || 'تم حفظ الإشعار في السجل', 'info');
+        fetchHistory();
       }
     } catch (err: any) {
-      console.error('Push error:', err);
-      showToast(err?.message || t('errorOccurred'), 'error');
+      console.warn('Push feedback:', err);
+      showToast(err?.message || t('errorOccurred'), 'info');
+      fetchHistory();
     } finally {
       setSendingPush(false);
     }
@@ -374,17 +376,17 @@ export const AdminModal: React.FC = () => {
     <>
       <div
         dir={dir}
-        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in"
         onClick={() => setShowAdminModal(false)}
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-4xl max-h-[92vh] flex flex-col bg-surface-elevated/95 backdrop-blur-2xl border border-surface-border rounded-3xl shadow-2xl overflow-hidden animate-scale-up"
+          className="w-full max-w-4xl max-h-[92vh] flex flex-col bg-[#0d111a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-scale-up"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-border/60 bg-gradient-to-r from-amber-500/10 via-purple-500/5 to-transparent">
+          {/* Executive Header */}
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-[#111622]/80">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/20 border border-amber-400/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
                 <span className="text-xl">👑</span>
               </div>
               <div>
@@ -402,35 +404,39 @@ export const AdminModal: React.FC = () => {
 
             <button
               onClick={() => setShowAdminModal(false)}
-              className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-surface-border/40 transition-colors"
+              className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 p-3 sm:px-6 border-b border-surface-border/40 bg-surface/40 overflow-x-auto no-scrollbar">
+          {/* Unified Executive Navigation Bar */}
+          <div className="flex items-center gap-1.5 p-2 sm:px-6 border-b border-white/10 bg-[#0e131d] overflow-x-auto no-scrollbar">
+            {/* Tab 1: Users */}
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'users'
-                  ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/20'
-                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25 border border-blue-500/40'
+                  : 'text-text-muted hover:text-text-primary hover:bg-white/5'
               }`}
             >
               <Users size={15} />
               <span>{t('usersAndActivity')}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-md bg-white/20 text-[10px] font-bold">
+              <span className={`ml-1 px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+                activeTab === 'users' ? 'bg-white/20 text-white' : 'bg-surface-elevated text-text-muted'
+              }`}>
                 {users.length}
               </span>
             </button>
 
+            {/* Tab 2: Announcements */}
             <button
               onClick={() => setActiveTab('announcement')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'announcement'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
-                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25 border border-purple-500/40'
+                  : 'text-text-muted hover:text-text-primary hover:bg-white/5'
               }`}
             >
               <Megaphone size={15} />
@@ -440,27 +446,31 @@ export const AdminModal: React.FC = () => {
               )}
             </button>
 
+            {/* Tab 3: Push Notifications */}
             <button
               onClick={() => setActiveTab('push')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'push'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                  ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/25 border border-sky-500/40'
+                  : 'text-text-muted hover:text-text-primary hover:bg-white/5'
               }`}
             >
               <Smartphone size={15} />
               <span>{language === 'ar' ? 'إشعارات الهاتف' : 'Push Notifications'}</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-md bg-white/20 text-[10px] font-bold">
+              <span className={`ml-1 px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+                activeTab === 'push' ? 'bg-white/20 text-white' : 'bg-surface-elevated text-text-muted'
+              }`}>
                 {usersWithPush.length}
               </span>
             </button>
 
+            {/* Tab 4: Maintenance */}
             <button
               onClick={() => setActiveTab('maintenance')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'maintenance'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
-                  : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/25 border border-amber-500/40'
+                  : 'text-text-muted hover:text-text-primary hover:bg-white/5'
               }`}
             >
               <Wrench size={15} />
@@ -473,49 +483,60 @@ export const AdminModal: React.FC = () => {
 
           {/* Modal Body */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-            {/* ════════════════════ TAB 1: USERS & ACTIVITY ════════════════════ */}
+            {/* ════════════════════ TAB 1: USERS & ACTIVITY (BLUE ACCENT) ════════════════════ */}
             {activeTab === 'users' && (
               <div className="space-y-6">
-                {/* Stat Cards */}
+                {/* Unified Stat Cards (All same dark executive container) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3.5 rounded-2xl bg-surface border border-surface-border flex flex-col">
-                    <div className="flex items-center justify-between text-text-muted mb-1">
-                      <span className="text-[11px] font-medium">{t('totalRegistered')}</span>
-                      <Users size={14} className="text-accent-blue" />
+                  <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex flex-col justify-between shadow-sm">
+                    <div className="flex items-center justify-between text-text-muted mb-2">
+                      <span className="text-xs font-medium">{t('totalRegistered')}</span>
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                        <Users size={14} />
+                      </div>
                     </div>
-                    <span className="text-xl sm:text-2xl font-bold text-text-primary">
+                    <span className="text-2xl font-bold text-text-primary">
                       {users.length}
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col">
-                    <div className="flex items-center justify-between text-emerald-400 mb-1">
-                      <span className="text-[11px] font-medium">{t('onlineNow')}</span>
-                      <Radio size={14} className="animate-pulse" />
+                  <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex flex-col justify-between shadow-sm">
+                    <div className="flex items-center justify-between text-text-muted mb-2">
+                      <span className="text-xs font-medium">{t('onlineNow')}</span>
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <Radio size={14} className="animate-pulse" />
+                      </div>
                     </div>
-                    <span className="text-xl sm:text-2xl font-bold text-emerald-300">
-                      {onlineUsers.length}
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-text-primary">
+                        {onlineUsers.length}
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-medium">متصل</span>
+                    </div>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col">
-                    <div className="flex items-center justify-between text-purple-400 mb-1">
-                      <span className="text-[11px] font-medium">{t('activeToday')}</span>
-                      <Clock size={14} />
+                  <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex flex-col justify-between shadow-sm">
+                    <div className="flex items-center justify-between text-text-muted mb-2">
+                      <span className="text-xs font-medium">{t('activeToday')}</span>
+                      <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                        <Clock size={14} />
+                      </div>
                     </div>
-                    <span className="text-xl sm:text-2xl font-bold text-purple-300">
+                    <span className="text-2xl font-bold text-text-primary">
                       {active24hUsers.length}
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex flex-col">
-                    <div className="flex items-center justify-between text-blue-400 mb-1">
-                      <span className="text-[11px] font-medium">
+                  <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex flex-col justify-between shadow-sm">
+                    <div className="flex items-center justify-between text-text-muted mb-2">
+                      <span className="text-xs font-medium">
                         {language === 'ar' ? 'إشعارات الهاتف' : 'Push Active'}
                       </span>
-                      <Smartphone size={14} />
+                      <div className="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-400">
+                        <Smartphone size={14} />
+                      </div>
                     </div>
-                    <span className="text-xl sm:text-2xl font-bold text-blue-300">
+                    <span className="text-2xl font-bold text-text-primary">
                       {usersWithPush.length}
                     </span>
                   </div>
@@ -533,38 +554,41 @@ export const AdminModal: React.FC = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t('searchUserPlaceholder')}
-                      className="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-accent-blue outline-none transition-all"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-text-primary placeholder:text-text-muted focus:border-blue-500 outline-none transition-all"
                     />
                   </div>
 
                   <button
                     onClick={fetchUsers}
                     disabled={loadingUsers}
-                    className="p-2.5 rounded-xl bg-surface border border-surface-border text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                    className="p-2.5 rounded-xl bg-[#121724] border border-white/10 text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
                     title="Refresh users"
                   >
                     <RefreshCw
                       size={15}
-                      className={loadingUsers ? 'animate-spin text-accent-blue' : ''}
+                      className={loadingUsers ? 'animate-spin text-blue-400' : ''}
                     />
                   </button>
                 </div>
 
                 {/* Users List with Click-to-Inspect Profile */}
                 <div className="space-y-2.5">
-                  <p className="text-[11px] text-text-muted">
-                    {language === 'ar'
-                      ? '💡 انقر على أي طالب لعرض ملفه ونشاطه وإرسال إشعار خاص به.'
-                      : '💡 Click any student to inspect non-sensitive details and send direct notifications.'}
-                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-text-muted">
+                    <span>
+                      {language === 'ar'
+                        ? '💡 انقر على أي طالب لعرض ملفه ونشاطه الأكاديمي'
+                        : '💡 Click any student to view non-sensitive details'}
+                    </span>
+                    <span>{filteredUsers.length} طالب</span>
+                  </div>
 
                   {loadingUsers && users.length === 0 ? (
                     <div className="py-12 text-center text-text-muted text-sm">
-                      <RefreshCw size={24} className="animate-spin mx-auto mb-2 text-accent-blue" />
+                      <RefreshCw size={24} className="animate-spin mx-auto mb-2 text-blue-400" />
                       <span>{t('loading') || 'جاري تحميل قائمة الطلاب...'}</span>
                     </div>
                   ) : filteredUsers.length === 0 ? (
-                    <div className="py-12 text-center text-text-muted text-xs sm:text-sm">
+                    <div className="py-12 text-center text-text-muted text-xs sm:text-sm bg-[#121724] rounded-2xl border border-white/10">
                       {language === 'ar'
                         ? 'لم يتم العثور على مستخدمين أو طلاب.'
                         : 'No users or students found.'}
@@ -581,12 +605,10 @@ export const AdminModal: React.FC = () => {
                         <div
                           key={user.id}
                           onClick={() => setSelectedUserForDetails(user)}
-                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer hover:border-accent-blue/40 hover:scale-[1.005] flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer hover:border-blue-500/40 hover:bg-[#151c2c] flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                             isBanned
                               ? 'bg-rose-950/20 border-rose-500/30'
-                              : isOnline
-                              ? 'bg-emerald-950/15 border-emerald-500/30'
-                              : 'bg-surface border-surface-border/60'
+                              : 'bg-[#121724] border-white/8'
                           }`}
                         >
                           {/* User identity info */}
@@ -595,10 +617,10 @@ export const AdminModal: React.FC = () => {
                               <img
                                 src={user.photoURL}
                                 alt=""
-                                className="w-10 h-10 rounded-full object-cover border border-surface-border flex-shrink-0"
+                                className="w-10 h-10 rounded-full object-cover border border-white/15 flex-shrink-0"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-surface-elevated border border-surface-border flex items-center justify-center font-bold text-text-secondary text-sm flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-bold text-text-secondary text-sm flex-shrink-0">
                                 {(user.displayName || user.email || 'U')[0].toUpperCase()}
                               </div>
                             )}
@@ -609,20 +631,20 @@ export const AdminModal: React.FC = () => {
                                   {user.displayName || user.email?.split('@')[0] || t('unknownUser')}
                                 </span>
                                 {isOwner && (
-                                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-400 text-[10px] font-bold">
+                                  <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-400 text-[10px] font-bold border border-amber-400/30">
                                     Owner
                                   </span>
                                 )}
                                 {hasPush && (
                                   <span
                                     title="iPhone / Phone Push Notifications Active"
-                                    className="p-1 rounded bg-blue-500/15 text-blue-400"
+                                    className="p-1 rounded bg-sky-500/15 text-sky-400"
                                   >
                                     <Smartphone size={11} />
                                   </span>
                                 )}
                                 {isBanned && (
-                                  <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold">
+                                  <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/30">
                                     {t('bannedCount')}
                                   </span>
                                 )}
@@ -656,10 +678,11 @@ export const AdminModal: React.FC = () => {
                           >
                             <button
                               onClick={() => setSelectedUserForDetails(user)}
-                              className="p-2 rounded-xl bg-surface-elevated hover:bg-surface-border text-text-muted hover:text-text-primary transition-colors"
-                              title={language === 'ar' ? 'تفاصيل الطالب' : 'Student details'}
+                              className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-text-secondary hover:text-text-primary border border-white/10 text-xs font-medium transition-colors flex items-center gap-1"
+                              title={language === 'ar' ? 'عرض التفاصيل' : 'Details'}
                             >
-                              <Eye size={14} />
+                              <Eye size={13} />
+                              <span>{language === 'ar' ? 'تفاصيل' : 'Details'}</span>
                             </button>
 
                             {!isOwner && (
@@ -667,10 +690,10 @@ export const AdminModal: React.FC = () => {
                                 <button
                                   onClick={() => handleKickUser(user)}
                                   disabled={actionLoading === user.id}
-                                  className="px-2.5 py-1.5 rounded-xl bg-surface-elevated hover:bg-surface-border/60 border border-surface-border text-text-secondary text-xs font-medium transition-colors flex items-center gap-1.5"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-text-muted hover:text-text-primary border border-white/10 text-xs font-medium transition-colors flex items-center gap-1.5"
                                   title={t('confirmKick')}
                                 >
-                                  <UserX size={13} className="text-text-muted" />
+                                  <UserX size={13} />
                                   <span>{t('kickUser')}</span>
                                 </button>
 
@@ -706,11 +729,11 @@ export const AdminModal: React.FC = () => {
               </div>
             )}
 
-            {/* ════════════════════ TAB 2: ANNOUNCEMENTS ════════════════════ */}
+            {/* ════════════════════ TAB 2: ANNOUNCEMENTS (PURPLE ACCENT) ════════════════════ */}
             {activeTab === 'announcement' && (
               <div className="space-y-6">
                 {/* Enable / Disable Switch */}
-                <div className="p-4 rounded-2xl bg-surface border border-surface-border flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold text-text-primary">
                       {t('announcementActiveLabel')}
@@ -729,12 +752,12 @@ export const AdminModal: React.FC = () => {
                       onChange={(e) => setAnnouncementActive(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-surface-elevated peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                   </label>
                 </div>
 
                 {/* Display Mode (20s Auto-dismiss vs Pinned) */}
-                <div className="p-4 rounded-2xl bg-surface border border-surface-border space-y-3">
+                <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 space-y-3">
                   <label className="block text-xs font-medium text-text-muted">
                     {language === 'ar' ? 'طريقة بقاء وظهور الرسالة للطلاب:' : 'Display & Dismissal Mode:'}
                   </label>
@@ -745,8 +768,8 @@ export const AdminModal: React.FC = () => {
                       onClick={() => setAnnouncementDisplayMode('temporary')}
                       className={`p-3.5 rounded-2xl border text-start transition-all flex items-start gap-3 ${
                         announcementDisplayMode === 'temporary'
-                          ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-sm'
-                          : 'bg-surface-elevated border-surface-border text-text-muted hover:text-text-primary'
+                          ? 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-md'
+                          : 'bg-[#0e131d] border-white/10 text-text-muted hover:text-text-primary'
                       }`}
                     >
                       <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 mt-0.5">
@@ -758,7 +781,7 @@ export const AdminModal: React.FC = () => {
                         </span>
                         <span className="text-[11px] text-text-muted leading-relaxed">
                           {language === 'ar'
-                            ? 'تظهر مع شريط عد تنازلي متحرك وتختفي تلقائياً فور انتهاء الوقت.'
+                            ? 'تظهر مع شريط عد تنازلي وتختفي تلقائياً فور انتهاء الـ 20 ثانية.'
                             : 'Fades out automatically after 20 seconds with animated progress bar.'}
                         </span>
                       </div>
@@ -769,8 +792,8 @@ export const AdminModal: React.FC = () => {
                       onClick={() => setAnnouncementDisplayMode('pinned')}
                       className={`p-3.5 rounded-2xl border text-start transition-all flex items-start gap-3 ${
                         announcementDisplayMode === 'pinned'
-                          ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-sm'
-                          : 'bg-surface-elevated border-surface-border text-text-muted hover:text-text-primary'
+                          ? 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-md'
+                          : 'bg-[#0e131d] border-white/10 text-text-muted hover:text-text-primary'
                       }`}
                     >
                       <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 mt-0.5">
@@ -797,10 +820,10 @@ export const AdminModal: React.FC = () => {
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { key: 'info', label: 'معلومة (Info)', icon: Info, color: 'text-accent-blue border-accent-blue/40 bg-accent-blue/10' },
-                      { key: 'warning', label: 'تنبيه (Warning)', icon: AlertTriangle, color: 'text-amber-400 border-amber-400/40 bg-amber-400/10' },
-                      { key: 'success', label: 'نجاح (Success)', icon: CheckCircle, color: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
-                      { key: 'danger', label: 'عاجل (Urgent)', icon: Flame, color: 'text-rose-400 border-rose-400/40 bg-rose-400/10' },
+                      { key: 'info', label: 'معلومة (Info)', icon: Info, color: 'text-blue-400 border-blue-500/40 bg-blue-500/10' },
+                      { key: 'warning', label: 'تنبيه (Warning)', icon: AlertTriangle, color: 'text-amber-400 border-amber-500/40 bg-amber-500/10' },
+                      { key: 'success', label: 'نجاح (Success)', icon: CheckCircle, color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' },
+                      { key: 'danger', label: 'عاجل (Urgent)', icon: Flame, color: 'text-rose-400 border-rose-500/40 bg-rose-500/10' },
                     ].map((item) => (
                       <button
                         key={item.key}
@@ -809,7 +832,7 @@ export const AdminModal: React.FC = () => {
                         className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold transition-all ${
                           announcementType === item.key
                             ? item.color + ' shadow-sm'
-                            : 'bg-surface border-surface-border text-text-muted hover:text-text-primary'
+                            : 'bg-[#121724] border-white/10 text-text-muted hover:text-text-primary'
                         }`}
                       >
                         <item.icon size={15} />
@@ -830,7 +853,7 @@ export const AdminModal: React.FC = () => {
                       value={announcementTitleAr}
                       onChange={(e) => setAnnouncementTitleAr(e.target.value)}
                       placeholder="مثال: تنبيه هام بخصوص موعد الاختبار 🚀"
-                      className="w-full bg-surface border border-surface-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none"
                     />
                   </div>
 
@@ -843,7 +866,7 @@ export const AdminModal: React.FC = () => {
                       value={announcementTitleEn}
                       onChange={(e) => setAnnouncementTitleEn(e.target.value)}
                       placeholder="e.g. Important Exam Schedule Update 🚀"
-                      className="w-full bg-surface border border-surface-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none"
                     />
                   </div>
                 </div>
@@ -859,7 +882,7 @@ export const AdminModal: React.FC = () => {
                       value={announcementMessageAr}
                       onChange={(e) => setAnnouncementMessageAr(e.target.value)}
                       placeholder="اكتب تفاصيل الرسالة هنا..."
-                      className="w-full bg-surface border border-surface-border rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none resize-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none resize-none"
                     />
                   </div>
 
@@ -872,7 +895,7 @@ export const AdminModal: React.FC = () => {
                       value={announcementMessageEn}
                       onChange={(e) => setAnnouncementMessageEn(e.target.value)}
                       placeholder="Write message details here..."
-                      className="w-full bg-surface border border-surface-border rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none resize-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-purple-500 outline-none resize-none"
                     />
                   </div>
                 </div>
@@ -882,7 +905,7 @@ export const AdminModal: React.FC = () => {
                   <span className="block text-xs font-medium text-text-muted mb-2">
                     {language === 'ar' ? 'معاينة حية للمستخدمين:' : 'Live Student Preview:'}
                   </span>
-                  <div className="p-4 rounded-2xl bg-surface/80 border border-surface-border/50">
+                  <div className="p-4 rounded-2xl bg-[#121724] border border-white/10">
                     <div
                       className={`p-3.5 rounded-xl border flex items-start gap-3 ${
                         announcementType === 'warning'
@@ -891,10 +914,10 @@ export const AdminModal: React.FC = () => {
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                           : announcementType === 'danger'
                           ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                          : 'bg-accent-blue/10 border-accent-blue/30 text-blue-300'
+                          : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
                       }`}
                     >
-                      <div className="p-1.5 rounded-lg bg-surface-elevated flex-shrink-0">
+                      <div className="p-1.5 rounded-lg bg-white/5 flex-shrink-0">
                         {announcementType === 'warning' ? (
                           <AlertTriangle size={16} className="text-amber-400" />
                         ) : announcementType === 'success' ? (
@@ -902,7 +925,7 @@ export const AdminModal: React.FC = () => {
                         ) : announcementType === 'danger' ? (
                           <Flame size={16} className="text-rose-400" />
                         ) : (
-                          <Megaphone size={16} className="text-accent-blue" />
+                          <Megaphone size={16} className="text-blue-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -911,7 +934,7 @@ export const AdminModal: React.FC = () => {
                             {announcementTitleAr || announcementTitleEn || 'عنوان الإعلان الافتراضي'}
                           </h4>
                           {announcementDisplayMode === 'temporary' && (
-                            <span className="px-1.5 py-0.2 rounded bg-surface-elevated text-[10px] text-text-muted">
+                            <span className="px-1.5 py-0.2 rounded bg-white/10 text-[10px] text-text-muted">
                               ⏱️ 20s
                             </span>
                           )}
@@ -930,7 +953,7 @@ export const AdminModal: React.FC = () => {
                 <button
                   onClick={handleSaveAnnouncement}
                   disabled={savingAnnouncement}
-                  className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2"
                 >
                   {savingAnnouncement ? (
                     <RefreshCw size={15} className="animate-spin" />
@@ -942,20 +965,20 @@ export const AdminModal: React.FC = () => {
               </div>
             )}
 
-            {/* ════════════════════ TAB 3: PUSH NOTIFICATIONS ════════════════════ */}
+            {/* ════════════════════ TAB 3: PUSH NOTIFICATIONS (SKY/BLUE ACCENT) ════════════════════ */}
             {activeTab === 'push' && (
               <div className="space-y-6">
-                {/* Push Header & Devices Readiness card */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-600/15 via-purple-600/10 to-transparent border border-blue-500/25 flex items-center justify-between">
+                {/* Unified Push Header */}
+                <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center">
                       <Smartphone size={20} />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-text-primary">
                         {language === 'ar'
-                          ? 'إرسال إشعارات الآيفون والهواتف (Web Push)'
-                          : 'iOS / Mobile Web Push Notification'}
+                          ? 'إرسال إشعارات الهاتف والآيفون (Web Push)'
+                          : 'Mobile & iOS Push Notifications'}
                       </h3>
                       <p className="text-xs text-text-muted mt-0.5">
                         {language === 'ar'
@@ -966,11 +989,11 @@ export const AdminModal: React.FC = () => {
                   </div>
 
                   <div className="text-end">
-                    <span className="text-lg font-bold text-blue-300 block">
+                    <span className="text-lg font-bold text-sky-400 block">
                       {usersWithPush.length} / {users.length}
                     </span>
                     <span className="text-[10px] text-text-muted">
-                      {language === 'ar' ? 'أجهزة مفعلة' : 'Registered Devices'}
+                      {language === 'ar' ? 'أجهزة مفعلة' : 'Active Devices'}
                     </span>
                   </div>
                 </div>
@@ -983,7 +1006,7 @@ export const AdminModal: React.FC = () => {
                   <select
                     value={pushTarget}
                     onChange={(e) => setPushTarget(e.target.value)}
-                    className="w-full bg-surface border border-surface-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-blue-500 outline-none"
+                    className="w-full bg-[#121724] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-sky-500 outline-none"
                   >
                     <option value="all">
                       {language === 'ar'
@@ -1009,7 +1032,7 @@ export const AdminModal: React.FC = () => {
                       value={pushTitle}
                       onChange={(e) => setPushTitle(e.target.value)}
                       placeholder={language === 'ar' ? 'مثال: تنبيه هام من إدارة المنصة 📢' : 'e.g. Important Announcement 📢'}
-                      className="w-full bg-surface border border-surface-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-blue-500 outline-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-text-primary focus:border-sky-500 outline-none"
                     />
                   </div>
 
@@ -1022,7 +1045,7 @@ export const AdminModal: React.FC = () => {
                       value={pushBody}
                       onChange={(e) => setPushBody(e.target.value)}
                       placeholder={language === 'ar' ? 'اكتب الرسالة التي ستصل لجهاز الطالب...' : 'Message body...'}
-                      className="w-full bg-surface border border-surface-border rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-blue-500 outline-none resize-none"
+                      className="w-full bg-[#121724] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-sky-500 outline-none resize-none"
                     />
                   </div>
                 </div>
@@ -1031,7 +1054,7 @@ export const AdminModal: React.FC = () => {
                 <button
                   onClick={handleSendPush}
                   disabled={sendingPush || (!pushTitle.trim() && !pushBody.trim())}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-sky-600/25 flex items-center justify-center gap-2"
                 >
                   {sendingPush ? (
                     <RefreshCw size={15} className="animate-spin" />
@@ -1044,15 +1067,15 @@ export const AdminModal: React.FC = () => {
                 </button>
 
                 {/* Broadcast History */}
-                <div className="space-y-3 pt-4 border-t border-surface-border/60">
+                <div className="space-y-3 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                      <History size={14} className="text-accent-blue" />
+                      <History size={14} className="text-sky-400" />
                       <span>{language === 'ar' ? 'سجل الإشعارات السابقة' : 'Broadcast History'}</span>
                     </h4>
                     <button
                       onClick={fetchHistory}
-                      className="text-xs text-accent-blue hover:underline flex items-center gap-1"
+                      className="text-xs text-sky-400 hover:underline flex items-center gap-1"
                     >
                       <RefreshCw size={12} className={loadingHistory ? 'animate-spin' : ''} />
                       <span>{language === 'ar' ? 'تحديث السجل' : 'Refresh'}</span>
@@ -1061,11 +1084,11 @@ export const AdminModal: React.FC = () => {
 
                   {loadingHistory && broadcastHistory.length === 0 ? (
                     <div className="py-6 text-center text-text-muted text-xs">
-                      <RefreshCw size={18} className="animate-spin mx-auto mb-1 text-accent-blue" />
+                      <RefreshCw size={18} className="animate-spin mx-auto mb-1 text-sky-400" />
                       <span>{language === 'ar' ? 'جاري التحميل...' : 'Loading history...'}</span>
                     </div>
                   ) : broadcastHistory.length === 0 ? (
-                    <div className="py-6 text-center text-text-muted text-xs bg-surface rounded-2xl border border-surface-border">
+                    <div className="py-6 text-center text-text-muted text-xs bg-[#121724] rounded-2xl border border-white/10">
                       {language === 'ar' ? 'لا توجد إشعارات سابقة مسجلة.' : 'No previous broadcasts recorded.'}
                     </div>
                   ) : (
@@ -1073,20 +1096,20 @@ export const AdminModal: React.FC = () => {
                       {broadcastHistory.map((item) => (
                         <div
                           key={item.id}
-                          className="p-3.5 rounded-2xl bg-surface border border-surface-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                          className="p-3.5 rounded-2xl bg-[#121724] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="text-xs font-bold text-text-primary truncate">
                                 {item.title}
                               </span>
-                              <span className="px-1.5 py-0.2 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-medium">
-                                {item.recipientSummary || 'General'}
+                              <span className="px-1.5 py-0.2 rounded-md bg-sky-500/15 text-sky-400 text-[10px] font-medium border border-sky-500/20">
+                                {item.recipientSummary || 'عام'}
                               </span>
                             </div>
                             <p className="text-[11px] text-text-secondary truncate">{item.body}</p>
                             <span className="text-[10px] text-text-muted mt-0.5 block">
-                              {formatLastSeen(item.sentAt)} • {item.successCount || 0} تم تسليمه
+                              {formatLastSeen(item.sentAt)}
                             </span>
                           </div>
 
@@ -1094,7 +1117,7 @@ export const AdminModal: React.FC = () => {
                             {/* Re-send button */}
                             <button
                               onClick={() => handleReSendBroadcast(item)}
-                              className="px-2.5 py-1 rounded-xl bg-surface-elevated hover:bg-surface-border text-accent-blue text-xs font-semibold border border-surface-border transition-colors flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-sky-400 text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1"
                               title={language === 'ar' ? 'إعادة الإرسال' : 'Re-send'}
                             >
                               <RotateCcw size={12} />
@@ -1104,7 +1127,7 @@ export const AdminModal: React.FC = () => {
                             {/* Delete from history button */}
                             <button
                               onClick={() => handleDeleteHistoryItem(item.id)}
-                              className="p-1.5 rounded-xl text-text-muted hover:text-rose-400 hover:bg-surface-elevated transition-colors"
+                              className="p-1.5 rounded-xl text-text-muted hover:text-rose-400 hover:bg-white/5 transition-colors"
                               title="Delete"
                             >
                               <Trash2 size={13} />
@@ -1118,7 +1141,7 @@ export const AdminModal: React.FC = () => {
               </div>
             )}
 
-            {/* ════════════════════ TAB 4: MAINTENANCE MODE ════════════════════ */}
+            {/* ════════════════════ TAB 4: MAINTENANCE MODE (AMBER ACCENT) ════════════════════ */}
             {activeTab === 'maintenance' && (
               <div className="space-y-6">
                 {/* Maintenance Mode Card */}
@@ -1126,7 +1149,7 @@ export const AdminModal: React.FC = () => {
                   className={`p-4 rounded-2xl border transition-all ${
                     maintenanceMode
                       ? 'bg-amber-950/20 border-amber-500/40'
-                      : 'bg-surface border-surface-border'
+                      : 'bg-[#121724] border-white/10'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -1135,7 +1158,7 @@ export const AdminModal: React.FC = () => {
                         className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                           maintenanceMode
                             ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-surface-elevated text-text-muted'
+                            : 'bg-white/5 text-text-muted'
                         }`}
                       >
                         <Wrench size={20} className={maintenanceMode ? 'animate-bounce' : ''} />
@@ -1157,7 +1180,7 @@ export const AdminModal: React.FC = () => {
                         onChange={(e) => setMaintenanceMode(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-surface-elevated peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                      <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                     </label>
                   </div>
 
@@ -1183,7 +1206,7 @@ export const AdminModal: React.FC = () => {
                         value={maintenanceMsgAr}
                         onChange={(e) => setMaintenanceMsgAr(e.target.value)}
                         placeholder="مثال: نقوم حالياً بترقية الخوادم وإضافة ميزات جديدة. سنعود خلال دقائق!"
-                        className="w-full bg-surface border border-surface-border rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-amber-500 outline-none resize-none"
+                        className="w-full bg-[#121724] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-amber-500 outline-none resize-none"
                       />
                     </div>
 
@@ -1194,7 +1217,7 @@ export const AdminModal: React.FC = () => {
                         value={maintenanceMsgEn}
                         onChange={(e) => setMaintenanceMsgEn(e.target.value)}
                         placeholder="e.g. Upgrading servers and adding new features. Back in a few minutes!"
-                        className="w-full bg-surface border border-surface-border rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-amber-500 outline-none resize-none"
+                        className="w-full bg-[#121724] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-text-primary focus:border-amber-500 outline-none resize-none"
                       />
                     </div>
                   </div>
@@ -1204,7 +1227,7 @@ export const AdminModal: React.FC = () => {
                 <button
                   onClick={handleSaveMaintenance}
                   disabled={savingMaintenance}
-                  className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-amber-600/25 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-amber-600/25 flex items-center justify-center gap-2"
                 >
                   {savingMaintenance ? (
                     <RefreshCw size={15} className="animate-spin" />
@@ -1251,9 +1274,9 @@ export const AdminModal: React.FC = () => {
                 </div>
 
                 {/* System Info card */}
-                <div className="p-4 rounded-2xl bg-surface border border-surface-border/60 space-y-2">
+                <div className="p-4 rounded-2xl bg-[#121724] border border-white/10 space-y-2">
                   <h4 className="text-xs font-bold text-text-primary flex items-center gap-2">
-                    <ShieldCheck size={14} className="text-accent-blue" />
+                    <ShieldCheck size={14} className="text-blue-400" />
                     <span>
                       {language === 'ar' ? 'بيانات النظام السحابي' : 'Cloud System Status'}
                     </span>
