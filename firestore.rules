@@ -24,6 +24,11 @@ service cloud.firestore {
       }
     }
 
+    // Broadcast history
+    match /system_broadcasts/{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
     // Default fallback
     match /{document=**} {
       allow read, write: if false;

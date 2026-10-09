@@ -247,3 +247,86 @@ export async function adminSaveSystemConfig(config: any) {
   }, { merge: true });
 }
 
+export async function adminGetUserStats(uid: string) {
+  try {
+    const subjectsSnap = await getDocs(collection(db_cloud, 'users', uid, 'subjects'));
+    const tasksSnap = await getDocs(collection(db_cloud, 'users', uid, 'tasks'));
+    const filesSnap = await getDocs(collection(db_cloud, 'users', uid, 'driveFiles'));
+
+    const totalTasks = tasksSnap.size;
+    const completedTasks = tasksSnap.docs.filter(d => d.data().completed === true).length;
+    const totalSubjects = subjectsSnap.size;
+    const totalFiles = filesSnap.size;
+
+    return {
+      totalSubjects,
+      totalTasks,
+      completedTasks,
+      totalFiles
+    };
+  } catch (err) {
+    console.warn('adminGetUserStats failed:', err);
+    return {
+      totalSubjects: 0,
+      totalTasks: 0,
+      completedTasks: 0,
+      totalFiles: 0
+    };
+  }
+}
+
+export async function adminGetBroadcastHistory(): Promise<any[]> {
+  try {
+    const snap = await getDocs(collection(db_cloud, 'system_broadcasts'));
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    items.sort((a: any, b: any) => (b.sentAt || 0) - (a.sentAt || 0));
+    return items;
+  } catch (err) {
+    console.warn('adminGetBroadcastHistory failed:', err);
+    return [];
+  }
+}
+
+export async function adminDeleteBroadcastHistory(id: string) {
+  await deleteDoc(doc(db_cloud, 'system_broadcasts', id));
+}
+
+export async function adminKickAllUsers() {
+  const users = await adminGetUsers();
+  const batch = writeBatch(db_cloud);
+  let count = 0;
+  for (const u of users) {
+    if (u.email !== SUPER_ADMIN_EMAIL && u.id) {
+      const ref = doc(db_cloud, 'users', u.id);
+      batch.update(ref, { kickedAt: Date.now(), isOnline: false });
+      count++;
+    }
+  }
+  if (count > 0) {
+    await batch.commit();
+  }
+  return count;
+}
+
+export async function adminSendPushNotification(payload: { target: string; targetUid?: string; title: string; body: string; url?: string }) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not authenticated');
+  const token = await user.getIdToken();
+
+  const response = await fetch('/api/admin/broadcast-push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const resData = await response.json();
+  if (!response.ok) {
+    throw new Error(resData?.error || 'Failed to send notification');
+  }
+  return resData;
+}
+
+
