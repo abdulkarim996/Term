@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import nerdamer from 'nerdamer/all.min';
 
 interface CalculatorWidgetProps {
@@ -20,6 +20,40 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   const [isClient, setIsClient] = useState(false);
   const [angleMode, setAngleMode] = useState<'DEG' | 'RAD'>('DEG');
   const mfRef = useRef<any>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const [scale, setScale] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('study_calc_scale');
+      if (saved) {
+        const val = parseFloat(saved);
+        if (!isNaN(val) && val >= 0.65 && val <= 1.4) return val;
+      }
+    } catch {}
+    return 1.0;
+  });
+  const [contentHeight, setContentHeight] = useState(580);
+
+  const changeScale = (newScale: number) => {
+    const clamped = Math.min(1.35, Math.max(0.65, Number(newScale.toFixed(2))));
+    setScale(clamped);
+    try {
+      localStorage.setItem('study_calc_scale', String(clamped));
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.height > 0) {
+          setContentHeight(entry.contentRect.height);
+        }
+      }
+    });
+    observer.observe(contentRef.current);
+    return () => observer.disconnect();
+  }, [activeTab]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -179,18 +213,56 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
   return (
     <Rnd
       default={{
-        x: typeof window !== 'undefined' ? window.innerWidth / 2 - 180 : 50,
+        x: typeof window !== 'undefined' ? Math.max(20, Math.round(window.innerWidth / 2 - 180 * scale)) : 50,
         y: 80,
-        width: 360,
-        height: 'auto',
+        width: Math.round(360 * scale),
+        height: Math.round(contentHeight * scale),
       }}
-      minWidth={320}
-      maxWidth={400}
+      size={{
+        width: Math.round(360 * scale),
+        height: Math.round(contentHeight * scale),
+      }}
+      minWidth={230}
+      maxWidth={540}
       bounds="window"
       dragHandleClassName="drag-handle"
+      enableResizing={{
+        top: false,
+        right: true,
+        bottom: false,
+        left: true,
+        topRight: true,
+        bottomRight: true,
+        bottomLeft: true,
+        topLeft: true,
+      }}
+      onResize={(_e, _dir, ref) => {
+        const newWidth = ref.offsetWidth;
+        changeScale(newWidth / 360);
+      }}
       className="z-[9999]"
     >
-      <div className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col font-sans select-none relative">
+      <div 
+        style={{ 
+          width: Math.round(360 * scale), 
+          height: Math.round(contentHeight * scale), 
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: `${2.5 * scale}rem`
+        }}
+      >
+        <div 
+          ref={contentRef}
+          style={{
+            width: 360,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+          className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col font-sans select-none"
+        >
         
         {/* Header - Drag Handle */}
         <div className="drag-handle w-full h-10 flex justify-center items-center cursor-move pt-3 opacity-40 hover:opacity-100 transition-opacity absolute top-0 left-0 right-0 z-0">
@@ -198,7 +270,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
         </div>
         
         {/* Angle Mode Toggle (Left) */}
-        <div className="absolute top-5 left-5 z-10">
+        <div className="absolute top-4 left-5 z-10">
           <button 
             onClick={() => setAngleMode(angleMode === 'DEG' ? 'RAD' : 'DEG')}
             className="text-xs font-semibold text-zinc-300 bg-zinc-800/80 px-2.5 py-1 rounded-md border border-zinc-700/50 hover:bg-zinc-700 transition-colors"
@@ -208,15 +280,46 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
         </div>
 
         {/* Controls Overlay (Right) */}
-        <div className="absolute top-5 right-5 flex items-center space-x-2 z-10">
+        <div className="absolute top-4 right-4 flex items-center space-x-1.5 z-10">
+          {/* Zoom Out */}
+          <button 
+            onClick={() => changeScale(scale - 0.15)} 
+            disabled={scale <= 0.68}
+            className="text-zinc-400 hover:text-white disabled:opacity-25 transition-colors p-1.5 bg-zinc-800/80 rounded-full" 
+            title="تصغير الحاسبة (Zoom Out)"
+          >
+            <ZoomOut size={14} />
+          </button>
+
+          {/* Scale reset */}
+          <button 
+            onClick={() => changeScale(1.0)} 
+            className="text-[10px] font-mono text-zinc-300 hover:text-white transition-colors px-1.5 py-0.5 bg-zinc-800/80 rounded-md" 
+            title="الحجم الافتراضي 100%"
+          >
+            {Math.round(scale * 100)}%
+          </button>
+
+          {/* Zoom In */}
+          <button 
+            onClick={() => changeScale(scale + 0.15)} 
+            disabled={scale >= 1.3}
+            className="text-zinc-400 hover:text-white disabled:opacity-25 transition-colors p-1.5 bg-zinc-800/80 rounded-full" 
+            title="تكبير الحاسبة (Zoom In)"
+          >
+            <ZoomIn size={14} />
+          </button>
+
+          <div className="w-px h-4 bg-zinc-700/60 mx-0.5" />
+
           <button onClick={() => mfRef.current?.executeCommand(['moveToPreviousChar'])} className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-zinc-800/80 rounded-full" title="Move Left">
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
           <button onClick={() => mfRef.current?.executeCommand(['moveToNextChar'])} className="text-zinc-400 hover:text-white transition-colors p-1.5 bg-zinc-800/80 rounded-full" title="Move Right">
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
           <button onClick={onClose} className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 bg-zinc-800/80 rounded-full ml-1" title="Close">
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
@@ -270,6 +373,7 @@ export default function CalculatorWidget({ onClose }: CalculatorWidgetProps) {
             {renderButtons()}
           </div>
         </div>
+      </div>
       </div>
     </Rnd>
   );
