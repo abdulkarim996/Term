@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { isToday, isSameDay, formatDateEn } from '../../lib/utils'
 import { useUIStore, useSettingsStore } from '../../store'
+import { cloudUpdateTask } from '../../lib/firestore'
 import AddTaskModal from '../tasks/AddTaskModal'
 
 export default function HomeScreen() {
@@ -64,17 +65,24 @@ export default function HomeScreen() {
   
 
   const allTasks = useDataStore(state => state.tasks)
-  const urgentTasks = allTasks.filter(t => !t.completed).sort((a, b) => {
+  const pendingTasks = allTasks.filter(t => !t.completed)
+  const completedTasks = allTasks.filter(t => t.completed)
+
+  const totalTasksCount = allTasks.length
+  const completedCount = completedTasks.length
+  const pendingCount = pendingTasks.length
+
+  const progressPercent = totalTasksCount > 0
+    ? Math.round((completedCount / totalTasksCount) * 100)
+    : 0
+
+  const urgentTasks = [...pendingTasks].sort((a, b) => {
     const aDue = a.dueDate || Infinity
     const bDue = b.dueDate || Infinity
     return aDue - bDue
-  }).slice(0, 3)
+  }).slice(0, 4)
 
   const upcomingExams = allEvents.filter(e => e.type === 'exam' && e.startDate >= today.getTime()).sort((a, b) => (a.startDate || 0) - (b.startDate || 0)).slice(0, 2)
-
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const completedToday = allTasks.filter(t => t.completed && t.updatedAt >= startOfDay.getTime()).length
 
   const getGreeting = () => {
     const h = new Date().getHours()
@@ -126,11 +134,6 @@ export default function HomeScreen() {
     if (days === 1) return t('tomorrow')
     return `${t('after')} ${days} ${t('days')}`
   }
-
-  const totalTasks = urgentTasks?.length ?? 0
-  const progressPercent = totalTasks > 0
-    ? Math.round(((completedToday ?? 0) / (totalTasks + (completedToday ?? 0))) * 100)
-    : 0
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto space-y-8">
@@ -186,24 +189,24 @@ export default function HomeScreen() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Target size={16} className="text-accent-purple" />
-            <span className="text-sm font-medium text-text-primary">{t('completedTasksSub')}</span>
+            <span className="text-sm font-medium text-text-primary">{t('completedTasks') || 'Completed tasks'}</span>
           </div>
           <span className="text-sm font-semibold text-accent-blue">{progressPercent}%</span>
         </div>
-        <div className="w-full bg-surface-border rounded-full h-1.5">
+        <div className="w-full bg-surface-border rounded-full h-2 overflow-hidden">
           <div
-            className="bg-gradient-to-r from-accent-blue to-accent-purple h-1.5 rounded-full transition-all duration-700"
+            className="bg-gradient-to-r from-accent-blue via-accent-purple to-accent-green h-full rounded-full transition-all duration-700 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
         <div className="flex items-center gap-4 mt-3">
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <CheckSquare size={12} className="text-accent-green" />
-            <span>{completedToday ?? 0} {t('completed')}</span>
+            <span>{completedCount} {t('completed')}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <Clock size={12} className="text-accent-yellow" />
-            <span>{totalTasks} {t('remaining')}</span>
+            <span>{pendingCount} {t('remaining')}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <Calendar size={12} className="text-accent-blue" />
@@ -319,6 +322,22 @@ export default function HomeScreen() {
                   className="glass-card p-3.5 flex items-center gap-3 cursor-pointer hover:bg-surface-hover transition-all"
                   onClick={() => setActiveTab('tasks')}
                 >
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      try {
+                        await cloudUpdateTask(String(task.id), {
+                          completed: !task.completed,
+                          updatedAt: Date.now(),
+                        })
+                      } catch {}
+                    }}
+                    className="w-5 h-5 rounded-md border-2 border-surface-border hover:border-accent-green hover:bg-accent-green/10 flex items-center justify-center transition-colors flex-shrink-0"
+                    title={t('completed') || 'إكمال المهمة'}
+                  >
+                    {task.completed && <CheckSquare size={13} className="text-accent-green" />}
+                  </button>
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: priorityColor }}

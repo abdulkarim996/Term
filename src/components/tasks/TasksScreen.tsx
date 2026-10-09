@@ -48,7 +48,10 @@ export default function TasksScreen() {
   const handleToggleTask = async (task: Task) => {
     try {
       if (!currentUser?.uid) return;
-      await cloudUpdateTask(String(String(task.id)), { completed: !task.completed })
+      await cloudUpdateTask(String(String(task.id)), { 
+        completed: !task.completed,
+        updatedAt: Date.now()
+      })
     } catch (e) {
       console.error(e)
       showToast(t('updateError'), 'error')
