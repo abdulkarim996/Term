@@ -115,6 +115,9 @@ export default async function handler(req: any, res: any) {
                 await qstash.publishJSON({
                   url: executeUrl,
                   body: {
+                    uid,
+                    subjectId: subDoc.id,
+                    expectedStartTime: lec.startTime,
                     fcmToken,
                     title: '⏰ محاضرة قريبة!',
                     body: `📚 ${subject.name} بعد 10 دقائق${lec.location ? ' 📍 ' + lec.location : ''} • استعد الآن!`,

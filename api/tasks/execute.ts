@@ -1,5 +1,6 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
+import { getFirestore } from 'firebase-admin/firestore';
 import { Receiver } from '@upstash/qstash';
 
 function initFirebase() {
@@ -84,13 +85,35 @@ export default async function handler(req: any, res: any) {
     }
 
     // 3. Extract Notification Parameters
-    const { fcmToken, title, body } = bodyObj;
+    const { fcmToken, title, body, uid, subjectId, expectedStartTime } = bodyObj;
     if (!fcmToken || !title) {
       return res.status(400).json({ error: 'Missing fcmToken or title in payload' });
     }
 
     // 4. Initialize Firebase Admin
     initFirebase();
+
+    // Check if this was a lecture reminder that was changed or deleted since scheduling
+    if (uid && subjectId && expectedStartTime) {
+      try {
+        const db = getFirestore();
+        const subDoc = await db.collection('users').doc(uid).collection('subjects').doc(subjectId).get();
+        if (subDoc.exists) {
+          const subData = subDoc.data();
+          const currentLectures = subData?.lectures || [];
+          const stillValid = currentLectures.some((l: any) => l.startTime === expectedStartTime);
+          if (!stillValid) {
+            console.log(`[execute.ts] Suppressed obsolete lecture reminder: ${subjectId} at ${expectedStartTime}`);
+            return res.status(200).json({ success: true, skipped: true, reason: 'Lecture time changed or removed' });
+          }
+        } else {
+          console.log(`[execute.ts] Subject ${subjectId} no longer exists, suppressing reminder`);
+          return res.status(200).json({ success: true, skipped: true, reason: 'Subject deleted' });
+        }
+      } catch (err) {
+        console.warn('[execute.ts] Warning during lecture validity check:', err);
+      }
+    }
 
     // 5. Send High-Priority Notification
     const msg = getMessaging();
