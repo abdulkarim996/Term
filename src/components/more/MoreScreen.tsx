@@ -5,8 +5,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, User, Key, Palette, Globe, Trash2,
   ChevronRight, Eye, EyeOff, Monitor,
-  BookOpen, Download, AlertTriangle, LogOut
+  BookOpen, Download, AlertTriangle, LogOut,
+  GraduationCap, Award
 } from 'lucide-react'
+import { calculateAcademicSummary } from '../../lib/gpa'
 import { signOut } from 'firebase/auth'
 import { auth, getAppMessaging } from '../../lib/firebase'
 import { getToken } from 'firebase/messaging'
@@ -66,7 +68,7 @@ function UrlInput({ label, value, onChange, placeholder }: {
 export default function MoreScreen() {
   const { t, language } = useTranslation()
   const settings = useSettingsStore()
-  const { showToast, currentUser } = useUIStore()
+  const { showToast, currentUser, setShowGpaModal } = useUIStore()
   const [showGeminiKey, setShowGeminiKey] = useState(false)
   const isNotificationSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
   const [pushEnabled, setPushEnabled] = useState(isNotificationSupported && Notification.permission === 'granted')
@@ -75,6 +77,17 @@ export default function MoreScreen() {
   const [activeSection, setActiveSection] = useState<string | null>('profile')
 
   const subjects = useDataStore(state => state.subjects)
+  const semesters = useDataStore(state => state.semesters)
+
+  const gpaSummary = React.useMemo(() => {
+    return calculateAcademicSummary(
+      semesters,
+      settings.gpaScale,
+      settings.targetGraduationHours,
+      settings.baselineGpa,
+      settings.baselineHours
+    )
+  }, [semesters, settings.gpaScale, settings.targetGraduationHours, settings.baselineGpa, settings.baselineHours])
 
   const handlePushToggle = async () => {
     if (!confirm(t('confirmPushToggle') || 'هل أنت متأكد من تغيير حالة الإشعارات؟')) return;
@@ -253,6 +266,55 @@ export default function MoreScreen() {
         </div>
       </div>
 
+      {/* ── Academic Records & GPA ───────────────────────────────── */}
+      <div className="glass-card overflow-hidden">
+        <div className="p-4">
+          <SectionHeader
+            id="gpa"
+            label={language === 'ar' ? "المعدل الأكاديمي والدرجات (GPA)" : "Academic Records (GPA)"}
+            icon={GraduationCap as React.FC<{ size: number; className: string }>}
+          />
+          {activeSection === 'gpa' && (
+            <div className="space-y-3 pt-3 animate-fade-in">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface-elevated border border-surface-border/60">
+                <div>
+                  <span className="text-[10px] text-text-muted block">
+                    {language === 'ar' ? 'المعدل التراكمي العام' : 'Cumulative GPA'}
+                  </span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-text-primary font-mono">{gpaSummary.cumulativeGpa.toFixed(2)}</span>
+                    <span className="text-xs text-text-muted font-mono">/ {settings.gpaScale}.00</span>
+                  </div>
+                  {gpaSummary.honorsTitle && (
+                    <span className="text-[10px] text-amber-400 font-semibold block mt-0.5">{gpaSummary.honorsTitle}</span>
+                  )}
+                </div>
+
+                <div className="text-left rtl:text-right">
+                  <span className="text-[10px] text-text-muted block">
+                    {language === 'ar' ? 'الساعات المكتسبة' : 'Earned Hours'}
+                  </span>
+                  <span className="text-sm font-bold text-text-primary font-mono">
+                    {gpaSummary.totalCompletedHours} / {settings.targetGraduationHours} س
+                  </span>
+                  <span className="text-[10px] text-accent-blue block font-semibold mt-0.5">
+                    {gpaSummary.progressPercentage}% {language === 'ar' ? 'من الخطة' : 'of plan'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowGpaModal(true)}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-accent-blue to-accent-purple text-white text-xs font-bold hover:opacity-95 shadow-md shadow-accent-blue/15 flex items-center justify-center gap-2 transition-all"
+              >
+                <GraduationCap size={15} />
+                {language === 'ar' ? 'عرض السجل الأكاديمي والحاسبة كاملة 🎓' : 'Open Academic Records & Calculator 🎓'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ── Preferences (includes API Keys + Quick Links) ─────────── */}
       <div className="glass-card overflow-hidden">
         <div className="p-4">
@@ -320,6 +382,29 @@ export default function MoreScreen() {
                 </div>
                 <div className={`relative w-11 h-6 rounded-full transition-all duration-300 shrink-0 ${pushEnabled ? 'bg-accent-blue' : 'bg-surface-border'}`}>
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${pushEnabled ? 'left-6' : 'left-1'}`} />
+                </div>
+              </div>
+
+              {/* Show GPA on Home Screen Toggle */}
+              <div
+                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 hover:bg-surface-hover transition-all cursor-pointer"
+                onClick={() => settings.setShowGpaOnHome(!settings.showGpaOnHome)}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${settings.showGpaOnHome ? 'bg-accent-blue/15' : 'bg-surface-border'}`}>
+                    <GraduationCap size={15} className={settings.showGpaOnHome ? 'text-accent-blue' : 'text-text-muted'} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary truncate">
+                      {language === 'ar' ? 'إظهار بطاقة المعدل في الرئيسية' : 'Show GPA card on Home'}
+                    </p>
+                    <p className={`text-[11px] text-text-muted mt-0.5 leading-relaxed ${language === 'ar' ? 'text-right' : 'text-left'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                      {language === 'ar' ? 'عرض ملخص المعدل والساعات في الواجهة الرئيسية' : 'Display GPA summary on home dashboard'}
+                    </p>
+                  </div>
+                </div>
+                <div className={`relative w-11 h-6 rounded-full transition-all duration-300 shrink-0 ${settings.showGpaOnHome ? 'bg-accent-blue' : 'bg-surface-border'}`}>
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${settings.showGpaOnHome ? 'left-6' : 'left-1'}`} />
                 </div>
               </div>
 

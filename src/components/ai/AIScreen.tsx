@@ -13,6 +13,7 @@ import { MessageSquare, Sparkles, Send, User, Brain, Zap, Trash2, Edit2, Calenda
 import { ChatMessage } from '../../store/dataStore'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useSettingsStore } from '../../store'
+import { calculateAcademicSummary } from '../../lib/gpa'
 import { pdfjs } from 'react-pdf'
 
 async function extractTextFromDriveFile(file: any, token: string) {
@@ -227,6 +228,24 @@ export default function AIScreen() {
            const sub = subjects.find((sub: any) => sub.id === f.subjectId);
            return `- ${f.name} (Subject: ${sub ? sub.name : 'Unknown'})`;
         }).join('\n');
+
+        // Academic Records, GPA & Course Grades
+        const semesters = useDataStore.getState().semesters || [];
+        const gpaSummary = calculateAcademicSummary(
+          semesters,
+          s.gpaScale,
+          s.targetGraduationHours,
+          s.baselineGpa,
+          s.baselineHours
+        );
+        let academicInfo = `Grading Scale: ${s.gpaScale}.00\nCumulative GPA: ${gpaSummary.cumulativeGpa.toFixed(2)} / ${s.gpaScale}.00\nCompleted Credit Hours: ${gpaSummary.totalCompletedHours} / ${s.targetGraduationHours} (Progress: ${gpaSummary.progressPercentage}%)\nHonors Standing: ${gpaSummary.honorsTitle || 'None'}`;
+        if (semesters.length > 0) {
+          academicInfo += '\n\nSemesters Breakdown:';
+          semesters.forEach((sem: any) => {
+            const semCourses = (sem.courses || []).map((c: any) => `    * ${c.name} (${c.creditHours} credits) -> Grade: ${c.grade}`).join('\n');
+            academicInfo += `\n- Semester: ${sem.name} [Term GPA: ${sem.termGpa || 'N/A'}]\n${semCourses || '    (No courses listed)'}`;
+          });
+        }
         
         // PDF Text Extraction Logic
         let appendedFileText = '';
@@ -249,7 +268,7 @@ export default function AIScreen() {
            }
         }
         
-        const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}\n\n===================`;
+        const sysInst = t('aiInstruction') + `\n\n=== USER CONTEXT ===\n\n[USER PROFILE]\n${profileInfo}\n\n[ACADEMIC RECORDS & GPA]\n${academicInfo}\n\n[ENROLLED SUBJECTS & WEEKLY SCHEDULE]\n${userSubjects || 'No subjects enrolled.'}\n\n[PENDING TASKS]\n${userTasks || 'No pending tasks.'}\n\n[UPCOMING CALENDAR EVENTS]\n${userEvents || 'No upcoming events.'}\n\n[UPLOADED FILES / DRIVE]\n${userFiles || 'No files uploaded.'}\n\n===================`;
 
         const generateAttempt = async (modelId: string) => {
           // If we have file text, we can either append it to sysInst or to the user's message.

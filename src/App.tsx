@@ -20,6 +20,7 @@ import Toast from './components/ui/Toast'
 import UpdatePrompt from './components/ui/UpdatePrompt'
 import AuthScreen from './components/auth/AuthScreen'
 import PinSetup from './components/auth/PinSetup'
+import GPAModal from './components/gpa/GPAModal'
 import { Sparkles, Loader2 } from 'lucide-react'
 
 
@@ -156,6 +157,9 @@ export default function App() {
           },
           onDriveFiles: (cloudItems: any) => {
             useDataStore.getState().setDriveFiles(cloudItems.map((item: any) => ({ ...item, id: item.cloudId })));
+          },
+          onSemesters: (cloudItems: any) => {
+            useDataStore.getState().setSemesters(cloudItems.map((item: any) => ({ ...item, id: item.cloudId })));
           }
         })
       } else {
@@ -262,6 +266,7 @@ export default function App() {
       </main>
 
       <UpdatePrompt />
+      <GPAModal />
       {/* Bottom Navigation */}
       <BottomNav />
 

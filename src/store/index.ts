@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -24,6 +24,7 @@ interface UIStore {
   currentUser: AppUser | null
   authLoading: boolean
   quickReviewFile: import('../store/dataStore').DriveFile | null
+  showGpaModal: boolean
 
   setActiveTab: (tab: Tab) => void
   setCalendarView: (view: CalendarView) => void
@@ -31,6 +32,7 @@ interface UIStore {
   setShowAddTask: (v: boolean) => void
   setShowAddEvent: (v: boolean) => void
   setShowAddSubject: (v: boolean) => void
+  setShowGpaModal: (v: boolean) => void
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
   clearToast: () => void
   setCurrentUser: (user: AppUser | null) => void
@@ -45,6 +47,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   showAddTask: false,
   showAddEvent: false,
   showAddSubject: false,
+  showGpaModal: false,
   toastMessage: null,
   toastType: 'success',
   currentUser: null,
@@ -57,6 +60,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   setShowAddTask: (v) => set({ showAddTask: v }),
   setShowAddEvent: (v) => set({ showAddEvent: v }),
   setShowAddSubject: (v) => set({ showAddSubject: v }),
+  setShowGpaModal: (v) => set({ showGpaModal: v }),
   showToast: (msg, type = 'success') => {
     set({ toastMessage: msg, toastType: type })
     setTimeout(() => set({ toastMessage: null }), 3000)
@@ -84,9 +88,20 @@ interface SettingsStore {
   theme: 'dark' | 'light'
   bannerUrl: string
   blackboardUrl: string
+  gpaScale: 5 | 4
+  targetGraduationHours: number
+  showGpaOnHome: boolean
+  baselineGpa: number
+  baselineHours: number
+
   setTheme: (t: 'dark' | 'light') => void
   setBannerUrl: (url: string) => void
   setBlackboardUrl: (url: string) => void
+  setGpaScale: (scale: 5 | 4) => void
+  setTargetGraduationHours: (hours: number) => void
+  setShowGpaOnHome: (v: boolean) => void
+  setBaselineGpa: (gpa: number) => void
+  setBaselineHours: (hours: number) => void
 
   setGeminiApiKey: (key: string) => void
   setGoogleClientId: (id: string) => void
@@ -118,6 +133,20 @@ export const useSettingsStore = create<SettingsStore>()(
       theme: 'dark',
       bannerUrl: 'https://stuss.nbu.edu.sa/StudentSelfService',
       blackboardUrl: 'https://lms.nbu.edu.sa/webapps/login/',
+      gpaScale: 5,
+      targetGraduationHours: 134,
+      showGpaOnHome: true,
+      baselineGpa: 0,
+      baselineHours: 0,
+
+      setTheme: (t) => set({ theme: t }),
+      setBannerUrl: (url) => set({ bannerUrl: url }),
+      setBlackboardUrl: (url) => set({ blackboardUrl: url }),
+      setGpaScale: (scale) => set({ gpaScale: scale }),
+      setTargetGraduationHours: (hours) => set({ targetGraduationHours: hours }),
+      setShowGpaOnHome: (v) => set({ showGpaOnHome: v }),
+      setBaselineGpa: (gpa) => set({ baselineGpa: gpa }),
+      setBaselineHours: (hours) => set({ baselineHours: hours }),
 
       setGeminiApiKey: (key) => set({ geminiApiKey: key }),
       setGoogleClientId: (id) => set({ googleClientId: id }),
@@ -129,9 +158,6 @@ export const useSettingsStore = create<SettingsStore>()(
       setCurrentSemester: (sem) => set({ currentSemester: sem }),
       setAccentColor: (color) => set({ accentColor: color }),
       setAutoStudyBlocks: (v) => set({ autoStudyBlocks: v }),
-      setTheme: (t) => set({ theme: t }),
-      setBannerUrl: (url) => set({ bannerUrl: url }),
-      setBlackboardUrl: (url) => set({ blackboardUrl: url }),
     }),
     {
       name: 'student-dashboard-settings',

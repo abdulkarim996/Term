@@ -80,6 +80,25 @@ export interface ChatSession {
   updatedAt: number
 }
 
+export interface CourseGrade {
+  id: string
+  name: string
+  code?: string
+  creditHours: number
+  grade: string // 'A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'
+  points?: number
+  subjectId?: string | number
+}
+
+export interface SemesterRecord {
+  id?: string | number
+  name: string
+  courses: CourseGrade[]
+  termGpa?: number
+  termHours?: number
+  createdAt: number
+}
+
 interface DataStore {
   subjects: Subject[]
   tasks: Task[]
@@ -87,6 +106,7 @@ interface DataStore {
   driveFiles: DriveFile[]
   chatSessions: ChatSession[]
   messages: ChatMessage[]
+  semesters: SemesterRecord[]
 
   setSubjects: (data: Subject[]) => void
   setTasks: (data: Task[]) => void
@@ -94,6 +114,7 @@ interface DataStore {
   setDriveFiles: (data: DriveFile[]) => void
   setChatSessions: (data: ChatSession[]) => void
   setMessages: (data: ChatMessage[]) => void
+  setSemesters: (data: SemesterRecord[]) => void
   whiteboardData: any
   setWhiteboardData: (data: any) => void
 }
@@ -105,6 +126,7 @@ export const useDataStore = create<DataStore>((set) => ({
   driveFiles: [],
   chatSessions: [],
   messages: [],
+  semesters: [],
 
   setSubjects: (data) => set({ subjects: data }),
   setTasks: (data) => set({ tasks: data }),
@@ -112,6 +134,8 @@ export const useDataStore = create<DataStore>((set) => ({
   setDriveFiles: (data) => set({ driveFiles: data }),
   setChatSessions: (data) => set({ chatSessions: data }),
   setMessages: (data) => set({ messages: data }),
+  setSemesters: (data) => set({ semesters: data }),
   whiteboardData: null,
   setWhiteboardData: (data) => set({ whiteboardData: data }),
 }))
+

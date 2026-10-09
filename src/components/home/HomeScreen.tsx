@@ -5,8 +5,9 @@ import React, { useState } from 'react'
 import {
   BookOpen, Calendar, CheckSquare, Check, AlertCircle,
   Clock, MapPin, ChevronRight, Plus, Sparkles,
-  TrendingUp, Target, Coffee
+  TrendingUp, Target, Coffee, GraduationCap, Award
 } from 'lucide-react'
+import { calculateAcademicSummary } from '../../lib/gpa'
 import { isToday, isSameDay, formatDateEn } from '../../lib/utils'
 import { useUIStore, useSettingsStore } from '../../store'
 import { cloudUpdateTask } from '../../lib/firestore'
@@ -14,14 +15,29 @@ import AddTaskModal from '../tasks/AddTaskModal'
 
 export default function HomeScreen() {
   const { t, language } = useTranslation();
-  const { setActiveTab, setShowAddTask } = useUIStore()
-  const { userName, bannerUrl, blackboardUrl } = useSettingsStore()
+  const { setActiveTab, setShowAddTask, setShowGpaModal } = useUIStore()
+  const {
+    userName, bannerUrl, blackboardUrl,
+    showGpaOnHome, gpaScale, targetGraduationHours,
+    baselineGpa, baselineHours
+  } = useSettingsStore()
   const now = Date.now()
 
   const today = new Date();
   const allEvents = useDataStore(state => state.events)
   const subjects = useDataStore(state => state.subjects);
+  const semesters = useDataStore(state => state.semesters);
   const subjectMap = Object.fromEntries((subjects ?? []).map((s) => [s.id, s]));
+
+  const gpaSummary = React.useMemo(() => {
+    return calculateAcademicSummary(
+      semesters,
+      gpaScale,
+      targetGraduationHours,
+      baselineGpa,
+      baselineHours
+    )
+  }, [semesters, gpaScale, targetGraduationHours, baselineGpa, baselineHours])
   
   const todayEvents = (() => {
     const todayDayOfWeek = today.getDay();
@@ -184,6 +200,66 @@ export default function HomeScreen() {
           {t('blackboard') || 'Blackboard'}
         </a>
       </div>
+
+      {/* Academic Records / GPA Widget (Conditional based on Settings) */}
+      {showGpaOnHome && (
+        <div
+          onClick={() => setShowGpaModal(true)}
+          className="glass-card p-4 hover:border-accent-blue/40 transition-all cursor-pointer relative overflow-hidden group shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-accent-blue/15 border border-accent-blue/20 flex items-center justify-center text-accent-blue shadow-inner">
+                <GraduationCap size={16} />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-text-primary block">
+                  {language === 'ar' ? 'المعدل الأكاديمي (GPA)' : 'Academic GPA'}
+                </span>
+                {gpaSummary.honorsTitle ? (
+                  <span className="text-[10px] text-amber-400 font-semibold block">
+                    {gpaSummary.honorsTitle}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-text-muted block">
+                    {language === 'ar' ? 'اضغط لعرض السجل والحاسبة' : 'Click to view tracker & calculator'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="text-right rtl:text-left">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-black text-text-primary font-mono tracking-tight">
+                    {gpaSummary.cumulativeGpa.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-text-muted font-mono">
+                    / {gpaScale}.00
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-text-muted group-hover:text-accent-blue group-hover:translate-x-0.5 transition-all rtl-flip" />
+            </div>
+          </div>
+
+          <div className="w-full bg-surface-border rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-accent-blue to-accent-purple h-full rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${gpaSummary.progressPercentage}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-2 text-[10px] text-text-muted">
+            <span>
+              {language === 'ar' ? 'الساعات المكتسبة:' : 'Earned Hours:'} {gpaSummary.totalCompletedHours} / {targetGraduationHours} س
+            </span>
+            <span className="text-accent-blue font-semibold">
+              {gpaSummary.progressPercentage}% {language === 'ar' ? 'من الخطة' : 'of plan'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Daily Progress Card */}
       <div className="glass-card p-4">

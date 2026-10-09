@@ -39,6 +39,7 @@ export function subscribeToUserData(uid: string, callbacks: any): () => void {
   setupListener('driveFiles', callbacks.onDriveFiles)
   setupListener('chatSessions', callbacks.onChatSessions)
   setupListener('chatMessages', callbacks.onChatMessages)
+  setupListener('semesters', callbacks.onSemesters)
 
   return () => unsubs.forEach(fn => fn())
 }
@@ -117,8 +118,20 @@ export async function cloudDeleteChatMessage(id: string) {
   await deleteDoc(userDoc(getUid(), 'chatMessages', id))
 }
 
+// === SEMESTERS / GPA ===
+export async function cloudAddSemester(semester: any) {
+  const ref = await withTimeout(addDoc(userCol(getUid(), 'semesters'), clean(semester)), 10000);
+  return ref.id;
+}
+export async function cloudUpdateSemester(id: string, changes: any) {
+  await withTimeout(updateDoc(userDoc(getUid(), 'semesters', id), clean(changes)), 10000);
+}
+export async function cloudDeleteSemester(id: string) {
+  await deleteDoc(userDoc(getUid(), 'semesters', id));
+}
+
 export async function cloudClearAllData(uid: string) {
-  const collections = ['subjects', 'tasks', 'events', 'chatSessions', 'chatMessages', 'driveFiles'];
+  const collections = ['subjects', 'tasks', 'events', 'chatSessions', 'chatMessages', 'driveFiles', 'semesters'];
   for (const col of collections) {
     const snap = await getDocs(userCol(getUid(), col));
     const batch = writeBatch(db_cloud);
