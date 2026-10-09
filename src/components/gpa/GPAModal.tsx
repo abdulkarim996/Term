@@ -84,6 +84,70 @@ export default function GPAModal() {
     }
   }, [simulatedCourses, gpaScale, summary])
 
+  // Target GPA requirement solver
+  const targetRequirement = useMemo(() => {
+    const target = parseFloat(targetGpaInput)
+    if (isNaN(target) || target <= 0) return null
+
+    const prevHours = summary.totalCompletedHours
+    const prevPoints = summary.totalPoints
+    const termH = simStats.termHours
+
+    if (termH <= 0) {
+      return {
+        valid: false,
+        message: isAr ? 'يرجى إضافة ساعات لمواد الفصل أولاً' : 'Please add credit hours to semester courses first'
+      }
+    }
+
+    const totalHours = prevHours + termH
+    const neededTotalPoints = target * totalHours
+    const neededTermPoints = neededTotalPoints - prevPoints
+    const neededTermGpa = Number((neededTermPoints / termH).toFixed(2))
+
+    const maxGpa = gpaScale === 5 ? 5.0 : 4.0
+
+    if (neededTermGpa > maxGpa) {
+      return {
+        valid: false,
+        neededTermGpa,
+        message: isAr
+          ? `للوصول إلى ${target.toFixed(2)} تحتاج معدلاً فصلياً (${neededTermGpa.toFixed(2)} من ${maxGpa}) وهو أعلى من الحد الأقصى لهذا الترم وحده.`
+          : `Reaching ${target.toFixed(2)} requires a term GPA of ${neededTermGpa.toFixed(2)} / ${maxGpa}, which exceeds the single-term limit.`
+      }
+    }
+
+    if (neededTermGpa <= (gpaScale === 5 ? 1.0 : 0.0)) {
+      return {
+        valid: true,
+        neededTermGpa,
+        message: isAr
+          ? `معدلك الحالي كافٍ جداً، وسيظل معدلك أعلى من ${target.toFixed(2)} حتى بالحد الأدنى!`
+          : `Your current standing easily surpasses ${target.toFixed(2)} even with minimum grades!`
+      }
+    }
+
+    let gradeHint = ''
+    if (gpaScale === 5) {
+      if (neededTermGpa >= 4.75) gradeHint = isAr ? '(متوسط A+ في المواد)' : '(Average A+ in all courses)'
+      else if (neededTermGpa >= 4.5) gradeHint = isAr ? '(مزيج من A+ و A)' : '(Mix of A+ and A)'
+      else if (neededTermGpa >= 4.0) gradeHint = isAr ? '(متوسط B+ أو A)' : '(Average B+ or A)'
+      else gradeHint = isAr ? '(متوسط B أو C+)' : '(Average B or C+)'
+    } else {
+      if (neededTermGpa >= 3.75) gradeHint = isAr ? '(متوسط A+ و A)' : '(Average A+ and A)'
+      else if (neededTermGpa >= 3.5) gradeHint = isAr ? '(متوسط B+)' : '(Average B+)'
+      else gradeHint = isAr ? '(متوسط B)' : '(Average B)'
+    }
+
+    return {
+      valid: true,
+      neededTermGpa,
+      message: isAr
+        ? `تحتاج لتحقيق معدل فصلي لا يقل عن ${neededTermGpa.toFixed(2)} في هذا الترم ${gradeHint}`
+        : `You need a term GPA of at least ${neededTermGpa.toFixed(2)} in this semester ${gradeHint}`
+    }
+  }, [targetGpaInput, summary, simStats, gpaScale, isAr])
+
   // --- Handlers for Semesters ---
   const handleCreateSemester = async () => {
     if (!newSemesterName.trim()) {
@@ -808,15 +872,55 @@ export default function GPAModal() {
                 </div>
               </div>
 
+              {/* Target GPA Goal Solver Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-accent-purple/10 to-accent-blue/10 border border-accent-purple/20 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-accent-purple/20 flex items-center justify-center text-accent-purple">
+                      <TrendingUp size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-text-primary">
+                        {isAr ? 'حاسبة المعدل المستهدف (Target GPA Goal)' : 'Target GPA Goal Solver'}
+                      </h4>
+                      <p className="text-[11px] text-text-muted">
+                        {isAr ? 'كم تحتاج في هذا الترم لتصل إلى معدل معين؟' : 'What term GPA do you need to reach a specific target?'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1.0"
+                      max={gpaScale}
+                      placeholder={isAr ? `مثال: 4.75` : `e.g. 4.75`}
+                      value={targetGpaInput}
+                      onChange={e => setTargetGpaInput(e.target.value)}
+                      className="w-28 bg-surface border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent-purple font-mono text-center"
+                    />
+                  </div>
+                </div>
+
+                {targetRequirement && (
+                  <div className={`p-3 rounded-xl text-xs font-medium border animate-in fade-in ${
+                    targetRequirement.valid
+                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                  }`}>
+                    {targetRequirement.message}
+                  </div>
+                )}
+              </div>
+
               {/* Simulated Courses Table */}
               <div className="bg-surface-elevated rounded-2xl border border-surface-border overflow-hidden">
-                <div className="p-3 bg-surface border-b border-surface-border flex items-center justify-between text-xs font-bold text-text-muted">
+                <div className="p-3 bg-surface border-b border-surface-border grid grid-cols-[1fr_65px_110px_32px] gap-2 items-center text-xs font-bold text-text-muted">
                   <span>{isAr ? 'المادة الدراسية' : 'Course'}</span>
-                  <div className="flex items-center gap-8">
-                    <span>{isAr ? 'الساعات' : 'Credits'}</span>
-                    <span>{isAr ? 'الدرجة المتوقعة' : 'Expected Grade'}</span>
-                    <span className="w-5"></span>
-                  </div>
+                  <span className="text-center">{isAr ? 'الساعات' : 'Credits'}</span>
+                  <span className="text-center">{isAr ? 'الدرجة' : 'Grade'}</span>
+                  <span></span>
                 </div>
 
                 <div className="divide-y divide-surface-border/50 p-2 space-y-1">
@@ -828,42 +932,40 @@ export default function GPAModal() {
                     </div>
                   ) : (
                     simulatedCourses.map((c) => (
-                      <div key={c.id} className="p-2 flex items-center justify-between gap-3">
+                      <div key={c.id} className="p-1.5 grid grid-cols-[1fr_65px_110px_32px] gap-2 items-center">
                         <input
                           type="text"
                           value={c.name}
                           onChange={e => handleUpdateSimCourse(c.id, 'name', e.target.value)}
-                          className="flex-1 bg-surface border border-surface-border rounded-xl px-3 py-1.5 text-xs text-text-primary outline-none focus:border-accent-blue"
+                          className="w-full bg-surface border border-surface-border rounded-xl px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-accent-blue truncate"
                           placeholder={isAr ? 'اسم المادة' : 'Course Name'}
                         />
 
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="number"
-                            min="1"
-                            max="8"
-                            value={c.creditHours}
-                            onChange={e => handleUpdateSimCourse(c.id, 'creditHours', Number(e.target.value))}
-                            className="w-16 bg-surface border border-surface-border rounded-xl px-2 py-1.5 text-xs text-center text-text-primary outline-none focus:border-accent-blue font-mono"
-                          />
+                        <input
+                          type="number"
+                          min="1"
+                          max="8"
+                          value={c.creditHours}
+                          onChange={e => handleUpdateSimCourse(c.id, 'creditHours', Number(e.target.value))}
+                          className="w-full bg-surface border border-surface-border rounded-xl px-1 py-1.5 text-xs text-center text-text-primary outline-none focus:border-accent-blue font-mono"
+                        />
 
-                          <select
-                            value={c.grade}
-                            onChange={e => handleUpdateSimCourse(c.id, 'grade', e.target.value)}
-                            className="bg-surface border border-surface-border rounded-xl px-3 py-1.5 text-xs font-bold text-text-primary outline-none focus:border-accent-blue"
-                          >
-                            {Object.keys(GRADE_OPTIONS).map(gr => (
-                              <option key={gr} value={gr}>{gr} ({getGradePoint(gr, gpaScale)})</option>
-                            ))}
-                          </select>
+                        <select
+                          value={c.grade}
+                          onChange={e => handleUpdateSimCourse(c.id, 'grade', e.target.value)}
+                          className="w-full bg-surface border border-surface-border rounded-xl px-1 py-1.5 text-xs font-bold text-text-primary outline-none focus:border-accent-blue text-center"
+                        >
+                          {Object.keys(GRADE_OPTIONS).map(gr => (
+                            <option key={gr} value={gr}>{gr} ({getGradePoint(gr, gpaScale)})</option>
+                          ))}
+                        </select>
 
-                          <button
-                            onClick={() => handleRemoveSimulatedCourse(c.id)}
-                            className="text-text-muted hover:text-red-400 p-1 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleRemoveSimulatedCourse(c.id)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors mx-auto"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     ))
                   )}
