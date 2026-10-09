@@ -10,7 +10,7 @@ import { useSettingsStore, useUIStore } from '../../store'
 import { useDataStore } from '../../store/dataStore'
 import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2, Hand } from 'lucide-react'
 import MiniTimer from './MiniTimer'
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
@@ -66,35 +66,47 @@ export default function FileAnnotator({ file, onClose }: Props) {
     }
   }, [])
 
-  // Custom native wheel handler to allow standard scrolling (vertical panning) unless Ctrl/Meta is pressed
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault() // Stop standard scrolling since wrapper is overflow-hidden
-      const zoomIn = (el as any).__zoomIn
-      const zoomOut = (el as any).__zoomOut
-      const setTransform = (el as any).__setTransform
-      const state = (el as any).__state
+  const transformRef = useRef<ReactZoomPanPinchRef>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
-      if (e.ctrlKey || e.metaKey) {
-        if (e.deltaY < 0 && zoomIn) {
-          zoomIn(0.2)
-        } else if (e.deltaY > 0 && zoomOut) {
-          zoomOut(0.2)
-        }
-      } else {
-        // Vertical panning (standard scroll)
-        if (state && setTransform) {
-          const deltaY = e.deltaY
-          const newY = state.positionY - deltaY
-          setTransform(state.positionX, newY, state.scale, 0)
-        }
+  // Custom native wheel handler to ensure mouse wheel scrolls pages up & down smoothly on desktop
+  const onWheelHandler = (e: WheelEvent) => {
+    e.preventDefault()
+    const tr = transformRef.current
+    if (!tr) return
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.deltaY < 0) {
+        tr.zoomIn(0.15)
+      } else if (e.deltaY > 0) {
+        tr.zoomOut(0.15)
       }
+      return
     }
-    el.addEventListener('wheel', handleWheel, { passive: false })
-    return () => el.removeEventListener('wheel', handleWheel)
-  }, [])
+
+    // Normal mouse wheel: Scroll down / up the pages smoothly
+    let delta = e.deltaY
+    if (e.deltaMode === 1) delta *= 33 // lines to px
+    else if (e.deltaMode === 2) delta *= 400 // pages to px
+
+    const currentX = tr.state?.positionX ?? (tr as any).instance?.transformState?.positionX ?? 0
+    const currentY = tr.state?.positionY ?? (tr as any).instance?.transformState?.positionY ?? 0
+    const currentScale = tr.state?.scale ?? (tr as any).instance?.transformState?.scale ?? 1
+
+    const newY = currentY - delta
+    tr.setTransform(currentX, newY, currentScale, 0)
+  }
+
+  // Callback ref guarantees the non-passive wheel listener is attached as soon as the DOM element renders
+  const setContainerRef = (node: HTMLDivElement | null) => {
+    if (containerRef.current) {
+      containerRef.current.removeEventListener('wheel', onWheelHandler)
+    }
+    containerRef.current = node
+    if (node) {
+      node.addEventListener('wheel', onWheelHandler, { passive: false })
+    }
+  }
 
 
 
@@ -130,7 +142,6 @@ export default function FileAnnotator({ file, onClose }: Props) {
   
   const canvasRefs = useRef<Record<number, HTMLCanvasElement>>({})
   const imageCache = useRef<Record<string, HTMLImageElement>>({})
-  const containerRef = useRef<HTMLDivElement>(null)
   
   const isImage = file.mimeType?.includes('image')
 
@@ -972,11 +983,12 @@ export default function FileAnnotator({ file, onClose }: Props) {
 
   return (
     <TransformWrapper
+      ref={transformRef}
       initialScale={1}
       minScale={0.1}
       maxScale={10}
       limitToBounds={false}
-      wheel={{ wheelDisabled: true }} // Disabled so our native wheel handler takes over
+      wheel={{ wheelDisabled: true }}
       pinch={{ step: 5 }}
       panning={{ 
         disabled: toolMode !== 'pan' && !isSpacePressed, 
@@ -986,15 +998,8 @@ export default function FileAnnotator({ file, onClose }: Props) {
         activationKeys: [] 
       }}
     >
-      {({ zoomIn, zoomOut, state, setTransform }) => {
-        if (containerRef.current) {
-          (containerRef.current as any).__zoomIn = zoomIn;
-          (containerRef.current as any).__zoomOut = zoomOut;
-          (containerRef.current as any).__state = state;
-          (containerRef.current as any).__setTransform = setTransform;
-        }
-        return (
-          <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
+      {({ zoomIn, zoomOut, state }) => (
+        <div className="flex flex-col w-full h-full bg-background rounded-xl overflow-hidden relative select-none" onContextMenu={e => e.preventDefault()}>
       
       {/* File Naming Modal */}
       {saveModalOpen && (
@@ -1136,7 +1141,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-hidden bg-surface relative flex justify-center py-8" ref={containerRef}>
+      <div className="flex-1 overflow-hidden bg-surface relative flex justify-center py-8" ref={setContainerRef}>
         <TransformComponent wrapperClass="w-full h-full" contentClass="w-full flex-col items-center">
         {!fileBytes ? null : isImage ? (
            <div className="relative shadow-xl mx-auto">
@@ -1256,8 +1261,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
         </TransformComponent>
         </div>
       </div>
-      );
-      }}
-    </TransformWrapper>
+    )}
+  </TransformWrapper>
   )
 }
