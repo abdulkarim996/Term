@@ -23,7 +23,7 @@ interface AttachedImage {
   name: string
 }
 
-async function extractTextFromDriveFile(file: any, token: string) {
+async function extractTextFromDriveFile(file: any, token: string, userQuery: string = '') {
   try {
     const isGoogleDoc = file.mimeType === 'application/vnd.google-apps.document';
     const isGoogleSlides = file.mimeType === 'application/vnd.google-apps.presentation';
@@ -34,7 +34,7 @@ async function extractTextFromDriveFile(file: any, token: string) {
       const res = await fetch(fetchUrl, { headers });
       if (res.ok) {
         const text = await res.text();
-        return text.substring(0, 50000); // Max 50k chars
+        return text.substring(0, 200000); // Max 200k chars
       }
     } else if (file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       const fetchUrl = `https://www.googleapis.com/drive/v3/files/${file.driveFileId}?alt=media`;
@@ -45,15 +45,48 @@ async function extractTextFromDriveFile(file: any, token: string) {
       pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
       const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
-      let fullText = '';
-      const maxPages = Math.min(pdf.numPages, 30); // limit to 30 pages
-      for (let i = 1; i <= maxPages; i++) {
+      const totalPages = pdf.numPages;
+
+      let startPage = 1;
+      let endPage = Math.min(totalPages, 180); // Support up to 180 slides!
+
+      // Check for user-specified page range or specific slide
+      // Examples: "من صفحة 10 الى 30", "من سلايد 20 لـ 45", "سلايدات 1-25", "سلايد 14", "اول 20 سلايد"
+      const rangeMatch = userQuery.match(/(?:من\s*(?:صفحة|سلايد)?\s*(\d+)\s*(?:إلى|الى|لـ|-|to)\s*(?:صفحة|سلايد)?\s*(\d+))|(?:(?:صفحة|سلايد|page|slide)s?\s*(\d+)\s*(?:إلى|الى|لـ|-|to)\s*(\d+))/i);
+      const firstNMatch = userQuery.match(/(?:أول|اول|first)\s*(\d+)\s*(?:صفحة|سلايد|pages?|slides?)/i);
+      const singleSlideMatch = userQuery.match(/(?:سلايد|صفحة|page|slide)\s*(\d+)/i);
+
+      if (rangeMatch) {
+        const p1 = parseInt(rangeMatch[1] || rangeMatch[3], 10);
+        const p2 = parseInt(rangeMatch[2] || rangeMatch[4], 10);
+        if (!isNaN(p1) && !isNaN(p2)) {
+          startPage = Math.max(1, Math.min(p1, p2));
+          endPage = Math.min(totalPages, Math.max(p1, p2));
+        }
+      } else if (firstNMatch) {
+        const count = parseInt(firstNMatch[1], 10);
+        if (!isNaN(count) && count > 0) {
+          startPage = 1;
+          endPage = Math.min(totalPages, count);
+        }
+      } else if (singleSlideMatch) {
+        const targetPage = parseInt(singleSlideMatch[1], 10);
+        if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= totalPages) {
+          startPage = Math.max(1, targetPage - 1);
+          endPage = Math.min(totalPages, targetPage + 1);
+        }
+      }
+
+      let fullText = `[ملف: ${file.name} | إجمالي عدد السلايدات/الصفحات: ${totalPages} | الصفحات المستخرجة: من ${startPage} إلى ${endPage}]\n\n`;
+      for (let i = startPage; i <= endPage; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += pageText + '\n';
+        const pageText = textContent.items.map((item: any) => item.str).join(' ').trim();
+        if (pageText) {
+          fullText += `--- [سلايد / صفحة ${i}] ---\n${pageText}\n\n`;
+        }
       }
-      return fullText.substring(0, 100000); // Limit to 100k chars
+      return fullText.substring(0, 350000); // 350k chars
     }
     return '';
   } catch (err) {
@@ -522,7 +555,7 @@ export default function AIScreen() {
          setStreamingMessage(`جاري قراءة محتوى ملف: ${targetDocToRead.name}...`)
          const token = useSettingsStore.getState().googleAccessToken
          if (token) {
-            const extracted = await extractTextFromDriveFile(targetDocToRead, token)
+            const extracted = await extractTextFromDriveFile(targetDocToRead, token, userMsgText)
             if (extracted) {
                appendedFileText = `\n\n[FILE CONTEXT FOR: ${targetDocToRead.name}]\n${extracted}\n[/FILE CONTEXT]\n`
             }
@@ -846,16 +879,26 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 ms-1.5">
             <button
-              onClick={() => sendMessage(`لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم والأسئلة الهامة.`)}
+              onClick={() => sendMessage(`لخص لي محتوى ملف "${activeStudyFile.name}" وركز على المفاهيم الأساسية والأسئلة الهامة.`)}
               disabled={loading}
               className="px-2 py-1 rounded-md bg-accent-blue text-white hover:bg-blue-500 text-[10px] font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-1"
+              title="تلخيص شامل للملف"
             >
               💡 تلخيص
+            </button>
+            <button
+              onClick={() => sendMessage(`اعطني خريطة وفهرس محاور لسلايدات "${activeStudyFile.name}" مقسمة حسب المواضيع والفصول مع أرقام السلايدات/الصفحات لتسهيل مذاكرتها بالتدرج.`)}
+              disabled={loading}
+              className="px-2 py-1 rounded-md bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 border border-purple-500/30 text-[10px] font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1"
+              title="فهرس ومحاور السلايدات بأرقام الصفحات"
+            >
+              📑 محاور
             </button>
             <button
               onClick={() => sendMessage(`اختبرني في محتوى ملف "${activeStudyFile.name}" بـ 3 أسئلة اختيار من متعدد مع شرح الحل.`)}
               disabled={loading}
               className="px-2 py-1 rounded-md bg-surface-elevated hover:bg-surface-hover border border-surface-border text-text-primary text-[10px] font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1"
+              title="اختبار وكويز من الملف"
             >
               ❓ كويز
             </button>

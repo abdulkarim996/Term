@@ -8,7 +8,7 @@ import { PDFDocument, rgb } from 'pdf-lib'
 import type {  DriveFile  } from '../../store/dataStore'
 import { useSettingsStore, useUIStore } from '../../store'
 import { useDataStore } from '../../store/dataStore'
-import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2, Hand } from 'lucide-react'
+import { X, Save, Trash2, Pen, Eraser, Loader2, Highlighter, Undo, Redo, ZoomIn, ZoomOut, Square, Circle, ArrowUpRight, Type, Image as ImageIcon, MousePointer2, Hand, ChevronLeft, ChevronRight } from 'lucide-react'
 import MiniTimer from './MiniTimer'
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
 
@@ -41,7 +41,21 @@ export default function FileAnnotator({ file, onClose }: Props) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   
   const [numPages, setNumPages] = useState<number>(0)
+  const [activePageInput, setActivePageInput] = useState<string>('1')
   const scale = 1.2
+
+  const jumpToPage = (p: number) => {
+    if (!p || p < 1 || p > numPages) return
+    const el = document.getElementById(`pdf-page-${p}`)
+    if (el && transformRef.current) {
+      const tr = transformRef.current
+      const currentX = tr.state?.positionX ?? (tr as any).instance?.transformState?.positionX ?? 0
+      const currentScale = tr.state?.scale ?? (tr as any).instance?.transformState?.scale ?? 1
+      const targetY = -(el.offsetTop * currentScale) + 30
+      tr.setTransform(currentX, targetY, currentScale, 300)
+      setActivePageInput(String(p))
+    }
+  }
   
 
 
@@ -1122,9 +1136,55 @@ export default function FileAnnotator({ file, onClose }: Props) {
           </button>
         </div>
 
-        {/* Right Section: Timer, Zoom, Close */}
+        {/* Right Section: Page Navigator, Timer, Zoom, Close */}
         <div className="flex flex-wrap items-center gap-2 justify-end shrink-0">
           
+          {/* Page Navigator (for PDFs / Slides with many pages) */}
+          {numPages > 1 && (
+            <div className="flex items-center bg-surface p-1 rounded-xl border border-surface-border text-xs">
+              <button 
+                onClick={() => {
+                  const curr = parseInt(activePageInput) || 1
+                  if (curr > 1) jumpToPage(curr - 1)
+                }}
+                disabled={(parseInt(activePageInput) || 1) <= 1}
+                className="p-1 text-text-muted hover:bg-surface-hover rounded disabled:opacity-30" 
+                title="السلايد السابق"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className="flex items-center px-1.5 gap-1">
+                <input 
+                  type="text" 
+                  value={activePageInput} 
+                  onChange={(e) => setActivePageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      jumpToPage(parseInt(activePageInput) || 1)
+                    }
+                  }}
+                  onBlur={() => jumpToPage(parseInt(activePageInput) || 1)}
+                  className="w-10 text-center font-medium bg-surface-elevated border border-surface-border rounded px-1 py-0.5 text-text-primary focus:outline-none focus:border-accent-blue"
+                  title="اكتب رقم السلايد واضغط Enter"
+                />
+                <span className="text-text-muted text-[11px]">/ {numPages}</span>
+              </div>
+
+              <button 
+                onClick={() => {
+                  const curr = parseInt(activePageInput) || 1
+                  if (curr < numPages) jumpToPage(curr + 1)
+                }}
+                disabled={(parseInt(activePageInput) || 1) >= numPages}
+                className="p-1 text-text-muted hover:bg-surface-hover rounded disabled:opacity-30" 
+                title="السلايد التالي"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+
           {/* Mini Timer */}
           <MiniTimer />
 
@@ -1202,7 +1262,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
           >
             <div className="flex flex-col gap-6 w-full max-w-5xl px-4 mx-auto items-center">
               {Array.from({ length: numPages }, (_, i) => i + 1).map(pageNum => (
-                <div key={pageNum} className="relative shadow-xl bg-white mx-auto" style={{ width: 'fit-content' }}>
+                <div key={pageNum} id={`pdf-page-${pageNum}`} className="relative shadow-xl bg-white mx-auto" style={{ width: 'fit-content' }}>
                   <Page 
                     pageNumber={pageNum} 
                     scale={scale}
