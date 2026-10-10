@@ -387,7 +387,7 @@ StudentDashBoard/
 5. **Interactive Chat Controls:**
    - **Stop Streaming Button:** Halts token generation immediately.
    - **One-Click Markdown Copy:** Copies the AI's explanation with LaTeX math and code blocks preserved.
-   - **Clean Context Header:** Removed cluttered context labels; replaced with a compact, responsive model selector that opens neatly to the right without clipping.
+   - **Clean Context Header:** Removed cluttered context labels; replaced with a compact, responsive model selector dropdown that anchors inward (`end-0 right-0 rtl:left-0`) without clipping, styled with unified `bg-surface-elevated` tokens and active checkmark indicators.
 
 ### 6.8 More & Preferences (`src/components/more/MoreScreen.tsx`)
 1. **Clean Profile Design Aesthetic (v3.0.0):**
