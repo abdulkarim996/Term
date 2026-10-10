@@ -1293,7 +1293,7 @@ export const AdminModal: React.FC = () => {
                       <span className="text-amber-400 font-semibold">{SUPER_ADMIN_EMAIL}</span>
                     </div>
                     <div>
-                      App Version: <span className="text-text-primary font-semibold">2.1.0</span>
+                      App Version: <span className="text-text-primary font-semibold">3.0.0</span>
                     </div>
                   </div>
                 </div>

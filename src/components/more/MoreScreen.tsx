@@ -570,7 +570,7 @@ export default function MoreScreen() {
           <p className="text-[10px] text-text-muted uppercase tracking-wider font-medium">
             &copy; {new Date().getFullYear()} All Rights Reserved.
           </p>
-          <p className="text-[9px] text-text-muted/60">Term v2.0.2</p>
+          <p className="text-[9px] text-text-muted/60">Term v3.0.0</p>
         </div>
       </div>
 

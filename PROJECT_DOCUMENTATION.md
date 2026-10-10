@@ -1,5 +1,5 @@
 # Term (Student Dashboard) — Comprehensive System Documentation
-**Version:** 2.1.0  
+**Version:** 3.0.0  
 **Author / Engineering Lead:** Abdulkarim Alfallaj  
 **Last Updated:** October 2026  
 **Repository:** `abdulkarim996/Term`  
@@ -52,7 +52,7 @@ University students face extreme fragmentation across their daily academic tools
 
 Traditional apps provide point solutions (a generic calendar app, a todo list app, a separate PDF reader, a standalone Pomodoro timer, a physical calculator). This fragmentation causes missed deadlines, forgotten lecture halls, and lost academic productivity.
 
-### 1.2 The Solution: "Term" (v2.1.0)
+### 1.2 The Solution: "Term" (v3.0.0)
 **Term** is an integrated, progressive web operating system built specifically for university students. It combines:
 - Timetable automation with smart lecture push notifications.
 - Task, exam, and deliverable tracking with real-time completion progress.
@@ -71,7 +71,7 @@ Traditional apps provide point solutions (a generic calendar app, a todo list ap
 
 ## 2. UI/UX Design Language & Philosophy (Unified Design System)
 
-Term v2.1.0 adheres to a unified, production-grade **Design System** engineered for visual harmony, high information density, and low-strain readability across mobile, tablet (iPad), and desktop viewports.
+Term v3.0.0 adheres to a unified, production-grade **Design System** engineered for visual harmony, high information density, and low-strain readability across mobile, tablet (iPad), and desktop viewports.
 
 ### 2.1 Semantic Color System & Design Tokens
 All interface surfaces and interactions are bound to CSS variables and Tailwind semantic tokens:
@@ -196,7 +196,8 @@ The project evolved from an initial prototype into a hardened, production-grade 
 | `9f261d6` – `1b7aed2` | 2026-10-08 | **v2.0.5 — Luxury GPA Hub:** Interactive GPA trend chart, real-time GPA Simulator, Target GPA Goal Solver, Honours Class estimation, Home widget, and bilingual localization. |
 | `1832a33` – `eb20557` | 2026-10-09 | **v2.0.8 — Super Admin Command Center:** Online presence tracker, kick/ban enforcer, Emergency Kick All, Maintenance mode, 20s auto-dismiss announcement banner, iOS push dispatcher. |
 | `24af2c9` – `adae65a` | 2026-10-09 | **AI Assistant Revolution:** Dynamic Google API model discovery (Gemini 2.5 / 1.5 Flash), multimodal vision image upload & Ctrl+V clipboard paste, active study doc awareness, 180-page slide deck extractor, smart outline generator, stop streaming controls. |
-| `16eeca4` | 2026-10-10 | **v2.1.0 Release — Interactive Resizable Workspace:** Drag-to-resize AI sidebar with Compact/Standard/Wide presets, freely scalable scientific calculator widget (65%-135%) with corner resize and localStorage persistence. |
+| `16eeca4` | 2026-10-10 | **Interactive Resizable Workspace:** Drag-to-resize AI sidebar with Compact/Standard/Wide presets, freely scalable scientific calculator widget (65%-135%) with corner resize and localStorage persistence. |
+| `bce9722` – `09f756e` | 2026-10-10 | **v3.0.0 Major Milestone — Grand Design System & Academic Suite Overhaul:** Complete UI/UX unification across the platform; eliminated harsh white border artifacts (Tailwind variable opacity fallback to `currentColor`); redesigned More & Settings to borderless elevated cards matching Profile design; complete architectural redesign of Cloud Storage (`StorageScreen.tsx`) into a modern feed matching Tasks with Category Segmented Tabs, multi-mode Sort Toggle (Date/Name/Size), wrapping Subject Chips, and 4px subject-accented cards; synchronized redesign of Study Room file browser (`FileViewer.tsx`); streamlined Tasks filters (removed redundant Study Session tab); and touch/iPad flexbox isolation. |
 
 ---
 
@@ -312,17 +313,25 @@ StudentDashBoard/
 4. **Add/Edit Event Modals:** Full support for single-instance events, recurring days, exam classification, locations, and descriptions.
 
 ### 6.4 Tasks & Academic Deliverables (`src/components/tasks/`)
-1. **Deliverable Filters:** Segment tasks into **All**, **Pending**, **Completed**, or **Study Sessions**.
-2. **Subject Filter Pills:** Filter tasks belonging strictly to a specific course.
-3. **Dual Sorting Logic:** Sort deliverables by **Due Date** or by **Priority** (High / Medium / Low).
-4. **Auto-Generated Exam Study Blocks:** When an exam is registered, `generateStudyBlocksForExam()` automatically calculates the two days preceding the exam and schedules locked study preparation blocks to keep the student on track.
-5. **Add/Edit Subject Management:** Add courses with credit hours, course code, instructor name, custom color picker, and multiple weekly lecture timeslots.
+1. **Deliverable Filters:** Segment tasks strictly into **All**, **In Progress / Pending**, or **Completed** (streamlined in v3.0.0 by eliminating the redundant Study Session filter).
+2. **Subject Filter Chips:** Auto-wrapping chips (`flex flex-wrap gap-2`) with active course color accents and colored dots.
+3. **Dual Sorting Logic:** Sort deliverables dynamically by **Due Date** or by **Priority** (High / Medium / Low).
+4. **Visual Task Card Accent:** 4px subject-colored vertical stripe indicating course alignment at a glance.
+5. **Auto-Generated Exam Study Blocks:** When an exam is registered, `generateStudyBlocksForExam()` automatically calculates the two days preceding the exam and schedules locked study preparation blocks to keep the student on track.
+6. **Add/Edit Subject Management:** Add courses with credit hours, course code, instructor name, custom color picker, and multiple weekly lecture timeslots.
 
 ### 6.5 Cloud Storage & Google Drive Integration (`src/components/storage/`)
 1. **OAuth2 Drive Authorization:** Direct client authorization with Google Drive API scopes (`drive.file` and `drive.readonly`).
-2. **File Explorer:** Categorizes synced academic documents into **Lectures**, **Assignments**, **Exams**, **Projects**, and **Other**.
-3. **Quick Review Action (`BookOpen`):** Added directly to each document card; clicking it immediately pushes the file into `quickReviewFile` state and transitions the active view straight to the Study Room without manual folder navigation.
-4. **MIME Type Detection & Metadata:** Formatted file size in B/KB/MB and last-modified dates.
+2. **Unified Tasks-Aesthetic Architecture (v3.0.0):**
+   - Transformed fragmented nested directory trees into an elevated card feed perfectly harmonized with the Tasks design system.
+   - **Category Segmented Tabs:** Top iOS-style segmented controller supporting **All**, **Lectures**, **Assignments**, **Exams**, **Projects**, and **Other** (`الكل` / `محاضرات` / `واجبات` / `اختبارات` / `مشاريع` / `أخرى`).
+   - **Multi-Mode Sort Toggle (`ArrowUpDown`):** Toggles on-the-fly between sorting by **Date 📅**, **Name 🔤**, and **File Size 📦**.
+   - **Responsive Subject Chips:** Auto-wrapping chips with course dot and active translucent glow, including dedicated "Uncategorized" filter chip.
+3. **Smart Document Cards:**
+   - 4px subject-colored indicator stripe on the start edge (RTL/LTR aware).
+   - Distinctive MIME type icon containers (Red for PDFs, Blue for Word, Orange for Presentations, Green for Images).
+   - Comprehensive metadata line (Course name & dot, category badge, last-modified date, and file size in mono typography).
+   - Direct action triggers: **Quick Review in Study Room (`BookOpen`)**, **Edit/Categorize (`Pencil`)**, and **Open in Google Drive (`ExternalLink`)**.
 
 ### 6.6 Study Room (`src/components/study/`)
 
@@ -349,11 +358,12 @@ StudentDashBoard/
   - Radians / Degrees (`RAD` / `DEG`) toggle.
   - Remembers scale persistently in `localStorage('study_calc_scale')`.
 
-#### C. High-Capacity Slide Deck Engine (`FileViewer.tsx` / `FileAnnotator.tsx`)
+#### C. Study Files Browser & Slide Deck Engine (`FileViewer.tsx` / `FileAnnotator.tsx`)
+- **Harmonized Study Files Explorer (v3.0.0):** Replaced legacy dropdown with an integrated search bar, category segmented control tabs, sort toggle, wrapping subject chips, and unified document cards with 4px course color stripes and instant annotator launch.
 - **180+ Page Slide Support:** Expanded text extraction and rendering pipeline from 40 pages up to **180 pages** for comprehensive university slide decks.
 - **Targeted Page-Range Extraction:** Allows extracting specific slide windows (e.g., slides 40–80) to maximize token efficiency when chatting with AI.
 - **Smooth Desktop Mouse Wheel Navigation:** Replaced event capture with `callback ref` and live `transformRef` for responsive, unblocked wheel navigation between PDF pages.
-- **Direct Canvas Annotations:** Freehand drawing, highlighters, vector shapes, text stamps, selection manipulation, and undo/redo stacks.
+- **Direct Canvas Annotations:** Freehand drawing, highlighters, vector shapes, text stamps, selection manipulation, touch-action isolation, pointer capture, and undo/redo stacks.
 
 #### D. Dynamic Split-Screen & Excalidraw Whiteboard
 - Dual-pane layout enabling simultaneous viewing of PDF slides alongside the Excalidraw infinite whiteboard.
@@ -380,14 +390,20 @@ StudentDashBoard/
    - **Clean Context Header:** Removed cluttered context labels; replaced with a compact, responsive model selector that opens neatly to the right without clipping.
 
 ### 6.8 More & Preferences (`src/components/more/MoreScreen.tsx`)
-1. **Consolidated Preferences Layout:**
+1. **Clean Profile Design Aesthetic (v3.0.0):**
+   - Completely removed all harsh 1px white outlines across preferences, setting toggles, cumulative GPA cards, and subject pills.
+   - Restructured all settings rows into clean, borderless elevated dark cards (`bg-surface-elevated`) matching the modern Profile card design.
+2. **Consolidated Preferences Layout:**
    - **Segmented Control Theme Switcher:** Dual-state iOS-style toggle switching between Dark and Light mode.
    - **Segmented Control Language Switcher:** Dual-state toggle switching between English and Arabic with immediate RTL/LTR document layout updates.
    - **Push Notifications Card:** One-tap toggle to enable/disable Web Push notifications.
+   - **Show GPA on Home Screen:** Independent toggle controlling academic standing visibility on the home dashboard.
    - **Consolidated API Keys:** User override card for Google Gemini API keys.
    - **Quick University Links:** Custom input cards allowing students to specify custom URLs for their university's Banner and Blackboard portals.
-2. **Standalone Destructive Logout:** Red border styling with double-confirmation safety.
-3. **Data Export & Wipe:** One-tap JSON export of the entire database or complete cloud wipe.
+3. **Subject Management Modals (`ManageSubjectsModal.tsx` & `AddSubjectModal.tsx`):**
+   - Clean borderless course cards and soft lecture timeslot chips.
+4. **Standalone Destructive Logout:** Styled with double-confirmation safety.
+5. **Data Export & Wipe:** One-tap JSON export of the entire database or complete cloud wipe.
 
 ### 6.9 Luxury GPA Hub & Academic Analytics (`src/components/gpa/`)
 
@@ -671,4 +687,4 @@ Translations are managed via a key-value dictionary structure supporting dynamic
 
 ---
 
-*Term (Student Dashboard) v2.1.0 — Engineered for Academic Excellence.*
+*Term (Student Dashboard) v3.0.0 — Engineered for Academic Excellence.*
