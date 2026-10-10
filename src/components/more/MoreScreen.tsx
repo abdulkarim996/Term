@@ -27,16 +27,12 @@ function SegmentedControl({ options, value, onChange }: {
   onChange: (v: string) => void
 }) {
   return (
-    <div className="flex items-center bg-[#0d0d0d] p-0.5 rounded-xl border border-white/5 w-full mt-2">
+    <div className="segmented-container w-full mt-2">
       {options.map(opt => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-[10px] transition-all duration-200 ${
-            value === opt.value
-              ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/20'
-              : 'text-gray-400 hover:text-gray-200'
-          }`}
+          className={`segmented-tab ${value === opt.value ? 'segmented-tab-active' : ''}`}
         >
           {opt.label}
         </button>
@@ -52,7 +48,7 @@ function UrlInput({ label, value, onChange, placeholder }: {
   return (
     <div>
       <label className="text-[10px] font-medium text-text-muted mb-1 block">{label}</label>
-      <div className="flex items-center gap-2 bg-[#0d0d0d] border border-white/5 rounded-xl px-3 py-2 focus-within:border-accent-blue/40 transition-colors">
+      <div className="flex items-center gap-2 bg-surface-elevated border border-surface-border rounded-xl px-3 py-2 focus-within:border-accent-blue/40 transition-colors">
         <input
           type="url"
           value={value}
@@ -174,8 +170,13 @@ export default function MoreScreen() {
 
   return (
     <>
-    <div className="max-w-md mx-auto px-4 pt-6 pb-32 space-y-4">
-      <h1 className="text-xl font-bold text-text-primary mb-4">{t('more')}</h1>
+    <div className="page-container pb-28">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t('more')}</h1>
+          <p className="page-subtitle">{language === 'ar' ? 'الإعدادات والتفضيلات الأكاديمية' : 'Settings & Academic Preferences'}</p>
+        </div>
+      </div>
 
       {/* ── Super Admin Panel Entry (kromsa2006@gmail.com Only) ──────────────── */}
       {currentUser?.email === SUPER_ADMIN_EMAIL && (

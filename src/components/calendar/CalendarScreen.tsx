@@ -1,6 +1,6 @@
 import { useTranslation } from '../../hooks/useTranslation'
 import React, { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, FileSpreadsheet } from 'lucide-react'
 import { useUIStore } from '../../store'
 import { useDataStore } from '../../store/dataStore'
 import { CalendarEvent } from '../../store/dataStore'
@@ -216,7 +216,7 @@ export default function CalendarScreen() {
                       onClick={(e) => { e.stopPropagation(); setViewingItem({ type: 'task', data: task }); }} 
                       className="cursor-pointer text-xs bg-blue-500/20 text-blue-400 rounded p-1 mb-1 truncate hover:opacity-80 transition"
                     >
-                      {task.title || decodeURIComponent('%D9%85%D9%87%D9%85%D8%A9')}
+                      {task.title || (language === 'ar' ? 'مهمة' : 'Task')}
                     </div>
                   ))}
                 </div>
@@ -234,13 +234,13 @@ export default function CalendarScreen() {
     const { type, data } = viewingItem;
     
     return (
-      <Modal isOpen={true} onClose={() => setViewingItem(null)} title={decodeURIComponent('%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84')}>
+      <Modal isOpen={true} onClose={() => setViewingItem(null)} title={language === 'ar' ? 'تفاصيل' : 'Details'}>
         <div className="space-y-4">
           <div>
             <h2 className="text-xl font-bold text-text-primary mb-1">{data.title || data.name}</h2>
             <div className="flex items-center gap-2 text-sm text-text-muted">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${type === 'task' ? 'bg-accent-blue/20 text-accent-blue' : 'bg-accent-yellow/20 text-accent-yellow'}`}>
-                {type === 'task' ? decodeURIComponent('%D9%85%D9%87%D9%85%D8%A9') : decodeURIComponent('%D9%85%D8%AD%D8%A7%D8%B6%D8%B1%D8%A9 / %D8%AD%D8%AF%D8%AB')}
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${type === 'task' ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/30' : 'bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30'}`}>
+                {type === 'task' ? (language === 'ar' ? 'مهمة' : 'Task') : (language === 'ar' ? 'محاضرة / حدث' : 'Lecture / Event')}
               </span>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function CalendarScreen() {
           <div className="space-y-2">
             {(data.startDate || data.dueDate) && (
               <div className="flex items-center gap-2 text-sm text-text-primary">
-                <Clock size={16} className="text-text-muted" />
+                <Clock size={16} className="text-text-muted shrink-0" />
                 <span>
                   {new Date(data.startDate || data.dueDate).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', calendar: 'gregory' })}
                   {' · '}
@@ -260,14 +260,14 @@ export default function CalendarScreen() {
             
             {data.location && (
               <div className="flex items-center gap-2 text-sm text-text-primary">
-                <MapPin size={16} className="text-text-muted" />
+                <MapPin size={16} className="text-text-muted shrink-0" />
                 <span>{data.location}</span>
               </div>
             )}
             
             {(data.description || data.notes) && (
               <div className="flex items-start gap-2 text-sm text-text-primary mt-4">
-                <AlignLeft size={16} className="text-text-muted mt-0.5" />
+                <AlignLeft size={16} className="text-text-muted mt-0.5 shrink-0" />
                 <p className="whitespace-pre-wrap">{data.description || data.notes}</p>
               </div>
             )}
@@ -276,9 +276,9 @@ export default function CalendarScreen() {
           <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-surface-border">
             <button
               onClick={() => setViewingItem(null)}
-              className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-surface-hover text-text-primary transition-colors"
+              className="btn-ghost"
             >
-              {decodeURIComponent('%D8%A5%D8%BA%D9%84%D8%A7%D9%82')}
+              {language === 'ar' ? 'إغلاق' : 'Close'}
             </button>
             <button
               onClick={() => {
@@ -286,10 +286,10 @@ export default function CalendarScreen() {
                 else setEditingEvent(data);
                 setViewingItem(null);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-blue text-white rounded-xl text-sm font-medium shadow-lg shadow-accent-blue/30 transition-transform active:scale-95 hover:bg-accent-blue/90"
+              className="btn-primary"
             >
-              <Edit2 size={16} />
-              {decodeURIComponent('%D8%AA%D8%B9%D8%AF%D9%8A%D9%84')}
+              <Edit2 size={15} />
+              <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
             </button>
           </div>
         </div>
@@ -298,21 +298,25 @@ export default function CalendarScreen() {
   };
 
   return (
-    <div className="h-full flex flex-col p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full gap-4 md:gap-6 animate-fade-in pb-24 md:pb-8">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{t('academicCalendar')}</h1>
-          <p className="text-sm text-text-muted mt-1">{t('organizeTimeLec')}</p>
+          <h1 className="page-title">{t('academicCalendar')}</h1>
+          <p className="page-subtitle">{t('organizeTimeLec')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="w-9 h-9 rounded-xl bg-surface-card border border-surface-border flex items-center justify-center text-text-muted hover:text-accent-blue transition-colors cursor-pointer">
+        <div className="flex items-center gap-2 shrink-0">
+          <label 
+            className="icon-btn cursor-pointer"
+            title={language === 'ar' ? 'استيراد جدول Excel' : 'Import Excel Schedule'}
+          >
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcelUpload} />
-            <span className="font-bold text-lg leading-none">X</span>
+            <FileSpreadsheet size={18} className="text-accent-green" />
           </label>
           <button
             onClick={() => setShowAddEvent(true)}
-            className="w-9 h-9 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center text-accent-blue hover:bg-accent-blue/20 transition-all"
+            className="icon-btn-primary"
+            title={t('addEvent') || 'Add Event'}
           >
             <Plus size={18} />
           </button>
@@ -320,12 +324,12 @@ export default function CalendarScreen() {
       </div>
 
       {/* View Switcher */}
-      <div className="flex items-center gap-1 bg-surface-card rounded-xl p-1 border border-surface-border">
+      <div className="segmented-container">
         {(['day', 'week', 'month'] as const).map((view) => (
           <button
             key={view}
             onClick={() => setCalendarView(view)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${calendarView === view ? 'bg-accent-blue text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+            className={`segmented-tab ${calendarView === view ? 'segmented-tab-active' : ''}`}
           >
             {view === 'day' ? t('daily') : view === 'week' ? t('weekly') : t('monthly')}
           </button>
@@ -334,14 +338,14 @@ export default function CalendarScreen() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button onClick={navigatePrev} className="w-8 h-8 rounded-lg hover:bg-surface-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-all">
-          <ChevronRight size={18} />
+        <button onClick={navigatePrev} className="icon-btn w-8 h-8 rounded-lg" aria-label="Previous">
+          <ChevronRight size={18} className="rtl-flip" />
         </button>
         <button onClick={() => setSelectedDate(Date.now())} className="text-sm font-semibold text-text-primary hover:text-accent-blue transition-colors text-center flex-1 mx-2">
           {getHeaderLabel()}
         </button>
-        <button onClick={navigateNext} className="w-8 h-8 rounded-lg hover:bg-surface-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-all">
-          <ChevronLeft size={18} />
+        <button onClick={navigateNext} className="icon-btn w-8 h-8 rounded-lg" aria-label="Next">
+          <ChevronLeft size={18} className="rtl-flip" />
         </button>
       </div>
 

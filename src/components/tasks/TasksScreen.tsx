@@ -89,40 +89,38 @@ export default function TasksScreen() {
   }
 
   const priorities = {
-    high: { label: t('urgent'), color: 'text-red-500', bg: 'bg-red-500/10' },
-    medium: { label: t('medium'), color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    low: { label: t('low'), color: 'text-green-500', bg: 'bg-green-500/10' }
+    high: { label: t('urgent'), color: 'text-accent-red', bg: 'bg-accent-red/10 border-accent-red/20' },
+    medium: { label: t('medium'), color: 'text-accent-yellow', bg: 'bg-accent-yellow/10 border-accent-yellow/20' },
+    low: { label: t('low'), color: 'text-accent-green', bg: 'bg-accent-green/10 border-accent-green/20' }
   }
 
   return (
-    <div className="p-4 space-y-6 animate-fade-in pb-24">
-      {/* Header section... */}
-      <div className="flex items-center justify-between">
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{t('tasks')}</h1>
-          <p className="text-sm text-text-muted mt-1">{tasks.length} {t('tasks')} {filter === 'pending' ? t('waiting') : ''}</p>
+          <h1 className="page-title">{t('tasks')}</h1>
+          <p className="page-subtitle">{tasks.length} {t('tasks')} {filter === 'pending' ? t('waiting') : ''}</p>
         </div>
-        <div className="flex gap-2">
-          
-          <button onClick={() => setShowAddTask(true)} className="p-2 bg-accent-blue text-white rounded-xl shadow-lg shadow-accent-blue/30 transition-transform active:scale-95">
-            <Plus size={20} />
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            onClick={() => setShowAddTask(true)} 
+            className="icon-btn-primary"
+            title={t('addTask') || 'Add Task'}
+          >
+            <Plus size={18} />
           </button>
         </div>
       </div>
 
-      {/* Filter Chips */}
-      
-      <div className="flex justify-between items-center pb-2">
-        <div className="flex overflow-x-auto hide-scrollbar gap-2">
+      {/* Filter Chips & Sort */}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar pb-1">
+        <div className="segmented-container flex-1 max-w-md">
           {(['all', 'pending', 'completed', 'study'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                filter === f 
-                  ? 'bg-accent-blue text-white shadow-md shadow-accent-blue/20' 
-                  : 'bg-surface-hover text-text-muted hover:text-text-primary'
-              }`}
+              className={`segmented-tab ${filter === f ? 'segmented-tab-active' : ''}`}
             >
               {f === 'all' && t('all')}
               {f === 'pending' && t('inProgress')}
@@ -133,10 +131,11 @@ export default function TasksScreen() {
         </div>
         <button
           onClick={() => setSortBy(sortBy === 'dueDate' ? 'priority' : 'dueDate')}
-          className="flex items-center gap-1.5 px-3 py-2 bg-surface-hover text-text-muted hover:text-text-primary rounded-xl text-sm font-medium transition-colors border border-border shrink-0"
+          className="icon-btn px-3 w-auto flex items-center gap-1.5 text-xs font-medium shrink-0"
+          title={sortBy === 'dueDate' ? t('dueDate') : t('priority')}
         >
           <ArrowUpDown size={14} />
-          {sortBy === 'dueDate' ? t('dueDate') : t('priority')}
+          <span className="hidden sm:inline">{sortBy === 'dueDate' ? t('dueDate') : t('priority')}</span>
         </button>
       </div>
 
@@ -145,22 +144,22 @@ export default function TasksScreen() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowSubjectFilter(null)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              showSubjectFilter === null ? 'bg-text-primary text-surface' : 'bg-surface-hover text-text-muted'
-            }`}
-          >{t('allSubjects')}</button>
+            className={`chip ${showSubjectFilter === null ? 'active' : ''}`}
+          >
+            {t('allSubjects')}
+          </button>
           {subjects.map((subject: any) => (
             <button
               key={subject.id}
               onClick={() => setShowSubjectFilter(showSubjectFilter === subject.id ? null : subject.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all`}
+              className="chip"
               style={{
-                backgroundColor: showSubjectFilter === subject.id ? subject.color : `${subject.color}15`,
-                color: showSubjectFilter === subject.id ? '#fff' : subject.color,
-                border: `1px solid ${subject.color}30`
+                backgroundColor: showSubjectFilter === subject.id ? `${subject.color}25` : undefined,
+                borderColor: showSubjectFilter === subject.id ? subject.color : undefined,
+                color: showSubjectFilter === subject.id ? subject.color : undefined
               }}
             >
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: showSubjectFilter === subject.id ? '#fff' : subject.color }} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: subject.color }} />
               {subject.name}
             </button>
           ))}
@@ -170,10 +169,10 @@ export default function TasksScreen() {
       {/* Tasks List */}
       <div className="space-y-3">
         {tasks.length === 0 ? (
-          <div className="text-center py-12 bg-surface-hover rounded-2xl border border-border">
-            <Check size={48} className="mx-auto text-text-muted mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-text-primary mb-1">{t('noTasks')}</h3>
-            <p className="text-sm text-text-muted">{t('allClearEnjoy')} 🎉</p>
+          <div className="glass-card text-center py-12 px-4">
+            <Check size={44} className="mx-auto text-accent-green/50 mb-3" />
+            <h3 className="text-base font-semibold text-text-primary mb-1">{t('noTasks')}</h3>
+            <p className="text-xs text-text-muted">{t('allClearEnjoy')} 🎉</p>
           </div>
         ) : (
           tasks.map((task: any) => {
@@ -184,21 +183,21 @@ export default function TasksScreen() {
             return (
               <div 
                 key={task.id} 
-                className={`bg-surface border rounded-2xl overflow-hidden transition-all duration-300 ${
-                  task.completed ? 'opacity-75' : 'shadow-sm hover:-translate-y-0.5 hover:shadow-md'
+                className={`glass-card overflow-hidden transition-all duration-200 ${
+                  task.completed ? 'opacity-70 border-accent-green/30' : 'hover:border-accent-blue/40'
                 }`}
                 style={{
-                  borderColor: task.completed ? '#22c55e4d' : (subject ? subject.color : undefined),
-                  borderLeftWidth: subject && !task.completed ? '4px' : '1px'
+                  borderLeftWidth: subject && !task.completed ? '4px' : undefined,
+                  borderLeftColor: subject && !task.completed ? subject.color : undefined
                 }}
               >
                 <div className="p-4 flex items-start gap-4">
                   <button
                     onClick={() => handleToggleTask(task)}
-                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors mt-0.5 ${
+                    className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-150 mt-0.5 cursor-pointer ${
                       task.completed 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : 'border-text-muted hover:border-accent-blue'
+                        ? 'bg-accent-green border-accent-green text-white shadow-sm' 
+                        : 'border-surface-border hover:border-accent-blue bg-surface-elevated'
                     }`}
                   >
                     {task.completed && <Check size={14} strokeWidth={3} />}
@@ -210,8 +209,9 @@ export default function TasksScreen() {
                         {task.title}
                       </h3>
                       {task.isStudyBlock && (
-                        <span className="bg-accent-purple/10 text-accent-purple text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Lock size={10} />{t('studyTasks')}</span>
+                        <span className="bg-accent-purple/10 text-accent-purple text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 border border-accent-purple/20">
+                          <Lock size={10} />{t('studyTasks')}
+                        </span>
                       )}
                     </div>
                     

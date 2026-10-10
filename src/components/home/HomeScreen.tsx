@@ -155,15 +155,15 @@ export default function HomeScreen() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-2xl mx-auto space-y-8">
+    <div className="page-container">
       {/* Global Broadcast Announcement */}
       <AnnouncementBanner />
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="page-header">
         <div>
-          <p className="text-text-muted text-sm font-medium">{getDayName()} · {getDateString()}</p>
-          <h1 className="text-2xl font-bold text-text-primary mt-1 flex items-center gap-2">
+          <p className="page-subtitle">{getDayName()} · {getDateString()}</p>
+          <h1 className="page-title mt-1 flex items-center gap-2">
             {getGreeting()}{userName ? ` ${userName}` : ''} 
             <span className="animate-wave inline-block origin-bottom-right">👋</span>
           </h1>
@@ -175,34 +175,36 @@ export default function HomeScreen() {
             }) }}
           />
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1 shrink-0">
           <button
             onClick={() => setShowAddTask(true)}
-            className="w-9 h-9 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center text-accent-blue hover:bg-accent-blue/20 transition-all"
+            className="icon-btn-primary"
+            title={t('addTask') || 'Add Task'}
           >
             <Plus size={18} />
           </button>
         </div>
       </div>
 
-      
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3 mt-1">
+      <div className="grid grid-cols-2 gap-3">
         <a 
-            href={bannerUrl || "https://stuss.nbu.edu.sa/StudentSelfService"} 
+          href={bannerUrl || "https://stuss.nbu.edu.sa/StudentSelfService"} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="glass-card flex items-center justify-center gap-2 p-3 text-sm font-semibold text-text-primary hover:bg-surface-hover transition-colors"
+          className="glass-card flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold text-text-primary hover:text-accent-blue hover:bg-surface-hover/60 transition-colors"
         >
-          {t('banner') || 'Banner'}
+          <GraduationCap size={16} className="text-accent-blue" />
+          <span>{t('banner') || 'Banner'}</span>
         </a>
         <a 
-            href={blackboardUrl || "https://lms.nbu.edu.sa/webapps/login/"} 
+          href={blackboardUrl || "https://lms.nbu.edu.sa/webapps/login/"} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="glass-card flex items-center justify-center gap-2 p-3 text-sm font-semibold text-text-primary hover:bg-surface-hover transition-colors"
+          className="glass-card flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold text-text-primary hover:text-accent-purple hover:bg-surface-hover/60 transition-colors"
         >
-          {t('blackboard') || 'Blackboard'}
+          <BookOpen size={16} className="text-accent-purple" />
+          <span>{t('blackboard') || 'Blackboard'}</span>
         </a>
       </div>
 

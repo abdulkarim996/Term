@@ -69,37 +69,111 @@ Traditional apps provide point solutions (a generic calendar app, a todo list ap
 
 ---
 
-## 2. UI/UX Design Language & Philosophy
+## 2. UI/UX Design Language & Philosophy (Unified Design System)
 
-### 2.1 Dark-First Glassmorphism Aesthetic
-Term is engineered around an immersive, low-strain dark palette designed for late-night study sessions and high-efficiency readability:
-- **Base Background:** `#0f0f10` (Surface) with elevated cards at `#1a1a1e` and `#1e1e24`.
-- **Border Accents:** `#2a2a32` (Subtle 1px boundaries preventing visual fatigue).
-- **Glass Card System:** Built with custom Tailwind utility `.glass-card`:
-  ```css
-  .glass-card {
-    background-color: var(--bg-surface-card);
-    border: 1px solid var(--border-surface);
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
-    transition: all 0.3s ease;
-  }
-  ```
-- **Semantic Accent Colors:**
-  - `accent-blue`: `#4f8ef7` (Primary actions, active navigation, lectures)
-  - `accent-purple`: `#9b7bea` (AI capabilities, study sessions, focus mode)
-  - `accent-red`: `#f2564a` (Urgent priorities, exams, destructive actions)
-  - `accent-yellow`: `#f5c842` (Assignments, pending tasks, medium priority)
-  - `accent-green`: `#52d98b` (Completed tasks, success indicators, low priority)
-  - `accent-cyan`: `#4ecdc4` (Internationalization, links)
+Term v2.1.0 adheres to a unified, production-grade **Design System** engineered for visual harmony, high information density, and low-strain readability across mobile, tablet (iPad), and desktop viewports.
 
-### 2.2 Micro-Interactions & iOS-Style Touch Patterns
-1. **Segmented Controls:** Modern, tactile dual-state pill switches with 200ms easing transitions for theme switching (`Dark` vs `Light`) and language selection (`English` vs `عربي`).
-2. **Physics-Driven Pull-to-Refresh:** Custom touch hook (`usePullToRefresh`) monitoring `touchstart`, `touchmove`, and `touchend`. Includes dynamic rotation based on pull distance, a spinning loader at peak resistance, and automatic page reload followed by a success toast.
-3. **Adaptive Bottom Navigation Bar:** Pinned to the screen bottom with viewport safe-area padding (`env(safe-area-inset-bottom)`), active glowing pill markers, and backdrop blur (`backdrop-blur-xl`).
-4. **Native Input Pickers:** Clean native browser pickers (`<input type="time">` and `<input type="datetime-local">`) with forced `[color-scheme:dark]` for fluid OS-native picker sheets on iOS and Android.
-5. **Interactive Drag Handles & Resizers:** 60fps divider handles with touch and mouse tracking, smart RTL/LTR directional delta inversion, and `localStorage` persistence.
+### 2.1 Semantic Color System & Design Tokens
+All interface surfaces and interactions are bound to CSS variables and Tailwind semantic tokens:
+
+| Token | Light Value | Dark Value (Default) | Semantic Role |
+|---|---|---|---|
+| `--bg-surface` | `#f3f4f6` | `#0f0f10` | Canvas foundation, main application viewport background |
+| `--bg-surface-elevated`| `#ffffff` | `#1a1a1e` | Toolbars, segmented controls, input fields, dropdown menus |
+| `--bg-surface-card` | `#ffffff` | `#1e1e24` | Primary content cards, event cards, modal containers |
+| `--bg-surface-hover` | `#e5e7eb` | `#252530` | Interactive hover states, secondary button backgrounds |
+| `--border-surface` | `#d1d5db` | `#2a2a32` | Subtle 1px structural boundaries preventing visual bleed |
+| `--text-primary` | `#111827` | `#e8e8f0` | High-emphasis headings, titles, active tab markers |
+| `--text-secondary` | `#4b5563` | `#9595a8` | Body descriptions, task notes, secondary metadata |
+| `--text-muted` | `#9ca3af` | `#5a5a6e` | Timestamps, inactive states, placeholder text |
+
+#### Accent Color Palette
+- **`accent-blue` (`#4f8ef7`):** Primary brand accent, lectures, active navigation, focused outlines.
+- **`accent-purple` (`#9b7bea`):** AI Assistant capabilities, study room sessions, whiteboard markers.
+- **`accent-green` (`#52d98b`):** Task completions, success feedback, Excel imports, safe academic standing.
+- **`accent-yellow` (`#f5c842`):** Medium priority deliverables, upcoming exams warnings, calendar events.
+- **`accent-red` (`#f2564a`):** Urgent deadlines, exam classification, denial (DN) risks, destructive actions.
+- **`accent-cyan` (`#4ecdc4`):** External portal links, internationalization tags.
+- **`accent-amber` (`#f59e0b`):** Super Admin privileges, maintenance alerts, honors tiers.
+
+---
+
+### 2.2 Typography Scale & Bilingual Hierarchy
+- **Primary Latin Font:** `Inter`, `system-ui`, `sans-serif`.
+- **Primary Arabic Font:** `IBM Plex Sans Arabic`, `system-ui`, `sans-serif`.
+- **Typographic Scale:**
+  - **Hero / Page Titles:** `text-2xl font-bold tracking-tight text-text-primary` (24px / 1.5rem).
+  - **Section Titles:** `text-base font-semibold text-text-primary` (16px / 1rem).
+  - **Body Text:** `text-sm text-text-secondary leading-relaxed` (14px / 0.875rem).
+  - **Subtitles & Badges:** `text-xs md:text-sm text-text-muted font-medium` (12px / 0.75rem).
+  - **Micro Metadata / Tags:** `text-[10px] uppercase font-bold tracking-wider` (10px / 0.625rem).
+
+---
+
+### 2.3 Layout Architecture & Responsive Containers
+Every primary screen adheres to a standardized structural rhythm:
+1. **Unified Page Container (`.page-container`):**
+   ```css
+   .page-container {
+     padding: 1.25rem 1rem 1.5rem 1rem;
+     max-width: 56rem; /* 896px max-w-4xl for tablet/desktop balance */
+     margin: 0 auto;
+     display: flex;
+     flex-direction: column;
+     gap: 1.5rem;
+   }
+   ```
+2. **Standardized Page Header (`.page-header`):**
+   - Left side: Page Title (`.page-title`) and descriptive Subtitle (`.page-subtitle`).
+   - Right side: Action Button Group (`.icon-btn`, `.icon-btn-primary`).
+3. **Viewport Safe-Area Padding:**
+   - Bottom: `padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))`.
+   - Top: `padding-top: max(env(safe-area-inset-top, 0px), 12px)`.
+
+---
+
+### 2.4 Component Library & Reusable Patterns
+
+#### A. Glassmorphic Card Engine (`.glass-card`)
+Cards utilize a dual-layer glassmorphic appearance with subtle inset border illumination:
+```css
+.glass-card {
+  background-color: var(--bg-surface-card);
+  border: 1px solid var(--border-surface);
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+  transition: all 0.2s ease;
+}
+.dark .glass-card {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.glass-card:hover {
+  border-color: rgba(79, 142, 247, 0.35); /* Subtle accent-blue border highlight */
+}
+```
+
+#### B. Unified Segmented Controls (`.segmented-container` & `.segmented-tab`)
+Replaces mismatched buttons across Calendar view modes (Day/Week/Month), Task filters (All/Pending/Completed/Study), and Settings:
+- **Container:** Rounded pill container with `bg-surface-elevated/80 border border-surface-border/70 backdrop-blur-md p-1`.
+- **Active Tab:** `bg-accent-blue text-white shadow-sm font-semibold`.
+- **Inactive Tab:** `text-text-muted hover:text-text-primary`.
+
+#### C. Standardized Action Buttons
+- **`.icon-btn-primary`:** `w-9 h-9 rounded-xl bg-accent-blue/10 border border-accent-blue/20 text-accent-blue hover:bg-accent-blue/20 active:scale-95`.
+- **`.icon-btn`:** `w-9 h-9 rounded-xl bg-surface-card border border-surface-border text-text-muted hover:text-accent-blue active:scale-95`.
+- **`.btn-primary`:** Rounded button with `bg-accent-blue text-white shadow-sm shadow-accent-blue/20 active:scale-95`.
+- **`.btn-ghost`:** Secondary neutral button with `text-text-secondary hover:bg-surface-hover`.
+
+#### D. Bottom Navigation Bar (`.nav-item`)
+- Fixed bottom dock pinned with `backdrop-blur-2xl` and semi-transparent elevation (`bg-surface-elevated/90`).
+- Active items feature scaled icons (`scale-110`) with an animated glowing dot indicator positioned directly underneath.
+
+#### E. Micro-Interactions & Gestures
+1. **Tactile Touch Pull-to-Refresh:** Physics hook with rotational spinner and post-refresh success toast.
+2. **Drag-to-Resize Dividers:** Smooth 60fps divider tracking in Study Room with RTL/LTR inverted delta arithmetic.
+3. **Animated Wave Greeting:** Smooth 2.5s rotational keyframe wave on user greetings (`.animate-wave`).
+4. **Instant Task Completion:** Tactile circular checkboxes with instant strike-through transitions and optimistic UI updates.
 
 ---
 

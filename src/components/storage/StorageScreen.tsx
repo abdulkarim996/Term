@@ -209,19 +209,20 @@ export default function StorageScreen() {
   }
 
   return (
-    <div className="px-4 pt-5 pb-4 max-w-2xl mx-auto space-y-4">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{t('storage')}</h1>
-          <p className="text-xs text-text-muted mt-0.5">
+          <h1 className="page-title">{t('storage')}</h1>
+          <p className="page-subtitle">
             {driveFiles?.length ?? 0} {t('filesFromDrive')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setShowAddSubject(true)}
-            className="w-9 h-9 rounded-xl bg-surface-card border border-surface-border flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface-hover transition-all"
+            className="icon-btn"
+            title={t('addSubject') || 'Add Subject'}
           >
             <Folder size={16} />
           </button>
@@ -232,12 +233,12 @@ export default function StorageScreen() {
               className="btn-primary"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              {t('sync')}
+              <span>{t('sync')}</span>
             </button>
           ) : (
             <button onClick={handleConnectDrive} className="btn-primary">
               <Link size={14} />
-              {t('linkDrive')}
+              <span>{t('linkDrive')}</span>
             </button>
           )}
         </div>

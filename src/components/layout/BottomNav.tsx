@@ -23,12 +23,12 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-surface-elevated/95 border-t border-surface-border backdrop-blur-xl"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-surface-elevated/90 border-t border-surface-border/80 backdrop-blur-2xl shadow-lg"
       style={{
         height: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex items-center justify-around h-[72px] px-1">
+      <div className="flex items-center justify-around h-[72px] px-1 max-w-lg mx-auto">
         {tabs.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id
           return (
@@ -42,16 +42,16 @@ export default function BottomNav() {
                 <Icon
                   size={20}
                   className={`transition-all duration-200 ${
-                    isActive ? 'text-accent-blue' : 'text-text-muted'
+                    isActive ? 'text-accent-blue scale-110' : 'text-text-muted hover:text-text-primary'
                   }`}
-                  strokeWidth={isActive ? 2 : 1.5}
+                  strokeWidth={isActive ? 2.2 : 1.6}
                 />
                 {isActive && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent-blue" />
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent-blue shadow-sm shadow-accent-blue/50" />
                 )}
               </div>
-              <span className={`text-[10px] font-medium leading-none ${
-                isActive ? 'text-accent-blue' : 'text-text-muted'
+              <span className={`text-[10px] font-medium leading-none transition-colors duration-150 ${
+                isActive ? 'text-accent-blue font-semibold' : 'text-text-muted'
               }`}>
                 {t(id)}
               </span>
