@@ -822,7 +822,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                   className="fixed inset-0 z-[80]" 
                   onClick={() => setShowModelPicker(false)} 
                 />
-                <div className={`absolute top-full mt-2 w-[270px] max-w-[calc(100vw-2rem)] bg-[#121622] border border-white/10 rounded-xl shadow-2xl overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 ${language === 'ar' ? 'right-0 sm:right-1' : 'left-0 sm:left-1'}`}>
+                <div className="absolute top-full mt-2 w-[280px] max-w-[calc(100vw-2rem)] bg-surface-elevated border border-surface-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden origin-top z-[100] animate-in fade-in zoom-in-95 duration-200 end-0 right-0 rtl:right-auto rtl:left-0">
                   {MODELS.map((m) => (
                     <button
                       key={m.id}
@@ -830,22 +830,27 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                         setSelectedModel(m.id)
                         setShowModelPicker(false)
                       }}
-                      className={`w-full flex items-start gap-3 p-3 transition-colors ${language === 'ar' ? 'text-right' : 'text-left'} ${
-                        selectedModel === m.id ? 'bg-white/10' : 'hover:bg-white/5'
+                      className={`w-full flex items-start gap-3 p-3 transition-colors text-start ${
+                        selectedModel === m.id ? 'bg-surface-hover/80' : 'hover:bg-surface-hover/40'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${m.bg}`}>
                         <m.icon size={15} className={m.color} />
                       </div>
                       <div className="text-start flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
-                            {m.label}
-                          </p>
-                          {m.badge && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-text-muted font-normal">
-                              {m.badge}
-                            </span>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className={`text-sm font-medium ${selectedModel === m.id ? m.color : 'text-text-primary'}`}>
+                              {m.label}
+                            </p>
+                            {m.badge && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface-card border border-surface-border text-text-muted font-normal">
+                                {m.badge}
+                              </span>
+                            )}
+                          </div>
+                          {selectedModel === m.id && (
+                            <Check size={14} className={m.color} />
                           )}
                         </div>
                         <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed whitespace-normal break-words">{m.desc}</p>
