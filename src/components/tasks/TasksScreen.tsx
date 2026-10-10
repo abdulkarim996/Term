@@ -14,7 +14,7 @@ export default function TasksScreen() {
   const { showAddTask, setShowAddTask, showAddSubject, setShowAddSubject, showToast, currentUser } = useUIStore()
   const { dir, language, userName } = useSettingsStore()
   const [sortBy, setSortBy] = useState<'dueDate' | 'priority'>('dueDate')
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'study'>('pending')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
   const [showSubjectFilter, setShowSubjectFilter] = useState<number | string | null>(null)
   const [expandedTask, setExpandedTask] = useState<number | string | null>(null)
   const [editingTask, setEditingTask] = useState<any>(null)
@@ -27,7 +27,6 @@ export default function TasksScreen() {
     let filtered = allTasks
     if (filter === 'pending') filtered = allTasks.filter((t: any) => !t.completed)
     else if (filter === 'completed') filtered = allTasks.filter((t: any) => t.completed)
-    else if (filter === 'study') filtered = allTasks.filter((t: any) => t.isStudyBlock)
 
     if (showSubjectFilter !== null) {
       filtered = filtered.filter((t: any) => String(t.subjectId) === String(showSubjectFilter))
@@ -116,7 +115,7 @@ export default function TasksScreen() {
       {/* Filter Chips & Sort */}
       <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar pb-1">
         <div className="segmented-container flex-1 max-w-md">
-          {(['all', 'pending', 'completed', 'study'] as const).map((f) => (
+          {(['all', 'pending', 'completed'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -125,7 +124,6 @@ export default function TasksScreen() {
               {f === 'all' && t('all')}
               {f === 'pending' && t('inProgress')}
               {f === 'completed' && t('completed')}
-              {f === 'study' && t('studySession')}
             </button>
           ))}
         </div>
