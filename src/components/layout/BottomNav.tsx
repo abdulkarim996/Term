@@ -23,7 +23,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-surface-elevated/90 border-t border-surface-border/80 backdrop-blur-2xl shadow-lg"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-surface-elevated/95 backdrop-blur-2xl shadow-xl"
       style={{
         height: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -38,7 +38,7 @@ export default function BottomNav() {
               className={`nav-item flex-1 ${isActive ? 'active' : ''}`}
               aria-label={label}
             >
-              <div className="relative">
+              <div className="relative flex items-center justify-center">
                 <Icon
                   size={20}
                   className={`transition-all duration-200 ${
@@ -46,9 +46,6 @@ export default function BottomNav() {
                   }`}
                   strokeWidth={isActive ? 2.2 : 1.6}
                 />
-                {isActive && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent-blue shadow-sm shadow-accent-blue/50" />
-                )}
               </div>
               <span className={`text-[10px] font-medium leading-none transition-colors duration-150 ${
                 isActive ? 'text-accent-blue font-semibold' : 'text-text-muted'
