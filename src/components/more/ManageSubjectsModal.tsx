@@ -188,7 +188,7 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
                         <p className="text-[10px] text-text-muted text-center py-2 bg-surface rounded-lg">{t('noLecturesSubject')}</p>
                       )}
                       {editForm.lectures?.map((lec, idx) => (
-                        <div key={idx} className="flex flex-col gap-2 p-2 bg-surface rounded-lg border border-surface-border">
+                        <div key={idx} className="flex flex-col gap-2 p-2.5 bg-surface rounded-xl">
                           <div className="flex gap-2">
                             <select 
                               className="input-field text-xs flex-1 !p-1.5"
@@ -222,7 +222,7 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
             }
 
             return (
-              <div key={sub.id} className="flex flex-col p-3 rounded-xl bg-surface-elevated border border-surface-border gap-3">
+              <div key={sub.id} className="flex flex-col p-3 rounded-xl bg-surface-elevated gap-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: sub.color }} />
@@ -245,7 +245,7 @@ export default function ManageSubjectsModal({ isOpen, onClose }: Props) {
                 {sub.lectures && sub.lectures.length > 0 && (
                   <div className="pt-2 border-t border-surface-border flex flex-wrap gap-1.5">
                     {sub.lectures.map((lec, idx) => (
-                      <div key={idx} className="text-[10px] px-2 py-1 bg-surface rounded-md text-text-secondary flex items-center gap-1 border border-surface-border/50">
+                      <div key={idx} className="text-[10px] px-2.5 py-1 bg-surface rounded-lg text-text-secondary flex items-center gap-1.5">
                         <span className="font-medium">{DAYS_AR[lec.dayOfWeek]}</span>
                         <span>{lec.startTime}-{lec.endTime}</span>
                         {lec.location && <span className="text-text-muted">({lec.location})</span>}

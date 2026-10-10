@@ -289,9 +289,9 @@ export default function MoreScreen() {
                   {subjects.map(subject => (
                     <div
                       key={subject.id}
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-elevated border border-surface-border/50 shadow-sm"
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-elevated shadow-xs"
                     >
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: subject.color }} />
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-xs" style={{ backgroundColor: subject.color }} />
                       <span className="text-xs font-medium text-text-primary truncate">{subject.name}</span>
                     </div>
                   ))}
@@ -312,7 +312,7 @@ export default function MoreScreen() {
           />
           {activeSection === 'gpa' && (
             <div className="space-y-3 pt-3 animate-fade-in">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface-elevated border border-surface-border/60">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface-elevated">
                 <div>
                   <span className="text-[10px] text-text-muted block">
                     {language === 'ar' ? 'المعدل التراكمي العام' : 'Cumulative GPA'}
@@ -356,10 +356,10 @@ export default function MoreScreen() {
         <div className="p-4">
           <SectionHeader id="prefs" label={t("settings")} icon={Settings as React.FC<{ size: number; className: string }>} />
           {activeSection === 'prefs' && (
-            <div className="space-y-4 pt-4 animate-fade-in">
+            <div className="space-y-3 pt-3 animate-fade-in">
 
               {/* Theme — Segmented Control */}
-              <div className="flex flex-col gap-1 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+              <div className="flex flex-col gap-1 p-3 rounded-xl bg-surface-elevated">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent-pink/10 flex items-center justify-center shrink-0">
                     <Palette size={15} className="text-accent-pink" />
@@ -380,7 +380,7 @@ export default function MoreScreen() {
               </div>
 
               {/* Language — Segmented Control */}
-              <div className="flex flex-col gap-1 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+              <div className="flex flex-col gap-1 p-3 rounded-xl bg-surface-elevated">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent-cyan/10 flex items-center justify-center shrink-0">
                     <Globe size={15} className="text-accent-cyan" />
@@ -402,7 +402,7 @@ export default function MoreScreen() {
 
               {/* Push Notifications Toggle */}
               <div
-                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 hover:bg-surface-hover transition-all cursor-pointer"
+                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated hover:bg-surface-hover transition-all cursor-pointer"
                 onClick={handlePushToggle}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -423,7 +423,7 @@ export default function MoreScreen() {
 
               {/* Show GPA on Home Screen Toggle */}
               <div
-                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated border border-surface-border/50 hover:bg-surface-hover transition-all cursor-pointer"
+                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-elevated hover:bg-surface-hover transition-all cursor-pointer"
                 onClick={() => settings.setShowGpaOnHome(!settings.showGpaOnHome)}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -444,8 +444,8 @@ export default function MoreScreen() {
                 </div>
               </div>
 
-              {/* ── API Keys (moved inside Preferences) ───────────── */}
-              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+              {/* ── API Keys ───────────── */}
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent-orange/10 flex items-center justify-center shrink-0">
                     <Key size={15} className="text-accent-orange" />
@@ -464,7 +464,7 @@ export default function MoreScreen() {
                     value={settings.geminiApiKey}
                     onChange={(e) => settings.setGeminiApiKey(e.target.value)}
                     placeholder={t("geminiKey") || "Gemini API Key"}
-                    className="w-full bg-[#0d0d0d] text-text-primary text-xs rounded-xl py-2.5 pl-9 pr-10 outline-none border border-white/5 focus:border-accent-blue/40 transition-colors font-mono"
+                    className="w-full bg-surface text-text-primary text-xs rounded-xl py-2.5 pl-9 pr-10 outline-none border border-surface-border focus:border-accent-blue/40 transition-colors font-mono"
                   />
                   <button
                     onClick={() => setShowGeminiKey(!showGeminiKey)}
@@ -475,8 +475,8 @@ export default function MoreScreen() {
                 </div>
               </div>
 
-              {/* ── Quick Links (fixed localization keys) ─────────── */}
-              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated border border-surface-border/50">
+              {/* ── Quick Links ─────────── */}
+              <div className="flex flex-col gap-2 p-3 rounded-xl bg-surface-elevated">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-accent-blue/10 flex items-center justify-center shrink-0">
                     <LinkIcon size={15} className="text-accent-blue" />
@@ -519,7 +519,7 @@ export default function MoreScreen() {
             <div className="space-y-2 pt-2 animate-fade-in">
               <button
                 onClick={exportData}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-hover transition-all border border-surface-border/50"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-elevated hover:bg-surface-hover transition-all"
               >
                 <div className="flex items-center gap-2.5 text-sm text-text-secondary">
                   <Download size={15} className="text-accent-green" />

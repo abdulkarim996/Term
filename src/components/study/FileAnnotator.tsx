@@ -1072,7 +1072,7 @@ export default function FileAnnotator({ file, onClose }: Props) {
         </div>
 
         {/* Center Section: Tools */}
-        <div className="flex items-center gap-1 bg-surface p-1 rounded-xl shadow-sm border border-surface-border/50 justify-center shrink-0 mx-auto">
+        <div className="flex items-center gap-1 bg-surface p-1 rounded-xl shadow-sm border border-surface-border justify-center shrink-0 mx-auto">
           <button onClick={undo} disabled={historyIndex === 0} className="p-2 rounded-lg text-text-muted hover:bg-surface-hover disabled:opacity-30 shrink-0" title="تحديد (نقر مزدوج لحذف)">
             <Undo size={18} />
           </button>

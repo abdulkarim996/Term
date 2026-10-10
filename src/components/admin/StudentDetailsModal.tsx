@@ -87,7 +87,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
         className="w-full max-w-lg bg-surface-elevated/95 backdrop-blur-2xl border border-surface-border rounded-3xl shadow-2xl overflow-hidden animate-scale-up flex flex-col"
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-surface-border/60 bg-gradient-to-r from-accent-blue/10 via-purple-500/5 to-transparent">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-surface-border bg-gradient-to-r from-accent-blue/10 via-purple-500/5 to-transparent">
           <div className="flex items-center gap-3">
             {user.photoURL ? (
               <img
@@ -117,7 +117,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-surface-border/50 transition-colors"
+            className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
           >
             <X size={18} />
           </button>
@@ -260,7 +260,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-2 pt-2 border-t border-surface-border/60">
+          <div className="space-y-2 pt-2 border-t border-surface-border">
             {/* Direct Push Notification Button */}
             <button
               onClick={() => {

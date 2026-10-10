@@ -207,7 +207,7 @@ export default function CalendarScreen() {
             });
             
             return (
-              <div key={d} className={`border border-surface-border/50 rounded-md p-1 md:p-2 min-h-[80px] md:min-h-[100px] transition ${isT ? 'bg-accent-blue/5 border-accent-blue/30' : 'hover:bg-surface-hover'}`}>
+              <div key={d} className={`border border-surface-border rounded-md p-1 md:p-2 min-h-[80px] md:min-h-[100px] transition ${isT ? 'bg-accent-blue/5 border-accent-blue/30' : 'hover:bg-surface-hover'}`}>
                 <span className={`text-xs md:text-sm font-semibold ${isT ? 'text-accent-blue' : 'text-text-primary'}`}>{d}</span>
                 <div className="mt-1 flex flex-col gap-1 text-[10px] md:text-xs">
                   {dayTasks.slice(0, 3).map((task) => (

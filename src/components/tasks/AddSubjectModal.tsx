@@ -219,7 +219,7 @@ export default function AddSubjectModal({ isOpen, onClose, editSubject }: Props)
               <p className="text-[10px] text-text-muted text-center py-2 bg-surface rounded-lg">{t('noLecturesAdded')}. {t('useBtnToAddLec')}.</p>
             )}
             {lectures.map((lec, idx) => (
-              <div key={idx} className="flex flex-col gap-2 p-2 bg-surface rounded-lg border border-surface-border">
+              <div key={idx} className="flex flex-col gap-2 p-2.5 bg-surface rounded-xl">
                 <div className="flex gap-2">
                   <select
                     className="input-field text-xs flex-1 !p-1.5"

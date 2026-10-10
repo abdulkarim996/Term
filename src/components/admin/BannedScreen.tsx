@@ -55,7 +55,7 @@ export const BannedScreen: React.FC<BannedScreenProps> = ({ reason }) => {
 
         <button
           onClick={handleSignOut}
-          className="w-full py-3 px-4 rounded-xl bg-surface hover:bg-surface-border/50 border border-surface-border text-text-primary text-sm font-medium transition-all flex items-center justify-center gap-2 group"
+          className="w-full py-3 px-4 rounded-xl bg-surface hover:bg-surface-hover border border-surface-border text-text-primary text-sm font-medium transition-all flex items-center justify-center gap-2 group"
         >
           <LogOut size={16} className="text-text-muted group-hover:text-red-400 transition-colors" />
           <span>{t('logout')}</span>

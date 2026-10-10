@@ -285,7 +285,7 @@ export default function GPAModal() {
     const points = summary.termGpas
     if (!points || points.length === 0) {
       return (
-        <div className="py-8 text-center text-text-muted text-xs bg-surface-elevated/40 rounded-2xl border border-surface-border/50">
+        <div className="py-8 text-center text-text-muted text-xs bg-surface-elevated/40 rounded-2xl border border-surface-border">
           <TrendingUp size={28} className="mx-auto mb-2 text-text-muted/40" />
           <p>{isAr ? 'لا توجد فصول دراسية كافية لرسم المنحنى البياني بعد.' : 'No semesters added to render trend chart yet.'}</p>
           <p className="text-[11px] text-text-muted/60 mt-1">
@@ -324,7 +324,7 @@ export default function GPAModal() {
       : ''
 
     return (
-      <div className="w-full bg-surface-elevated/50 p-4 rounded-2xl border border-surface-border/60 relative overflow-hidden shadow-inner">
+      <div className="w-full bg-surface-elevated/50 p-4 rounded-2xl border border-surface-border relative overflow-hidden shadow-inner">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp size={15} className="text-accent-blue" />
@@ -360,7 +360,7 @@ export default function GPAModal() {
                 x2={svgWidth - padX}
                 y2={y}
                 stroke="currentColor"
-                className="text-surface-border/60"
+                className="text-surface-border"
                 strokeDasharray="4 4"
                 strokeWidth="1"
               />
@@ -444,14 +444,14 @@ export default function GPAModal() {
           </div>
           <button
             onClick={() => setShowGpaModal(false)}
-            className="w-8 h-8 rounded-xl bg-surface-border/50 hover:bg-surface-border text-text-muted hover:text-text-primary flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary flex items-center justify-center transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Tabs Bar */}
-        <div className="flex items-center px-4 pt-3 pb-1 border-b border-surface-border/60 bg-surface gap-2">
+        <div className="flex items-center px-4 pt-3 pb-1 border-b border-surface-border bg-surface gap-2">
           <button
             onClick={() => setActiveTab('tracker')}
             className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
@@ -607,7 +607,7 @@ export default function GPAModal() {
 
                 {/* Semesters List */}
                 {semesters.length === 0 ? (
-                  <div className="p-8 text-center bg-surface-elevated/30 rounded-2xl border border-surface-border/50 text-text-muted text-xs">
+                  <div className="p-8 text-center bg-surface-elevated/30 rounded-2xl border border-surface-border text-text-muted text-xs">
                     {isAr ? (
                       <>
                         لم تقم بإضافة أي فصول دراسية سابقة بعد.
@@ -634,7 +634,7 @@ export default function GPAModal() {
                       return (
                         <div
                           key={sem.id}
-                          className="bg-surface-elevated rounded-2xl border border-surface-border/80 overflow-hidden shadow-sm transition-all"
+                          className="bg-surface-elevated rounded-2xl border border-surface-border overflow-hidden shadow-sm transition-all"
                         >
                           {/* Semester Accordion Header */}
                           <div
@@ -675,14 +675,14 @@ export default function GPAModal() {
 
                           {/* Expanded Courses Inside Semester */}
                           {isExpanded && (
-                            <div className="p-3.5 pt-0 border-t border-surface-border/50 bg-surface/30 space-y-3">
+                            <div className="p-3.5 pt-0 border-t border-surface-border bg-surface/30 space-y-3">
                               {/* Courses list */}
                               {semCourses.length === 0 ? (
                                 <p className="text-center py-4 text-xs text-text-muted">
                                   {isAr ? 'لا توجد مواد مضافة في هذا الفصل بعد.' : 'No courses added in this semester yet.'}
                                 </p>
                               ) : (
-                                <div className="divide-y divide-surface-border/40">
+                                <div className="divide-y divide-surface-border">
                                   {semCourses.map(course => (
                                     <div key={course.id} className="py-2.5 flex items-center justify-between gap-3">
                                       <div className="flex-1 min-w-0">
@@ -923,7 +923,7 @@ export default function GPAModal() {
                   <span></span>
                 </div>
 
-                <div className="divide-y divide-surface-border/50 p-2 space-y-1">
+                <div className="divide-y divide-surface-border p-2 space-y-1">
                   {simulatedCourses.length === 0 ? (
                     <div className="p-6 text-center text-xs text-text-muted">
                       {isAr

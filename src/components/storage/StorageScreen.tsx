@@ -330,7 +330,7 @@ export default function StorageScreen() {
               
               return (
                 <div key={subKey} className="space-y-4 mb-8">
-                  <div className="flex items-center gap-2 mb-2 border-b border-surface-border/50 pb-2">
+                  <div className="flex items-center gap-2 mb-2 border-b border-surface-border pb-2">
                     {sub ? (
                       <>
                         <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: sub.color }} />
@@ -347,7 +347,7 @@ export default function StorageScreen() {
                   </div>
 
                   {Object.entries(categories).map(([catKey, files]) => (
-                    <div key={catKey} className="pl-3 space-y-2 relative before:content-[''] before:absolute before:right-0 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-border/50 before:rounded-full">
+                    <div key={catKey} className="pl-3 space-y-2 relative before:content-[''] before:absolute before:right-0 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-border before:rounded-full">
                       <h4 className="text-xs font-bold text-text-secondary mb-3 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-text-muted/60" />
   {catKey === 'uncategorized' ? t('uncategorized') : (CATEGORIES.find(c => c.id === catKey) ? t(CATEGORIES.find(c => c.id === catKey)!.name) : catKey)}
@@ -361,7 +361,7 @@ export default function StorageScreen() {
                         {files.map(file => (
                           <div key={file.id} className="glass-card p-3 flex items-center justify-between hover:bg-surface-hover transition-all">
                             <div className="flex items-center gap-3 min-w-0 pr-2">
-                              <div className="flex-shrink-0 p-2 bg-surface-elevated rounded-lg shadow-sm border border-surface-border/50">
+                              <div className="flex-shrink-0 p-2 bg-surface-elevated rounded-lg shadow-sm border border-surface-border">
                                 {getFileIcon(file.mimeType)}
                               </div>
                               <div className="min-w-0">

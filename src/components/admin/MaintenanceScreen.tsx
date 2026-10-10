@@ -59,7 +59,7 @@ export const MaintenanceScreen: React.FC<MaintenanceScreenProps> = ({ message })
 
           <button
             onClick={handleSignOut}
-            className="w-full py-2.5 px-4 rounded-xl bg-surface hover:bg-surface-border/50 border border-surface-border text-text-muted hover:text-text-primary text-xs font-medium transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 rounded-xl bg-surface hover:bg-surface-hover border border-surface-border text-text-muted hover:text-text-primary text-xs font-medium transition-all flex items-center justify-center gap-2"
           >
             <LogOut size={14} />
             <span>{t('logout')}</span>

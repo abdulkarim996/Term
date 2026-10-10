@@ -724,7 +724,7 @@ const currentSession = sessions.find(s => s.id === currentSessionId)
                   onClick={() => setShowSessionsMenu(false)} 
                 />
                 <div className="absolute top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-xl shadow-lg shadow-black/20 overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200 z-50 start-0">
-                  <div className="p-2 border-b border-surface-border/50">
+                  <div className="p-2 border-b border-surface-border">
                   <button
                     onClick={createNewSession}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-accent-blue hover:bg-accent-blue/10 transition-colors rounded-lg"
